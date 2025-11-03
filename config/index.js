@@ -11,7 +11,7 @@ let config = {}
 // 微信小程序环境判断
 if (__wxConfig && __wxConfig.envVersion) {
   const env = __wxConfig.envVersion
-  
+  console.log("env",env);
   switch (env) {
     case 'develop':    // 开发版
       config = require('./dev.js').default

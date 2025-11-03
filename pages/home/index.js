@@ -20,7 +20,7 @@ Page({
   // 生命周期
   async onReady() {
     const [cardRes, swiperRes] = await Promise.all([
-      request('/home/cards').then((res) => res.data),
+      request('/s').then((res) => res.data),
       request('/home/swipers').then((res) => res.data),
     ]);
 
@@ -54,7 +54,7 @@ Page({
       enable: true,
     });
     const [cardRes, swiperRes] = await Promise.all([
-      request('/home/cards').then((res) => res.data),
+      request('/s').then((res) => res.data),
       request('/home/swipers').then((res) => res.data),
     ]);
 

@@ -5,7 +5,7 @@ export default {
   
   // API 基础配置
   baseUrl: 'http://localhost:9991',
-  apiPrefix: '/api/',
+  apiPrefix: '/api',
   
   // 业务接口
   api: {

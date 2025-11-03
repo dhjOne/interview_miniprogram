@@ -1,6 +1,11 @@
-import config from '~/config';
+import config from '../config/index';
 
-const { baseUrl } = config;
+console.log('🔧 request.js中加载的配置:', config)
+
+// const { configs } = config;
+const baseUrl = config.baseUrl 
+const apiPrefix = config.apiPrefix
+const urls = baseUrl + apiPrefix
 const delay = config.isMock ? 500 : 0;
 function request(url, method = 'GET', data = {}) {
   const header = {
@@ -13,9 +18,9 @@ function request(url, method = 'GET', data = {}) {
     header.Authorization = `Bearer ${tokenString}`;
   }
   return new Promise((resolve, reject) => {
-    console.log("测试url ",baseUrl + url);
+    console.log("测试url ",urls + url);
     wx.request({
-      url: baseUrl + url,
+      url: urls + url,
       method,
       data,
       dataType: 'json', // 微信官方文档中介绍会对数据进行一次JSON.parse

@@ -1,4 +1,5 @@
-import request from '~/api/request';
+import { authApi } from '~/api/request/api_login';
+import { LoginParams } from '~/api/param/param_login'
 
 Page({
   data: {
@@ -8,8 +9,10 @@ Page({
     isSubmit: false,
     isPasswordLogin: false,
     passwordInfo: {
-      account: '',
+      username: '',
       password: '',
+      clientId: '195da9fcce574852b850068771cde034',
+      grantType: 'password'
     },
     radioValue: '',
   },
@@ -17,7 +20,7 @@ Page({
   /* 自定义功能函数 */
   changeSubmit() {
     if (this.data.isPasswordLogin) {
-      if (this.data.passwordInfo.account !== '' && this.data.passwordInfo.password !== '' && this.data.isCheck) {
+      if (this.data.passwordInfo.username !== '' && this.data.passwordInfo.password !== '' && this.data.isCheck) {
         this.setData({ isSubmit: true });
       } else {
         this.setData({ isSubmit: false });
@@ -50,7 +53,7 @@ Page({
   },
 
   onAccountChange(e) {
-    this.setData({ passwordInfo: { ...this.data.passwordInfo, account: e.detail.value } });
+    this.setData({ passwordInfo: { ...this.data.passwordInfo, username: e.detail.value } });
     this.changeSubmit();
   },
 
@@ -66,9 +69,17 @@ Page({
 
   async login() {
     if (this.data.isPasswordLogin) {
-      const res = await request('/auth/login', 'post', { data: this.data.passwordInfo });
-      if (res.success) {
-        await wx.setStorageSync('access_token', res.data.token);
+      // 创建登录参数对象
+      const param = this.data.passwordInfo
+      const loginParams = new LoginParams(param.username, param.password)
+      // 调用API
+      const result = await authApi.login(loginParams)
+      if (result.code === "0000") {
+        wx.setStorageSync('access_token', result.data.accessToken);
+        wx.showToast({
+          title: '登录成功',
+          icon: 'success'
+        })
         wx.switchTab({
           url: `/pages/my/index`,
         });
@@ -83,3 +94,4 @@ Page({
     }
   },
 });
+

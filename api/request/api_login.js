@@ -10,6 +10,14 @@ export const authApi = {
     })
   },
   
+   // 微信登录
+   wxlogin: (wxLoginParams) => {
+    return http.post('/wechat/mini/user/login', wxLoginParams, {
+      showLoading: true,
+      loadingText: '登录中...'
+    })
+  },
+
   // 注册
   register: (registerParams) => {
     return http.post('/auth/register', registerParams, {

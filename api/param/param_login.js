@@ -1,4 +1,4 @@
-import { BaseParams } from './base_param'
+import { BaseParams } from './param_base'
 
 /**
  * 登录参数
@@ -90,6 +90,20 @@ export class RegisterParams extends BaseParams {
       inviteCode: this.inviteCode,
       timestamp: this.timestamp,
       deviceType: this.deviceType
+    }
+  }
+}
+
+export class WxLoginParams extends BaseParams {
+  constructor(code) {
+    super()
+    this.code = code
+  }
+  
+  // 转换为请求数据
+  toRequestData() {
+    return {
+      code: this.code
     }
   }
 }

@@ -1,5 +1,5 @@
 {
-  "pages": ["pages/home/index", "pages/message/index", "pages/my/index"],
+  "pages": ["pages/home/index", "pages/message/index", "pages/my/index","pages/agreement/agreement"],
   "usingComponents": {
     "t-toast": "tdesign-miniprogram/toast/toast"
   },

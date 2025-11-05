@@ -2,8 +2,8 @@
 Page({
   data: {
     isAgreed: false,
-    companyName: '您的公司名称',
-    productName: '您的产品/服务名称',
+    companyName: '面试胶囊小程序',
+    productName: '面试胶囊',
     servicePhone: '400-xxx-xxxx',
     serviceEmail: 'service@yourcompany.com',
     companyAddress: '您的公司地址'

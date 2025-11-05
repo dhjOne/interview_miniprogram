@@ -3,18 +3,99 @@
   <view class="header">
     <text class="title">用户服务协议</text>
   </view>
-  
+
   <scroll-view class="content" scroll-y>
     <view class="agreement-content">
       <text class="section-title">《用户服务协议》</text>
       <text class="important-note">重要提示：请您在注册或登录前仔细阅读本《用户服务协议》（以下简称"本协议"）。一旦您完成注册或登录操作，即表示您已充分阅读、理解并同意接受本协议的全部内容。如您不同意本协议的任意内容，请立即停止使用本服务。</text>
-      
+
       <text class="section-title">一、协议的范围</text>
-      <text class="content-text">1.1 本协议是您与{{companyName}}之间关于使用{{productName}}相关服务所订立的协议。</text>
-      <text class="content-text">1.2 本协议内容包含本协议正文及所有{{productName}}已经发布或将来可能发布的各类规则、规范、声明、通知、公告等（以下统称"规则"）。所有规则均为本协议不可分割的组成部分，与本协议正文具有同等法律效力。</text>
-      
+      <text class="content-text">1.1 本协议是您与{{companyName}}之间关于使用【{{productName}}】相关服务所订立的协议。</text>
+      <text class="content-text">1.2 本协议内容包含本协议正文及所有【{{productName}}】已经发布或将来可能发布的各类规则、规范、声明、通知、公告等（以下统称"规则"）。所有规则均为本协议不可分割的组成部分，与本协议正文具有同等法律效力。</text>
+
+      <text class="section-title">二、账号注册与使用</text>
+      <text class="content-text">2.1 您确认，在您开始注册程序使用【{{productName}}】服务前，您应当具备中华人民共和国法律规定的与您行为相适应的民事行为能力。</text>
+      <text class="content-text">2.2 当您按照注册页面提示填写信息、阅读并同意本协议且完成全部注册程序后，您即可获得【{{productName}}】账号并成为【{{productName}}】用户。</text>
+      <text class="content-text">2.3 您有义务保证提供的注册信息真实、准确、完整、有效，如注册信息有变动的，应及时更新。如果因您提供的注册信息不真实、不准确、不完整、无效而导致相关损失或不利后果的，应由您自行承担。</text>
+      <text class="content-text">2.4 您的账号仅限于您本人使用，未经【{{companyName}}】书面同意，禁止以任何形式赠与、借用、出租、转让、售卖或以其他方式许可他人使用该账号。</text>
+
+      <text class="section-title">三、用户个人信息保护</text>
+      <text class="content-text">3.1 保护用户个人信息是【{{companyName}}】的一项基本原则。【{{companyName}}】将按照本协议及《隐私政策》的规定收集、使用、储存和分享您的个人信息。</text>
+      <text class="content-text">3.2 您知悉并同意，为更好的为您提供服务，您授权我们在以下情形下收集和使用您的个人信息：
+
+        (1) 账号注册、登录与验证；
+
+        (2) 向您提供您选择的服务；
+
+        (3) 安全保障与风险控制；
+
+        (4) 改善和优化我们的服务；
+
+        (5) 法律法规规定的其他情形。</text>
+      <text class="content-text">3.3 未经您同意，【{{companyName}}】不会向任何第三方公开、透露您的个人信息，但以下特定情形除外：
+
+        (1) 根据法律法规规定或有权机关的指示提供；
+
+        (2) 由于您的自行公开或授权公开；
+
+        (3) 由于网络攻击、计算机病毒侵入或发作等不可抗力导致个人信息泄露；
+
+        (4) 为维护社会公共利益；
+
+        (5) 为维护【{{companyName}}】或其他用户的合法权益。</text>
+
+      <text class="section-title">四、用户行为规范</text>
+      <text class="content-text">4.1 您在使用本服务时须遵守法律法规，不得利用本服务从事违法违规行为，包括但不限于：
+
+        (1) 发布、传送、传播、储存危害国家安全统一、破坏社会稳定、违反公序良俗、侮辱、诽谤、淫秽、暴力以及任何违反国家法律法规的内容；
+
+        (2) 发布、传送、传播、储存侵害他人名誉权、肖像权、知识产权、商业秘密等合法权利的内容；
+
+        (3) 虚构事实、隐瞒真相以误导、欺骗他人；
+
+        (4) 发表、传送、传播广告信息及垃圾信息；
+
+        (5) 从事其他违反法律法规、政策及公序良俗、社会公德等的行为。</text>
+      <text class="content-text">4.2 如果【{{companyName}}】发现或收到他人举报您发布的信息违反本条约定，【{{companyName}}】有权进行独立判断并采取技术手段予以删除、屏蔽或断开链接。同时，【{{companyName}}】有权视用户的行为性质，采取包括但不限于暂停、终止服务，限制、冻结账号，追究法律责任等措施。</text>
+
+      <text class="section-title">五、服务的变更、中断或终止</text>
+      <text class="content-text">5.1 您理解并同意，【{{companyName}}】基于经营策略的调整，可能会对服务内容进行变更，也可能会中断、中止或终止服务。</text>
+      <text class="content-text">5.2 如发生下列任何一种情形，【{{companyName}}】有权不经通知而中断或终止向您提供的服务：
+
+        (1) 根据法律规定您应提交真实信息，而您提供的个人资料不真实、或与注册时信息不一致又未能提供合理证明；
+
+        (2) 您违反相关法律法规或本协议的约定；
+
+        (3) 按照法律规定或主管部门的要求；
+
+        (4) 出于安全的原因或其他必要的情形。</text>
+
+      <text class="section-title">六、免责声明</text>
+      <text class="content-text">6.1 您理解并同意，本服务按现状提供，【{{companyName}}】不对本服务提供任何形式的保证，包括但不限于本服务的适用性、没有错误或疏漏、持续性、准确性、可靠性、适用于某一特定用途。</text>
+      <text class="content-text">6.2 【{{companyName}}】不对因下述任一情况而导致的任何损害赔偿承担责任，包括但不限于利润、商誉、使用、数据等方面的损失或其他无形损失的损害赔偿：
+
+        (1) 使用或未能使用本服务；
+
+        (2) 第三方未经批准使用您的账号或更改您的数据；
+
+        (3) 用户对本服务使用的误解；
+
+        (4) 任何非因【{{companyName}}】的原因而引起的与本服务有关的其他损失。</text>
+      <text class="content-text">6.3 您理解并同意，【{{companyName}}】将尽力保障服务的连续性和安全性，但不对因不可抗力、计算机病毒或黑客攻击、系统不稳定、用户所在位置、用户关机、通信线路问题等造成的服务中断或不能满足用户要求负责。</text>
+
+      <text class="section-title">七、知识产权</text>
+      <text class="content-text">7.1 【{{companyName}}】在本服务中提供的内容（包括但不限于网页、文字、图片、音频、视频、图表等）的知识产权归【{{companyName}}】所有，用户在使用本服务中所产生的内容的知识产权归用户或相关权利人所有。</text>
+      <text class="content-text">7.2 除另有特别声明外，【{{companyName}}】提供本服务时所依托软件的著作权、专利权及其他知识产权均归【{{companyName}}】所有。</text>
+      <text class="content-text">7.3 上述及其他任何本服务包含的内容的知识产权均受到法律保护，未经【{{companyName}}】、用户或相关权利人书面许可，任何人不得以任何形式进行使用或创造相关衍生作品。</text>
+
+      <text class="section-title">八、协议修改</text>
+      <text class="content-text">8.1 【{{companyName}}】有权根据需要不时地修改本协议、规则或相关政策，修改后的内容将在相关页面公布。如果您不同意相关变更，可以停止使用本服务。</text>
+      <text class="content-text">8.2 如果您继续使用本服务，则视为您接受修改后的协议、规则或政策。</text>
+      <text class="section-title">九、法律适用与争议解决</text>
+      <text class="content-text">9.1 本协议的成立、生效、履行、解释及纠纷解决，适用中华人民共和国大陆地区法律（不包括冲突法）。</text>
+      <text class="content-text">9.2 若您和【{{companyName}}】之间发生任何纠纷或争议，首先应友好协商解决；协商不成的，您同意将纠纷或争议提交【{{companyName}}】住所地有管辖权的人民法院管辖。</text>
       <!-- 其他协议内容 -->
-      
+
       <text class="section-title">十、其他</text>
       <text class="content-text">10.1 本协议条款无论因何种原因部分无效或不可执行，其余条款仍有效，对双方具有约束力。</text>
       <text class="content-text">10.2 本协议中的标题仅为方便而设，在解释本协议时应被忽略。</text>
@@ -24,32 +105,21 @@
       <text class="content-text">联系地址：{{companyAddress}}</text>
     </view>
   </scroll-view>
-  
+
   <view class="footer">
     <text class="agree-text">请您再次确认您已完全理解并同意上述协议条款。如果您点击"同意"按钮，即表示您接受以上协议的全部内容，本协议即构成对双方有约束力的法律文件。</text>
-    
+
     <view class="action-buttons">
-      <button 
-        class="btn btn-disagree" 
-        bindtap="onDisagree"
-      >
+      <button class="btn btn-disagree" bindtap="onDisagree">
         不同意并退出
       </button>
-      <button 
-        class="btn btn-agree {{isAgreed ? 'btn-agree-active' : ''}}" 
-        bindtap="onAgree"
-        disabled="{{!isAgreed}}"
-      >
+      <button class="btn btn-agree {{isAgreed ? 'btn-agree-active' : ''}}" bindtap="onAgree" disabled="{{!isAgreed}}">
         同意并继续
       </button>
     </view>
-    
+
     <view class="checkbox-area">
-      <checkbox 
-        checked="{{isAgreed}}" 
-        bindtap="onCheckboxChange"
-        color="#07C160"
-      />
+      <checkbox checked="{{isAgreed}}" bindtap="onCheckboxChange" color="#07C160" />
       <text class="checkbox-text">我已阅读并同意《用户服务协议》</text>
     </view>
   </view>

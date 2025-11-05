@@ -155,6 +155,27 @@ Page({
     console.log(e.detail.code)  // 动态令牌
     console.log(e.detail.errMsg) // 回调信息（成功失败都会返回）
     console.log(e.detail.errno)  // 错误码（失败时返回）
+  },
+
+  // 查看协议
+  viewUserAgreement() {
+    console.log("查看.....")
+    // 检查页面是否存在
+    const app = getApp()
+    const pages = app ? app.globalData.pages : []
+    console.log('已注册页面:', pages)
+    wx.navigateTo({
+      url: '/pages/agreement/agreement?from=login',
+      success: (res) => {
+        console.log('✅ 页面跳转成功:', res)
+      },
+      fail: (error) => {
+        console.error('❌ 页面跳转失败:', error)
+      },
+      complete: () => {
+        console.log('📞 navigateTo调用完成')
+      }
+    })
   }
 });
 

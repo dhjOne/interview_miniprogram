@@ -35,15 +35,28 @@
 
     <view class="login__tips">未注册的手机号验证通过后将自动注册</view>
 
-    <t-radio-group allow-uncheck borderless value="{{radioValue}}" bind:change="onCheckChange">
+    <view class="agreement-row">
+    <t-radio-group 
+      allow-uncheck 
+      borderless 
+      value="{{radioValue}}" 
+      bind:change="onCheckChange"
+    >
       <t-radio
-        label="同意《协议条款》"
         value="agree"
         t-class="radio-class"
         t-class-icon="radio-class-icon"
         t-class-label="radio-class-label"
       />
     </t-radio-group>
+    
+    <view class="agreement-text">
+      <text>同意</text>
+      <text class="agreement-link" bindtap="viewUserAgreement">《用户服务协议》</text>
+    </view>
+  </view>
+
+
 
     <view class="login__button">
       <t-button theme="primary" size="large" block disabled="{{!isSubmit}}" bindtap="login">

@@ -1,12 +1,37 @@
 .login {
+  // 新增：header 容器（水平排列标题和 logo）
+  &__header {
+    display: flex;
+    align-items: center; // 文字和 logo 垂直居中对齐
+    justify-content: flex-start; // 从左到右排列
+    padding: 46rpx 32rpx 40rpx; // 复用原有标题的上下内边距，保持页面间距一致
+  }
+
+  // 原有 title 样式修改：去掉右侧内边距，添加与 logo 的间距
   &__title {
     color: rgba(0, 0, 0, 0.9);
     font-size: 56rpx;
     font-weight: 600;
     line-height: 72rpx;
-    padding: 16rpx 32rpx 40rpx;
+    padding: 0; // 去掉原有上下左右内边距（移到 header 上）
+    margin-right: 24rpx; // 标题与 logo 之间的间距，可按需调整
   }
 
+  // 新增：logo 容器（控制 logo 位置）
+  &__logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  // 原有 logo-img 样式调整（放大 logo，保持比例）
+  .logo-img {
+    width: 700rpx; // 比原来放大40rpx，按需调整（越大越醒目）
+    height: auto;
+    object-fit: contain; // 强制保持 logo 宽高比，不拉伸变形
+  }
+
+  // 以下是你原有样式，保持不变...
   &__input {
     .input-label {
       display: flex;

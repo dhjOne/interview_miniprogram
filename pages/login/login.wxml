@@ -1,6 +1,11 @@
 <t-navbar left-arrow />
 <view class="page login">
-  <view class="login__title"> 欢迎登录 TDsign </view>
+   <!-- 新增 header 容器，实现文字+logo 水平排列 -->
+   <view class="login__header">
+    <view class="login__logo">
+      <image src="/static/login/interview-capsule-logo-7.png" mode="widthFix" class="logo-img"></image>
+    </view>
+  </view>
   <view class="login__content">
     <view class="login__input">
       <view class="login__password" wx:if="{{isPasswordLogin}}">
@@ -42,7 +47,7 @@
 
     <view class="login__button">
       <t-button theme="primary" size="large" block disabled="{{!isSubmit}}" bindtap="login">
-        {{ isPasswordLogin ? '登录' : '验证并登录' }}
+        {{ isPasswordLogin ? '登录' : '一键登录' }}
       </t-button>
     </view>
 
@@ -52,7 +57,7 @@
     </view>
   </view>
 
-  <view class="login__others">
+  <!-- <view class="login__others">
     <text class="login__others-label">其他方式</text>
     <view class="login__others-buttons">
       <t-button class="button" variant="outline" theme="default" size="medium" shape="round" bindtap="changeLogin">
@@ -67,27 +72,8 @@
         shape="circle"
         bindtap="wxLogin"
       ></t-button>
-      <t-button class="button" variant="outline" theme="default" size="medium" icon="logo-qq" shape="circle"></t-button>
-      <t-button
-        class="button"
-        variant="outline"
-        theme="default"
-        size="medium"
-        icon="logo-wecom"
-        shape="circle"
-      ></t-button>
+ 
     </view>
-  </view>
-  <view class="container">
-  <view class="userinfo">
-    <block wx:if="{{!hasUserInfo}}">
-      <button wx:if="{{canIUseGetUserProfile}}" bindtap="getUserProfile"> 获取头像昵称 </button>
-      <button wx:else open-type="getUserInfo" bindgetuserinfo="getUserInfo"> 获取头像昵称 </button>
-    </block>
-    <block wx:else>
-      <image bindtap="bindViewTap" class="userinfo-avatar" src="{{userInfo.avatarUrl}}" mode="cover"></image>
-      <text class="userinfo-nickname">{{userInfo.nickName}}</text>
-    </block>
-  </view>
-</view>
+  </view> -->
+
 </view>

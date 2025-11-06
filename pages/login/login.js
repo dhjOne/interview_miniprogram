@@ -12,8 +12,8 @@ Page({
     passwordInfo: {
       username: '',
       password: '',
-      clientId: '195da9fcce574852b850068771cde034',
-      grantType: 'password'
+      clientId: '7b2bcf3c6a3e4834a375727231a816a0',
+      grantType: 'applet'
     },
     radioValue: '',
     userInfo: {},
@@ -103,18 +103,29 @@ Page({
     }
   },
   async wxLogin() {
-    console.log("微信登陆.....")
+    const phoneNumber = this.data.phoneNumber; // 在回调外部先获取值
+    console.log('当前手机号:', phoneNumber);
     wx.login({
-      success (res) {
-        console.log("weixin code", res)
+      success(res) {
         if (res.code) {
-          //发起网络请求
+          const loginParams = new LoginParams(null, null,res.code, phoneNumber, "applet")
           // 调用API
-
-          const wxloginParams = new WxLoginParams(res.code)
-          console.log("weixin code", wx)
-          const result = authApi.wxlogin(wxloginParams)
-          console.log('一件登陆：',result)
+          const result = authApi.login(loginParams)
+          if (result.code === "0000") {
+            wx.setStorageSync('access_token', result.data.accessToken);
+            wx.showToast({
+              title: '登录成功',
+              icon: 'success'
+            })
+            wx.switchTab({
+              url: `/pages/my/index`,
+            });
+          } else {
+            wx.showToast({
+              title: result.message || '登录失败',
+              icon: 'none'
+            })
+          }
         } else {
           console.log('登录失败！' + res.errMsg)
         }
@@ -124,6 +135,8 @@ Page({
 
 
   onLoad() {
+    // 绑定方法上下文，确保this始终指向页面实例
+    this.wxLogin = this.wxLogin.bind(this);
     if (wx.getUserProfile) {
       this.setData({
         canIUseGetUserProfile: true
@@ -144,13 +157,7 @@ Page({
       }
     })
   },
-  getUserInfo(e) {
-    // 不推荐使用getUserInfo获取用户信息，预计自2021年4月13日起，getUserInfo将不再弹出弹窗，并直接返回匿名的用户个人信息
-    this.setData({
-      userInfo: e.detail.userInfo,
-      hasUserInfo: true
-    })
-  },
+
   getPhoneNumber (e) {
     console.log(e.detail.code)  // 动态令牌
     console.log(e.detail.errMsg) // 回调信息（成功失败都会返回）
@@ -159,11 +166,6 @@ Page({
 
   // 查看协议
   viewUserAgreement() {
-    console.log("查看.....")
-    // 检查页面是否存在
-    const app = getApp()
-    const pages = app ? app.globalData.pages : []
-    console.log('已注册页面:', pages)
     wx.navigateTo({
       url: '/pages/agreement/agreement?from=login',
       success: (res) => {
@@ -176,6 +178,11 @@ Page({
         console.log('📞 navigateTo调用完成')
       }
     })
-  }
+  },
+  updateAgreementStatus(value) {
+    this.setData({
+      radioValue: value
+    })
+  },
 });
 

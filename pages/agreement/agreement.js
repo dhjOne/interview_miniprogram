@@ -36,7 +36,7 @@ Page({
     // 保存用户同意状态
     wx.setStorageSync('hasAgreedToTerms', true)
     wx.setStorageSync('agreementVersion', '1.0') // 协议版本号
-    
+      
     // 记录同意时间
     wx.setStorageSync('agreementAgreedTime', new Date().getTime())
 
@@ -46,6 +46,11 @@ Page({
       duration: 1500,
       success: () => {
         setTimeout(() => {
+          const pages = getCurrentPages()
+          const prevPage = pages[pages.length - 2]
+          if (prevPage && prevPage.updateAgreementStatus) {
+            prevPage.updateAgreementStatus('agree')
+          }
           // 返回上一页或跳转到首页
           if (this.data.fromPage === 'login') {
             wx.navigateBack()
@@ -56,7 +61,7 @@ Page({
           }
         }, 1500)
       }
-    })
+    })                    
   },
 
   // 不同意协议

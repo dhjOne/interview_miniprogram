@@ -78,6 +78,7 @@ Page({
       const loginParams = new LoginParams(param.username, param.password)
       // 调用API
       const result = await authApi.login(loginParams)
+      console.log("登陆结果",result);
       if (result.code === "0000") {
         wx.setStorageSync('access_token', result.data.accessToken);
         wx.showToast({
@@ -102,7 +103,7 @@ Page({
       }
     }
   },
-  async wxLogin() {
+  async wxLogin2() {
     const phoneNumber = this.data.phoneNumber; // 在回调外部先获取值
     console.log('当前手机号:', phoneNumber);
     wx.login({
@@ -111,6 +112,7 @@ Page({
           const loginParams = new LoginParams(null, null,res.code, phoneNumber, "applet")
           // 调用API
           const result = authApi.login(loginParams)
+          console.log("登陆结果",result);
           if (result.code === "0000") {
             wx.setStorageSync('access_token', result.data.accessToken);
             wx.showToast({
@@ -131,6 +133,57 @@ Page({
         }
       }
     })
+  },
+
+  async wxLogin() {
+    const phoneNumber = this.data.phoneNumber;
+    console.log('当前手机号:', phoneNumber);
+    
+    try {
+      // 获取微信登录code
+      const loginRes = await new Promise((resolve, reject) => {
+        wx.login({
+          success: resolve,
+          fail: reject
+        });
+      });
+  
+      if (loginRes.code) {
+        const loginParams = new LoginParams(null, null, loginRes.code, phoneNumber, "applet");
+        
+        // 使用 await 等待登录接口返回结果
+        const result = await authApi.login(loginParams);
+        console.log("登陆结果", result);
+        
+        if (result.code === "0000") {
+          wx.setStorageSync('access_token', result.data.accessToken);
+          wx.showToast({
+            title: '登录成功',
+            icon: 'success'
+          });
+          wx.switchTab({
+            url: `/pages/my/index`,
+          });
+        } else {
+          wx.showToast({
+            title: result.message || '登录失败',
+            icon: 'none'
+          });
+        }
+      } else {
+        console.log('获取code失败！' + loginRes.errMsg);
+        wx.showToast({
+          title: '获取登录凭证失败',
+          icon: 'none'
+        });
+      }
+    } catch (error) {
+      console.error('登录过程出错:', error);
+      wx.showToast({
+        title: '登录失败，请重试',
+        icon: 'none'
+      });
+    }
   },
 
 

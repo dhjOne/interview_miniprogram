@@ -157,6 +157,8 @@ Page({
         
         if (result.code === "0000") {
           wx.setStorageSync('access_token', result.data.accessToken);
+          const app = getApp();
+          app.setUserInfo(result.data.userInfo); 
           wx.showToast({
             title: '登录成功',
             icon: 'success'

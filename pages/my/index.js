@@ -36,9 +36,21 @@ Page({
     ],
 
     settingList: [
-      { name: '联系客服', icon: 'service', type: 'service' },
-      { name: '设置', icon: 'setting', type: 'setting', url: '/pages/setting/index' },
+      { 
+        name: '联系客服', 
+        icon: 'service', 
+        type: 'service',
+        method: 'showImagePopup'
+      },
+      { 
+        name: '设置', 
+        icon: 'setting', 
+        type: 'setting', 
+        url: '/pages/setting/index' 
+      },
     ],
+    showImagePopup: true,
+    popupImageUrl: '/static/gongzhonghao.png'
   },
 
   onLoad() {
@@ -47,9 +59,15 @@ Page({
 
   async onShow() {
     const Token = wx.getStorageSync('access_token');
-    const personalInfo = await this.getPersonalInfo();
-
     if (Token) {
+      // 先从全局获取用户信息
+      const app = getApp();
+      let personalInfo = app.getUserInfo();
+      
+      // 如果全局没有，再调用接口
+      if (!personalInfo) {
+        personalInfo = await this.getPersonalInfo();
+      } 
       this.setData({
         isLoad: true,
         personalInfo,
@@ -65,7 +83,7 @@ Page({
   },
 
   async getPersonalInfo() {
-    const info = await request('/api/genPersonalInfo').then((res) => res.data.data);
+    const info = await request('/genPersonalInfo').then((res) => res.data.data);
     return info;
   },
 
@@ -80,8 +98,32 @@ Page({
   },
 
   onEleClick(e) {
-    const { name, url } = e.currentTarget.dataset.data;
+    const { url, method } = e.currentTarget.dataset.data;
+    // 如果有链接，直接跳转
     if (url) return;
-    this.onShowToast('#t-toast', name);
+    // 如果有指定方法，调用对应方法
+    if (method && typeof this[method] === 'function') {
+      this[method]();
+    } else {
+      // 默认处理
+      const { name } = e.currentTarget.dataset.data;
+      this.onShowToast('#t-toast', name);
+    }
+  },
+
+  // 显示图片弹窗
+  showImagePopup() {
+    console.log("dianji");
+    this.setData({
+      showImagePopup: true,
+      popupImageUrl: 'https://tdesign.gtimg.com/mobile/demos/example1.png' // 先用TDesign的示例图片
+    });
+  },
+
+  // 隐藏图片弹窗
+  hideImagePopup() {
+    this.setData({
+      showImagePopup: false
+    });
   },
 });

@@ -63,4 +63,19 @@ App({
     this.globalData.unreadNum = unreadNum;
     this.eventBus.emit('unread-num-change', unreadNum);
   },
+  // 设置用户信息的方法
+  setUserInfo(userInfo) {
+    this.globalData.userInfo = userInfo;
+    // 同时存储到本地，防止刷新丢失
+    wx.setStorageSync('user_info', userInfo);
+  },
+  
+  // 获取用户信息的方法
+  getUserInfo() {
+    if (this.globalData.userInfo) {
+      return this.globalData.userInfo;
+    }
+    // 从本地存储获取
+    return wx.getStorageSync('user_info');
+  }
 });

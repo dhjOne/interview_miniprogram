@@ -6,12 +6,12 @@
   <view class="my-info">
     <t-cell-group>
       <t-cell wx:if="{{isLoad}}" bordered="{{false}}">
-        <t-avatar image="{{personalInfo.image}}" slot="left-icon" size="large" />
+        <t-avatar image="{{personalInfo.avatar  || '/static/avatar1.png'}}" slot="left-icon" size="large" />
         <view class="my-info__person" slot="description">
-          <view class="name">{{personalInfo.name}}</view>
+          <view class="name">{{personalInfo.nickname || '微信用户'}}</view>
           <view class="tags">
-            <t-tag class="tag" variant="light" icon="discount">{{personalInfo.star}}</t-tag>
-            <t-tag class="tag" variant="light" icon="location">{{personalInfo.city}}</t-tag>
+            <t-tag class="tag" variant="light" icon="discount">{{personalInfo.bio || '这个人很懒，什么都没有写'}}</t-tag>
+            <t-tag class="tag" variant="light" icon="location">{{personalInfo.city || '未知城市'}}</t-tag>
           </view>
         </view>
         <t-icon slot="right-icon" name="edit" size="40rpx" color="#000000e6" bindtap="onNavigateTo" />
@@ -73,3 +73,24 @@
     />
   </t-cell-group>
 </view>
+
+<!-- 图片弹窗 - 直接放在页面底部 -->
+<td-popup
+  show="{{showImagePopup}}"
+  bind:close="hideImagePopup"
+  position="center"
+  transparent="{{true}}"
+  custom-style="background: transparent;"
+  close-on-click-overlay="{{true}}"
+>
+  <view class="image-popup-content">
+    <image 
+      src="{{popupImageUrl}}" 
+      mode="widthFix" 
+      class="popup-image"
+      bindtap="hideImagePopup"
+    />
+    <!-- 可选：关闭按钮 -->
+    <view class="close-icon" bindtap="hideImagePopup">×</view>
+  </view>
+</td-popup>

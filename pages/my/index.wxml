@@ -11,7 +11,7 @@
           <view class="name">{{personalInfo.nickname || '微信用户'}}</view>
           <view class="tags">
             <t-tag class="tag" variant="light" icon="discount">{{personalInfo.bio || '这个人很懒，什么都没有写'}}</t-tag>
-            <t-tag class="tag" variant="light" icon="location">{{personalInfo.city || '未知城市'}}</t-tag>
+            <!-- <t-tag class="tag" variant="light" icon="location">{{personalInfo.city || '未知城市'}}</t-tag> -->
           </view>
         </view>
         <t-icon slot="right-icon" name="edit" size="40rpx" color="#000000e6" bindtap="onNavigateTo" />
@@ -75,22 +75,58 @@
 </view>
 
 <!-- 图片弹窗 - 直接放在页面底部 -->
-<td-popup
-  show="{{showImagePopup}}"
-  bind:close="hideImagePopup"
-  position="center"
-  transparent="{{true}}"
-  custom-style="background: transparent;"
-  close-on-click-overlay="{{true}}"
+<!-- 修改弹窗配置 -->
+
+<!-- <view wx:if="{{showImagePopup}}" class="custom-modal">
+  <view class="modal-mask" bindtap="hideImagePopup"></view>
+  <view class="modal-content">
+    <image src="{{popupImageUrl}}" mode="widthFix" class="test-image" />
+    <view class="close-btn" bindtap="hideImagePopup">关闭</view>
+  </view>
+</view> -->
+
+<!-- <td-popup
+  visible="{{showImagePopup}}"
+  bind:visible-change="onPopupVisibleChange"
+  placement="center"
+  overlayProps="{{ { background: 'rgba(0,0,0,0.6)' } }}"
+  closeOnOverlayClick="{{true}}"
 >
   <view class="image-popup-content">
-    <image 
-      src="{{popupImageUrl}}" 
-      mode="widthFix" 
-      class="popup-image"
-      bindtap="hideImagePopup"
-    />
-    <!-- 可选：关闭按钮 -->
-    <view class="close-icon" bindtap="hideImagePopup">×</view>
+    <view class="popup-card">
+      <image 
+        src="{{popupImageUrl}}" 
+        mode="aspectFit" 
+        class="popup-image"
+      />
+      <view class="close-icon" bindtap="hideImagePopup">×</view>
+    </view>
   </view>
-</td-popup>
+</td-popup> -->
+
+<!-- 自定义弹窗组件 -->
+<view wx:if="{{showImagePopup}}" class="custom-modal">
+  <view class="modal-mask" bindtap="hideImagePopup"></view>
+  <view class="modal-content" catchtouchmove="preventTouchMove">
+    <view class="modal-header">
+      <text class="modal-title">联系客服</text>
+      <view class="close-btn" bindtap="hideImagePopup">×</view>
+    </view>
+    <view class="modal-body">
+      <!-- 添加 show-menu-by-longpress 属性支持长按菜单 -->
+      <image 
+        src="{{popupImageUrl}}" 
+        mode="aspectFit" 
+        class="contact-image"
+        show-menu-by-longpress="{{true}}"
+        binderror="onImageError"
+        bindlongpress="onImageLongPress"
+      />
+      <text class="contact-tip">长按识别二维码或保存图片</text>
+      <text class="contact-desc">扫描二维码添加客服微信</text>
+    </view>
+    <view class="modal-footer">
+      <button class="save-btn" bindtap="saveImageToPhotos">保存到相册</button>
+    </view>
+  </view>
+</view>

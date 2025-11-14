@@ -3,7 +3,7 @@
    <!-- 新增 header 容器，实现文字+logo 水平排列 -->
    <view class="login__header">
     <view class="login__logo">
-      <image src="/static/login/interview-capsule-logo-7.png" mode="widthFix" class="logo-img"></image>
+      <image src="/static/login/login.jpg" mode="widthFix" class="logo-img"></image>
     </view>
   </view>
   <view class="login__content">
@@ -47,7 +47,7 @@
 
 
     <view class="login__button">
-      <t-button theme="primary" size="large" block disabled="{{!isSubmit}}" bindtap="wxLogin">
+      <t-button theme="primary" size="large" block disabled="{{!isSubmit}}" bindtap="prepareWxLogin">
         {{ isPasswordLogin ? '登录' : '一键登录' }}
       </t-button>
     </view>

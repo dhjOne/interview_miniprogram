@@ -103,31 +103,184 @@
 }
 
 /* 图片弹窗样式 */
+/* 图片弹窗样式 */
 .image-popup-content {
   position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: 40rpx;
+}
+
+.popup-card {
+  position: relative;
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 40rpx;
+  box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.3);
 }
 
 .popup-image {
-  width: 90vw;
-  max-width: 600rpx;
+  width: 400rpx;
+  height: 400rpx;
   border-radius: 12rpx;
-  box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.3);
+  display: block;
 }
 
 .close-icon {
   position: absolute;
-  top: -80rpx;
-  right: 0;
+  top: -20rpx;
+  right: -20rpx;
   width: 60rpx;
   height: 60rpx;
-  background: rgba(0, 0, 0, 0.5);
+  background: #ff4444;
   border-radius: 50%;
-  color: rgb(151, 37, 37);
+  color: white;
   font-size: 36rpx;
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 1000;
 }
+
+.custom-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+}
+
+.modal-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.6);
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border-radius: 24rpx;
+  width: 80%;
+  max-width: 600rpx;
+  box-shadow: 0 20rpx 60rpx rgba(0, 0, 0, 0.3);
+  animation: scaleIn 0.3s ease;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 32rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.modal-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.close-btn {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 50%;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+  color: #999;
+}
+
+.modal-body {
+  padding: 0rpx;
+  text-align: center;
+}
+
+.contact-image {
+  width: 550rpx;
+  height: 400rpx;
+  border-radius: 12rpx;
+  margin-bottom: 10rpx;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.contact-tip {
+  display: block;
+  color: #333;
+  font-size: 28rpx;
+  margin-bottom: 16rpx;
+  font-weight: 500;
+}
+
+.contact-desc {
+  display: block;
+  color: #666;
+  font-size: 24rpx;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { 
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  to { 
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+// 防止弹窗内容滚动
+.prevent-touchmove {
+  touch-action: none;
+}
+
+//
+.modal-footer {
+  padding: 30rpx 32rpx 32rpx;
+  display: flex;
+  justify-content: center;
+}
+
+.save-btn {
+  background: linear-gradient(135deg, #07C160, #06AD56);
+  color: white;
+  border: none;
+  border-radius: 50rpx;
+  padding: 20rpx 60rpx;
+  font-size: 28rpx;
+  box-shadow: 0 8rpx 20rpx rgba(7, 193, 96, 0.3);
+  transition: all 0.3s ease;
+  
+  &:active {
+    transform: scale(0.95);
+    box-shadow: 0 4rpx 10rpx rgba(7, 193, 96, 0.3);
+  }
+  
+  &::after {
+    border: none;
+  }
+}
+
+
+
+
+
+

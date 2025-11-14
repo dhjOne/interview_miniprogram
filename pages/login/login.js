@@ -19,6 +19,8 @@ Page({
     userInfo: {},
     hasUserInfo: false,
     canIUseGetUserProfile: true,
+    wxLoginCode: '', // 存储 wx.login 的 code
+    isGettingUserInfo: false, // 是否正在获取用户信息
   },
 
   /* 自定义功能函数 */
@@ -95,99 +97,16 @@ Page({
         })
       }
     } else {
-      const res = await request('/login/getSendMessage', 'get');
-      if (res.success) {
-        wx.navigateTo({
-          url: `/pages/loginCode/loginCode?phoneNumber=${this.data.phoneNumber}`,
-        });
-      }
+      // const res = await request('/login/getSendMessage', 'get');
+      // if (res.success) {
+      //   wx.navigateTo({
+      //     url: `/pages/loginCode/loginCode?phoneNumber=${this.data.phoneNumber}`,
+      //   });
+      // }
+      // 手机号登录 - 先获取 wx.login 的 code
+      await this.prepareWxLogin();
     }
   },
-  async wxLogin2() {
-    const phoneNumber = this.data.phoneNumber; // 在回调外部先获取值
-    console.log('当前手机号:', phoneNumber);
-    wx.login({
-      success(res) {
-        if (res.code) {
-          const loginParams = new LoginParams(null, null,res.code, phoneNumber, "applet")
-          // 调用API
-          const result = authApi.login(loginParams)
-          console.log("登陆结果",result);
-          if (result.code === "0000") {
-            wx.setStorageSync('access_token', result.data.accessToken);
-            wx.showToast({
-              title: '登录成功',
-              icon: 'success'
-            })
-            wx.switchTab({
-              url: `/pages/my/index`,
-            });
-          } else {
-            wx.showToast({
-              title: result.message || '登录失败',
-              icon: 'none'
-            })
-          }
-        } else {
-          console.log('登录失败！' + res.errMsg)
-        }
-      }
-    })
-  },
-
-  async wxLogin() {
-    const phoneNumber = this.data.phoneNumber;
-    console.log('当前手机号:', phoneNumber);
-    
-    try {
-      // 获取微信登录code
-      const loginRes = await new Promise((resolve, reject) => {
-        wx.login({
-          success: resolve,
-          fail: reject
-        });
-      });
-  
-      if (loginRes.code) {
-        const loginParams = new LoginParams(null, null, loginRes.code, phoneNumber, "applet");
-        
-        // 使用 await 等待登录接口返回结果
-        const result = await authApi.login(loginParams);
-        console.log("登陆结果", result);
-        
-        if (result.code === "0000") {
-          wx.setStorageSync('access_token', result.data.accessToken);
-          const app = getApp();
-          app.setUserInfo(result.data.userInfo); 
-          wx.showToast({
-            title: '登录成功',
-            icon: 'success'
-          });
-          wx.switchTab({
-            url: `/pages/my/index`,
-          });
-        } else {
-          wx.showToast({
-            title: result.message || '登录失败',
-            icon: 'none'
-          });
-        }
-      } else {
-        console.log('获取code失败！' + loginRes.errMsg);
-        wx.showToast({
-          title: '获取登录凭证失败',
-          icon: 'none'
-        });
-      }
-    } catch (error) {
-      console.error('登录过程出错:', error);
-      wx.showToast({
-        title: '登录失败，请重试',
-        icon: 'none'
-      });
-    }
-  },
-
 
   onLoad() {
     // 绑定方法上下文，确保this始终指向页面实例
@@ -198,20 +117,7 @@ Page({
       })
     }
   },
-  getUserProfile(e) {
-    // 推荐使用wx.getUserProfile获取用户信息，开发者每次通过该接口获取用户个人信息均需用户确认
-    // 开发者妥善保管用户快速填写的头像昵称，避免重复弹窗
-    wx.getUserProfile({
-      desc: '用于完善会员资料', // 声明获取用户个人信息后的用途，后续会展示在弹窗中，请谨慎填写
-      success: (res) => {
-        console.log("用户信息： ",res)
-        this.setData({
-          userInfo: res.userInfo,
-          hasUserInfo: true
-        })
-      }
-    })
-  },
+
 
   getPhoneNumber (e) {
     console.log(e.detail.code)  // 动态令牌
@@ -239,5 +145,164 @@ Page({
       radioValue: value
     })
   },
+
+   // 准备微信登录：获取 code
+   async prepareWxLogin() {
+    const phoneNumber = this.data.phoneNumber; // 在回调外部先获取值
+    console.log('当前手机号:', phoneNumber);
+    if (!this.data.isPhoneNumber) {
+      wx.showToast({
+        title: '请输入正确的手机号',
+        icon: 'none'
+      });
+      return;
+    }
+
+    if (!this.data.isCheck) {
+      wx.showToast({
+        title: '请同意用户协议',
+        icon: 'none'
+      });
+      return;
+    }
+
+    try {
+      wx.showLoading({
+        title: '准备登录...',
+      });
+
+      // 先获取微信登录 code
+      const loginRes = await new Promise((resolve, reject) => {
+        wx.login({
+          success: resolve,
+          fail: reject
+        });
+      });
+      if (!loginRes.code) {
+        throw new Error('获取登录凭证失败');
+      }
+      // 保存 code，准备获取用户信息
+      this.setData({
+        wxLoginCode: loginRes.code,
+        isGettingUserInfo: true
+      });
+
+      wx.hideLoading();
+      
+      // 提示用户授权
+      wx.showModal({
+        title: '授权提示',
+        content: '需要获取您的头像和昵称来完善资料',
+        confirmText: '去授权',
+        cancelText: '暂不',
+        success: (res) => {
+          if (res.confirm) {
+            // 用户点击确定，触发获取用户信息
+            this.getUserProfileForLogin();
+          } else {
+            // 用户取消，直接使用 code 登录
+            this.doLoginWithCode(this.data.wxLoginCode, null);
+          }
+        }
+      });
+    
+    } catch (error) {
+      console.error('准备登录失败:', error);
+      wx.hideLoading();
+      wx.showToast({
+        title: '登录准备失败，请重试',
+        icon: 'none'
+      });
+    }
+  },
+
+  // 专门用于登录的获取用户信息方法
+  getUserProfileForLogin() {
+    wx.getUserProfile({
+      desc: '用于完善会员资料',
+      success: (res) => {
+        console.log("用户信息： ", res);
+        const userInfo = res.userInfo;
+        
+        this.setData({
+          userInfo: userInfo,
+          hasUserInfo: true
+        });
+        
+        // 使用之前保存的 code 和用户信息进行登录
+        this.doLoginWithCode(this.data.wxLoginCode, userInfo);
+      },
+      fail: (err) => {
+        console.log("用户拒绝授权:", err);
+        // 用户拒绝授权，仍然使用 code 登录
+        this.doLoginWithCode(this.data.wxLoginCode, null);
+      }
+    });
+  },
+
+  // 使用 code 和用户信息执行登录
+  async doLoginWithCode(code, userInfo) {
+    if (!code) {
+      wx.showToast({
+        title: '登录凭证失效，请重试',
+        icon: 'none'
+      });
+      return;
+    }
+
+    try {
+      wx.showLoading({
+        title: '登录中...',
+      });
+
+      const loginParams = new LoginParams(null, null, code, this.data.phoneNumber,null, "applet");
+      
+      // 如果有用户信息，可以在这里处理或传递给后端
+      if (userInfo) {
+        console.log('获取到用户信息:', userInfo);
+        // 可以根据后端接口需求调整参数传递
+        loginParams.userInfo = userInfo;
+        // loginParams.avatarUrl = userInfo.avatarUrl;
+      }
+      
+      const result = await authApi.login(loginParams);
+      console.log("登陆结果", result);
+      
+      if (result.code === "0000") {
+        wx.setStorageSync('access_token', result.data.accessToken);
+        const app = getApp();
+        
+        // 优先使用后端返回的用户信息，如果没有则使用本地获取的
+        if (result.data.userInfo) {
+          app.setUserInfo(result.data.userInfo);
+        } else if (userInfo) {
+          app.setUserInfo(userInfo);
+        }
+        
+        wx.showToast({
+          title: '登录成功',
+          icon: 'success'
+        });
+        wx.switchTab({
+          url: `/pages/my/index`,
+        });
+      } else {
+        wx.showToast({
+          title: result.message || '登录失败',
+          icon: 'none'
+        });
+      }
+    } catch (error) {
+      console.error('登录过程出错:', error);
+      wx.showToast({
+        title: '登录失败，请重试',
+        icon: 'none'
+      });
+    } finally {
+      wx.hideLoading();
+      this.setData({ isGettingUserInfo: false });
+    }
+  },
+
 });
 

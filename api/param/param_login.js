@@ -4,7 +4,7 @@ import { BaseParams } from './param_base'
  * 登录参数
  */
 export class LoginParams extends BaseParams {
-  constructor(username, password, code, phone, loginType = 'password') {
+  constructor(username, password, code, phone, userInfo, loginType = 'password') {
     super()
     this.username = username
     this.password = password
@@ -12,6 +12,7 @@ export class LoginParams extends BaseParams {
     this.clientId = '7b2bcf3c6a3e4834a375727231a816a0'
     this.code = code
     this.phone = phone
+    this.userInfo = userInfo
   }
   
   // 参数验证
@@ -46,7 +47,8 @@ export class LoginParams extends BaseParams {
       timestamp: this.timestamp,
       deviceType: this.deviceType,
       code: this.code,
-      phone: this.phone
+      phone: this.phone,
+      userInfo: this.userInfo
     }
   }
 }

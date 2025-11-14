@@ -10,6 +10,7 @@ if (config.isMock) {
 
 App({
   onLaunch() {
+
     const updateManager = wx.getUpdateManager();
 
     updateManager.onCheckForUpdate((res) => {
@@ -30,6 +31,7 @@ App({
 
     this.getUnreadNum();
     this.connect();
+
   },
   globalData: {
     userInfo: null,

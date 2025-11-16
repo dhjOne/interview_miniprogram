@@ -1,0 +1,278 @@
+@import '/variable.less';
+
+@home-tab-item-height: 96rpx;
+
+.home-container {
+  height: calc(100vh - @tab-bar-height);
+
+  .home-content {
+    height: calc(100% - @nav-bar-height);
+  }
+
+  .t-tabs {
+    --td-tab-item-tag-height: @home-tab-item-height;
+    --td-tab-font-size: @font-size-small;
+    width: 100%;
+    height: 100%;
+
+    &__content {
+      height: calc(100% - @home-tab-item-height);
+      overflow: auto;
+      background-color: @bg-color;
+    }
+  }
+
+  .home-card-list {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 24rpx 12rpx;
+    padding: 24rpx;
+    background-color: @bg-color;
+  }
+}
+
+.home-release {
+  position: fixed;
+  bottom: 208rpx;
+  right: 32rpx;
+}
+
+
+
+//--
+/* index.wxss */
+.container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f5f5f5;
+  padding-top: var(--status-bar-height, 0);
+}
+
+/* 安全区域占位，避免与胶囊按钮重叠 */
+.safe-area {
+  height: var(--nav-bar-height, 90rpx);
+}
+
+/* 修复一级分类样式，确保在小程序导航栏下方 */
+.primary-categories {
+  background: white;
+  border-bottom: 1rpx solid #eee;
+  position: sticky;
+  top: var(--nav-bar-height, 90rpx);
+  z-index: 999;
+}
+
+.categories-scroll {
+  white-space: nowrap;
+  width: 100%;
+  height: 100rpx;
+}
+
+.categories-wrapper {
+  display: inline-flex;
+  padding: 20rpx 30rpx;
+  align-items: center;
+}
+
+.category-item {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16rpx 32rpx;
+  margin: 0 15rpx;
+  border-radius: 30rpx;
+  transition: all 0.3s;
+  position: relative;
+  min-width: 140rpx;
+}
+
+.category-item.active {
+  background: var(--td-brand-color, #0052d9);
+}
+
+.category-item.active .category-name {
+  color: white;
+  font-weight: 600;
+}
+
+.category-item.active .category-count {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.category-name {
+  font-size: 30rpx;
+  color: #333;
+  font-weight: 500;
+  margin-bottom: 8rpx;
+}
+
+.category-count {
+  font-size: 22rpx;
+  color: #666;
+}
+
+/* 主体内容区域调整 */
+.main-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  margin-top: 0;
+}
+
+/* 侧边导航样式保持不变 */
+.sidebar {
+  width: 240rpx;
+  background: white;
+  border-right: 1rpx solid #eee;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar.collapsed {
+  width: 80rpx;
+}
+
+.sidebar-header {
+  padding: 15rpx 20rpx;
+  border-bottom: 1rpx solid #eee;
+  display: flex;
+  align-items: center;
+  gap: 15rpx;
+}
+
+.collapse-icon {
+  color: var(--td-brand-color, #0052d9);
+}
+
+.sidebar-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.sidebar-content {
+  flex: 1;
+  padding: 20rpx 0;
+}
+
+.secondary-item {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 30rpx;
+  gap: 15rpx;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.secondary-item.active {
+  background: var(--td-brand-color-light, #e6f0ff);
+  border-right: 4rpx solid var(--td-brand-color, #0052d9);
+}
+
+.secondary-item.active .item-name {
+  color: var(--td-brand-color, #0052d9);
+  font-weight: 600;
+}
+
+.item-icon {
+  font-size: 32rpx;
+  color: #666;
+  flex-shrink: 0;
+}
+
+.secondary-item.active .item-icon {
+  color: var(--td-brand-color, #0052d9);
+}
+
+.item-name {
+  font-size: 26rpx;
+  color: #333;
+  flex: 1;
+}
+
+.item-count {
+  font-size: 22rpx;
+  color: #999;
+  background: #f0f0f0;
+  padding: 4rpx 12rpx;
+  border-radius: 20rpx;
+}
+
+.secondary-item.active .item-count {
+  background: var(--td-brand-color, #0052d9);
+  color: white;
+}
+
+/* 内容区域保持不变 */
+.content-area {
+  flex: 1;
+  padding: 30rpx;
+  transition: all 0.3s ease;
+}
+
+.content-area.full-width {
+  padding: 30rpx 50rpx;
+}
+
+.images-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 30rpx;
+}
+
+.image-card {
+  background: white;
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s;
+}
+
+.image-card:active {
+  transform: scale(0.98);
+}
+
+.card-image {
+  width: 100%;
+  height: 300rpx;
+}
+
+.card-info {
+  padding: 24rpx;
+}
+
+.image-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 10rpx;
+}
+
+.image-desc {
+  display: block;
+  font-size: 24rpx;
+  color: #666;
+  line-height: 1.4;
+}
+
+.tab-content {
+  height: 100%;
+  
+  .primary-categories {
+    background: white;
+    border-bottom: 1rpx solid #eee;
+    position: sticky;
+    top: 0;
+    z-index: 999;
+  }
+  
+  .main-content {
+    height: calc(100% - 100rpx); // 减去一级分类的高度
+    display: flex;
+    overflow: hidden;
+  }
+}

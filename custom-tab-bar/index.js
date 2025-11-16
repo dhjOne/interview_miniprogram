@@ -7,7 +7,7 @@ Component({
     list: [
       {
         icon: 'home',
-        value: 'index',
+        value: 'question',
         label: '首页',
       },
       {
@@ -46,6 +46,7 @@ Component({
   methods: {
     handleChange(e) {
       const { value } = e.detail;
+      console.log("value=====",value);
       wx.switchTab({ url: `/pages/${value}/index` });
     },
 

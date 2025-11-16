@@ -1,12 +1,33 @@
 <nav nav-type="search" />
 <view class="home-container">
   <view class="home-content">
-    <t-tabs value="{{currentPrimary}}" bind:change="onTabChange">
+    <!-- 添加加载状态 -->
+    <view wx:if="{{loading}}" class="loading-container">
+      <t-loading size="48rpx" text="加载中..." />
+    </view>
+    
+    <t-tabs wx:else value="{{currentPrimary}}" bind:change="onTabChange">
       <block wx:for="{{primaryCategories}}" wx:key="id">
         <t-tab-panel label="{{item.name}}" value="{{item.id}}">
           <t-pull-down-refresh value="{{enable}}" bind:refresh="onRefresh" loadingTexts="{{['下拉刷新', '松手刷新', '正在刷新', '刷新完成']}}">
-            <!-- 每个 tab 面板内的内容 -->
             <view class="tab-content">
+              <!-- 一级分类横向导航 -->
+              <view class="primary-categories">
+                <scroll-view class="categories-scroll" scroll-x="true" scroll-left="{{scrollLeft}}">
+                  <view class="categories-wrapper">
+                    <block wx:for="{{primaryCategories}}" wx:key="id">
+                      <view 
+                        class="category-item {{currentPrimary === item.id ? 'active' : ''}}"
+                        bindtap="switchPrimaryCategory"
+                        data-id="{{item.id}}"
+                      >
+                        <text class="category-name">{{item.name}}</text>
+                        <text class="category-count">{{item.count}}</text>
+                      </view>
+                    </block>
+                  </view>
+                </scroll-view>
+              </view>
               
               <!-- 主体内容区域 -->
               <view class="main-content">
@@ -33,13 +54,18 @@
                         <text class="item-count">{{item.count}}</text>
                       </view>
                     </block>
+                    
+                    <!-- 二级分类为空时的提示 -->
+                    <view wx:if="{{secondaryCategories.length === 0}}" class="empty-categories">
+                      <text class="empty-text">暂无分类数据</text>
+                    </view>
                   </view>
                 </view>
 
                 <!-- 内容展示区域 -->
                 <view class="content-area {{isSidebarCollapsed ? 'full-width' : ''}}">
                   <!-- 图片展示区域 -->
-                  <view class="images-grid">
+                  <view wx:if="{{currentImages.length > 0}}" class="images-grid">
                     <block wx:for="{{currentImages}}" wx:key="id">
                       <view class="image-card">
                         <image 
@@ -55,6 +81,12 @@
                         </view>
                       </view>
                     </block>
+                  </view>
+                  
+                  <!-- 图片为空时的提示 -->
+                  <view wx:else class="empty-content">
+                    <t-icon name="image" size="120rpx" color="#ccc"></t-icon>
+                    <text class="empty-text">暂无内容</text>
                   </view>
                 </view>
               </view>

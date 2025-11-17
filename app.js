@@ -37,6 +37,7 @@ App({
     userInfo: null,
     unreadNum: 0, // 未读消息数量
     socket: null, // SocketTask 对象
+    eventListeners: {}
   },
 
   /** 全局事件总线 */
@@ -79,5 +80,31 @@ App({
     }
     // 从本地存储获取
     return wx.getStorageSync('user_info');
+  },
+
+  // 注册事件监听
+  on(event, callback) {
+    if (!this.globalData.eventListeners[event]) {
+      this.globalData.eventListeners[event] = [];
+    }
+    this.globalData.eventListeners[event].push(callback);
+  },
+  
+  // 触发事件
+  emit(event, data) {
+    const listeners = this.globalData.eventListeners[event];
+    if (listeners) {
+      listeners.forEach(callback => {
+        callback(data);
+      });
+    }
+  },
+  
+  // 移除事件监听
+  off(event, callback) {
+    const listeners = this.globalData.eventListeners[event];
+    if (listeners) {
+      this.globalData.eventListeners[event] = listeners.filter(cb => cb !== callback);
+    }
   }
 });

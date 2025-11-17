@@ -129,7 +129,6 @@
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
 }
 
 .sidebar.collapsed {
@@ -215,8 +214,7 @@
 }
 
 .content-area.full-width {
-  flex: 1;
-  width: 100%;
+  padding: 30rpx 50rpx;
 }
 
 .images-grid {
@@ -273,31 +271,8 @@
   }
   
   .main-content {
+    height: calc(100% - 100rpx); // 减去一级分类的高度
     display: flex;
-    height: 100%;
+    overflow: hidden;
   }
 }
-
-.loading-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 400rpx;
-}
-
-.empty-categories, .empty-content {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 60rpx;
-  color: #999;
-}
-
-.empty-text {
-  font-size: 28rpx;
-  margin-top: 20rpx;
-  color: #999;
-}
-
-// 其他现有样式保持不变...

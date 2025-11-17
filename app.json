@@ -4,7 +4,8 @@
     "pages/message/index",
     "pages/my/index",
     "pages/agreement/agreement",
-    "pages/question/index"
+    "pages/question/index",
+    "pages/question/old/index"
   ],
   "usingComponents": {
     "t-cell": "/miniprogram_npm/tdesign-miniprogram/cell/cell",

@@ -13,15 +13,15 @@ export class BaseParams {
  * 分页参数
  */
 export class PaginationParams {
-  constructor(page = 1, size = 10) {
+  constructor(page = 1, limit = 10) {
     this.page = page
-    this.size = size
+    this.limit = limit
   }
   
   toQuery() {
     return {
       page: this.page,
-      size: this.size
+      limit: this.limit
     }
   }
 }

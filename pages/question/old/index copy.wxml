@@ -11,10 +11,28 @@
         <t-tab-panel label="{{item.name}}" value="{{item.id}}">
           <t-pull-down-refresh value="{{enable}}" bind:refresh="onRefresh" loadingTexts="{{['下拉刷新', '松手刷新', '正在刷新', '刷新完成']}}">
             <view class="tab-content">
+              <!-- 一级分类横向导航 -->
+              <!-- <view class="primary-categories">
+                <scroll-view class="categories-scroll" scroll-x="true" scroll-left="{{scrollLeft}}">
+                  <view class="categories-wrapper">
+                    <block wx:for="{{primaryCategories}}" wx:key="id">
+                      <view 
+                        class="category-item {{currentPrimary === item.id ? 'active' : ''}}"
+                        bindtap="switchPrimaryCategory"
+                        data-id="{{item.id}}"
+                      >
+                        <text class="category-name">{{item.name}}</text>
+                        <text class="category-count">{{item.count}}</text>
+                      </view>
+                    </block>
+                  </view>
+                </scroll-view>
+              </view> -->
+              
               <!-- 主体内容区域 -->
               <view class="main-content">
-                <!-- 侧边二级导航 - 根据 showSecondarySidebar 决定是否显示 -->
-                <view wx:if="{{showSecondarySidebar}}" class="sidebar {{isSidebarCollapsed ? 'collapsed' : ''}}">
+                <!-- 侧边二级导航 -->
+                <view class="sidebar {{isSidebarCollapsed ? 'collapsed' : ''}}">
                   <view class="sidebar-header">
                     <t-icon 
                       name="{{isSidebarCollapsed ? 'chevron-right' : 'chevron-left'}}" 
@@ -44,8 +62,8 @@
                   </view>
                 </view>
 
-                <!-- 内容展示区域 - 根据是否有侧边栏调整宽度 -->
-                <view class="content-area {{!showSecondarySidebar || isSidebarCollapsed ? 'full-width' : ''}}">
+                <!-- 内容展示区域 -->
+                <view class="content-area {{isSidebarCollapsed ? 'full-width' : ''}}">
                   <!-- 图片展示区域 -->
                   <view wx:if="{{currentQuestions.length > 0}}" class="images-grid">
                     <block wx:for="{{currentQuestions}}" wx:key="id">

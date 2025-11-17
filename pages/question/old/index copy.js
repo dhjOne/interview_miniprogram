@@ -1,42 +1,41 @@
 import Message from 'tdesign-miniprogram/message/index';
 import { authApi } from '~/api/request/api_question';
-
-import { CategoryParams } from '~/api/param/param_category';
-import { QuestionParams } from '~/api/param/param_category';
-import { BusinessError } from '~/api/api_request';
+import { CategoryParams } from '~/api/param/param_category'
+import { QuestionParams } from '~/api/param/param_category'
 
 const app = getApp();
 
 Page({
   data: {
     isSidebarCollapsed: false,
-    currentPrimary: null,
+    currentPrimary: null, // 初始为null，等接口返回后设置
     currentSecondary: null,
     scrollLeft: 0,
-    primaryCategories: [],
+    primaryCategories: [], // 初始为空数组
     secondaryCategories: [],
     currentQuestions: [],
     navBarHeight: 90,
     enable: false,
-    loading: false,
-    lastRefreshTime: 0,
-    needRefresh: false,
-    showSecondarySidebar: true, // 新增：控制二级侧边栏显示
-    messageOffset: 100 
+    loading: false, // 添加加载状态
+    lastRefreshTime: 0, // 最后刷新时间戳
+    needRefresh: false  // 是否需要刷新
   },
 
   onLoad() {
     console.log('页面加载开始');
     this.calculateNavBarHeight();
-    this.loadPrimaryCategories();
+    this.loadPrimaryCategories(); // 改为加载一级分类
 
+    // 注册全局刷新事件
     app.on('refreshQuestionBank', this.handleRefresh.bind(this));
   },
 
   onUnload() {
+    // 页面卸载时移除事件监听
     app.off('refreshQuestionBank', this.handleRefresh);
   },
 
+  // 处理刷新事件
   handleRefresh() {
     console.log('收到刷新指令');
     this.setData({ needRefresh: true });
@@ -48,9 +47,10 @@ Page({
 
   onShow() {
     console.log('页面显示');
+    // 如果超过一定时间（比如5分钟）或者标记需要刷新，则刷新数据
     const now = Date.now();
     const shouldRefresh = this.data.needRefresh || 
-                        (now - this.data.lastRefreshTime > 5 * 60 * 1000) ||
+                        (now - this.data.lastRefreshTime > 5 * 60 ) ||
                         !this.data.primaryCategories.length;
     
     if (shouldRefresh && this.data.currentPrimary) {
@@ -58,21 +58,25 @@ Page({
       this.setData({ needRefresh: false });
     }
   },
-  
   onHide() {
     console.log('页面隐藏');
+    // 记录页面隐藏时间
     this.setData({
       lastRefreshTime: Date.now()
     });
   },
   
+  // 刷新当前数据的统一方法
   async refreshCurrentData() {
     console.log('刷新当前页面数据');
     
     try {
       this.setData({ loading: true });
+      
+      // 重新加载当前分类的数据
       await this.loadSecondaryCategories();
       
+      // 如果当前有选中的二级分类，也刷新图片
       if (this.data.currentSecondary) {
         await this.loadQuestions();
       }
@@ -90,52 +94,39 @@ Page({
     try {
       this.setData({ loading: true });
       console.log('开始加载数据')
+      // 调用获取一级分类的接口
       const categoryParams = new CategoryParams(null, 0)
       const response = await authApi.getCategories(categoryParams);
       console.log('一级分类：：', response);
-      const primaryCategories = response.data.rows;
-      this.setData({
-        primaryCategories: primaryCategories,
-        currentPrimary: primaryCategories[0]?.id || null
-      });
-      if (this.data.currentPrimary) {
-        await this.loadSecondaryCategories();
+      if (response.code === "0000" && response.data) {
+        const primaryCategories = response.data.rows;
+        
+        this.setData({
+          primaryCategories: primaryCategories,
+          currentPrimary: primaryCategories[0]?.id || null
+        });
+        
+        // 加载第一个一级分类对应的二级分类
+        if (this.data.currentPrimary) {
+          await this.loadSecondaryCategories();
+        }
+      } else {
+        Message.error('获取分类失败');
       }
     } catch (error) {
       console.error('加载一级分类失败:', error);
-      this.showErrorMessage('网络错误，请重试');
-      // 统一错误处理
-      if (error instanceof BusinessError) {
-        // 业务错误
-        this.showErrorMessage(error.message || '请求失败');
-        // 可以根据错误码进行特殊处理
-        if (error.code === 401) {
-          // token过期，已经在请求层处理了，这里可以补充逻辑
-          console.log('token过期');
-        }
-      } else {
-        // 其他错误
-      
-        this.showErrorMessage('网络错误，请重试');
-      }
+      Message.error('网络错误，请重试');
     } finally {
       this.setData({ loading: false });
     }
   },
 
-  // 加载二级分类 - 关键修改
+  // 加载二级分类
   async loadSecondaryCategories() {
-    // 先重置数据
-    this.setData({
-      secondaryCategories: [],
-      currentSecondary: null,
-      currentQuestions: [],
-      showSecondarySidebar: false // 默认隐藏侧边栏
-    });
-    
     if (!this.data.currentPrimary) return;
     
     try {
+      // 调用获取二级分类的接口
       const categoryParams = new CategoryParams(null, this.data.currentPrimary)
       const response = await authApi.getCategories(categoryParams);
       console.log('二级分类：：', response);
@@ -143,50 +134,28 @@ Page({
       if (response.code === "0000" && response.data) {
         const secondaryCategories = response.data.rows;
         
-        // 判断是否有二级分类数据
-        const hasSecondaryCategories = secondaryCategories && secondaryCategories.length > 0;
-        
         this.setData({
           secondaryCategories: secondaryCategories,
-          currentSecondary: hasSecondaryCategories ? secondaryCategories[0]?.id : null,
-          showSecondarySidebar: hasSecondaryCategories // 有数据才显示侧边栏
+          currentSecondary: secondaryCategories[0]?.id || null
         });
         
-        // 如果有二级分类，加载对应的问题
+        // 加载第一个二级分类对应的图片
         if (this.data.currentSecondary) {
           await this.loadQuestions();
-        } else {
-          this.setData({ currentQuestions: [] });
         }
-      } else {
-        // 接口返回失败，确保数据为空
-        this.setData({
-          secondaryCategories: [],
-          currentSecondary: null,
-          currentQuestions: [],
-          showSecondarySidebar: false
-        });
       }
     } catch (error) {
       console.error('加载二级分类失败:', error);
-      this.showErrorMessage('加载分类失败');
-      this.setData({
-        secondaryCategories: [],
-        currentSecondary: null,
-        currentQuestions: [],
-        showSecondarySidebar: false
-      });
+      Message.error('加载分类失败');
     }
   },
 
-  // 加载问题数据
+  // 加载图片数据
   async loadQuestions() {
-    if (!this.data.currentSecondary) {
-      this.setData({ currentQuestions: [] });
-      return;
-    }
+    if (!this.data.currentSecondary) return;
     
     try {
+      // 调用获取图片的接口
       const questionParams = new QuestionParams(null, this.data.currentSecondary, null)
       const response = await authApi.getQuestions(questionParams);
       console.log('问题列表：：', response);
@@ -195,29 +164,21 @@ Page({
         this.setData({
           currentQuestions: response.data.rows
         });
-      } else {
-        this.setData({ currentQuestions: [] });
       }
     } catch (error) {
       console.error('加载问题失败:', error);
-      this.showErrorMessage('加载内容失败');
-      this.setData({ currentQuestions: [] });
+      Message.error('加载内容失败');
     }
   },
 
   // Tabs 切换事件
   async onTabChange(e) {
     const categoryId = parseInt(e.detail.value);
-    
-    // 立即重置数据
     this.setData({
-      currentPrimary: categoryId,
-      secondaryCategories: [],
-      currentSecondary: null,
-      currentQuestions: [],
-      showSecondarySidebar: false // 切换时先隐藏侧边栏
+      currentPrimary: categoryId
     });
     
+    // 重新加载二级分类和图片
     await this.loadSecondaryCategories();
     this.autoScrollToCurrent();
   },
@@ -229,47 +190,19 @@ Page({
     
     const navBarHeight = (menuButtonInfo.top - systemInfo.statusBarHeight) * 2 + menuButtonInfo.height;
     
-    // 计算消息偏移量，确保在导航栏下方
-    const messageOffset = navBarHeight + 60; // 导航栏高度 + 安全间距
-
     this.setData({
-      navBarHeight: navBarHeight,
-      messageOffset: messageOffset
+      navBarHeight: navBarHeight
     });
     
     wx.setStorageSync('navBarHeight', navBarHeight + 'rpx');
     wx.setStorageSync('statusBarHeight', systemInfo.statusBarHeight + 'px');
   },
 
-   // 显示错误消息的统一方法
-   showErrorMessage(content) {
-    Message.error({
-      content: content,
-      offset: [this.data.messageOffset, 16], // 使用计算出的偏移量
-      duration: 3000
-    });
-  },
-
-  // 显示成功消息的统一方法
-  showSuccessMessage(content) {
-    Message.success({
-      content: content,
-      offset: [this.data.messageOffset, 16],
-      duration: 2000
-    });
-  },
-
   // 切换一级分类（点击横向导航时）
   async switchPrimaryCategory(e) {
     const categoryId = e.currentTarget.dataset.id;
-    
-    // 立即重置数据
     this.setData({
-      currentPrimary: categoryId,
-      secondaryCategories: [],
-      currentSecondary: null,
-      currentQuestions: [],
-      showSecondarySidebar: false // 切换时先隐藏侧边栏
+      currentPrimary: categoryId
     });
     
     await this.loadSecondaryCategories();
@@ -278,8 +211,9 @@ Page({
 
   // 自动滚动到当前选中的分类
   autoScrollToCurrent() {
-    this.setData({ scrollLeft: 0 });
+    this.setData({ scrollLeft: 0 }); // 重置滚动位置
     
+    // 使用延时确保DOM更新完成
     setTimeout(() => {
       const query = wx.createSelectorQuery();
       query.select('.category-item.active').boundingClientRect();
@@ -329,10 +263,11 @@ Page({
   // 下拉刷新
   async onRefresh() {
     try {
+      // 重新加载当前数据
       await this.loadQuestions();
-      this.showSuccessMessage('刷新成功');
+      Message.success('刷新成功');
     } catch (error) {
-      this.showErrorMessage('刷新失败');
+      Message.error('刷新失败');
     } finally {
       this.setData({ enable: false });
     }
@@ -340,6 +275,7 @@ Page({
 
   // 发布
   goRelease() {
+    // 发布逻辑
     wx.navigateTo({
       url: '/pages/release/release'
     });

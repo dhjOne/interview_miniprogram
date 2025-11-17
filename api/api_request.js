@@ -43,7 +43,8 @@ class Request {
       data = null,
       header = {},
       showLoading = true,
-      loadingText = '加载中...'
+      loadingText = '加载中...',
+      checkBusinessCode = true // 新增：是否检查业务状态码
     } = options
     
     // 显示加载提示
@@ -317,6 +318,17 @@ class Request {
         },
         success: (res) => {
           const data = JSON.parse(res.data)
+          // 检查HTTP状态码
+          if (res.statusCode !== 200) {
+            reject(this._handleHttpError(res))
+            return
+          }
+          
+          // 检查业务状态码
+          if (options.checkBusinessCode !== false && !this._isBusinessSuccess(data)) {
+            reject(this._handleBusinessError(data))
+            return
+          }
           resolve(data)
         },
         fail: (error) => {

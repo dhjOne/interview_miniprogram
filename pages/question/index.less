@@ -1,303 +1,243 @@
-@import '/variable.less';
-
-@home-tab-item-height: 96rpx;
-
-.home-container {
-  height: calc(100vh - @tab-bar-height);
-
-  .home-content {
-    height: calc(100% - @nav-bar-height);
-  }
-
-  .t-tabs {
-    --td-tab-item-tag-height: @home-tab-item-height;
-    --td-tab-font-size: @font-size-small;
-    width: 100%;
-    height: 100%;
-
-    &__content {
-      height: calc(100% - @home-tab-item-height);
-      overflow: auto;
-      background-color: @bg-color;
-    }
-  }
-
-  .home-card-list {
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 24rpx 12rpx;
-    padding: 24rpx;
-    background-color: @bg-color;
-  }
-}
-
-.home-release {
-  position: fixed;
-  bottom: 208rpx;
-  right: 32rpx;
-}
-
-
-
-//--
-/* index.wxss */
-.container {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
+/* pages/question/list/index.wxss */
+.question-list-container {
+  min-height: 100vh;
   background-color: #f5f5f5;
-  padding-top: var(--status-bar-height, 0);
 }
 
-/* 安全区域占位，避免与胶囊按钮重叠 */
-.safe-area {
-  height: var(--nav-bar-height, 90rpx);
-}
-
-/* 修复一级分类样式，确保在小程序导航栏下方 */
-.primary-categories {
+/* 搜索区域 */
+.search-section {
+  padding: 24rpx;
   background: white;
-  border-bottom: 1rpx solid #eee;
   position: sticky;
-  top: var(--nav-bar-height, 90rpx);
-  z-index: 999;
+  top: 0;
+  z-index: 100;
 }
 
-.categories-scroll {
-  white-space: nowrap;
-  width: 100%;
-  height: 100rpx;
-}
-
-.categories-wrapper {
-  display: inline-flex;
-  padding: 20rpx 30rpx;
-  align-items: center;
-}
-
-.category-item {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 16rpx 32rpx;
-  margin: 0 15rpx;
-  border-radius: 30rpx;
-  transition: all 0.3s;
-  position: relative;
-  min-width: 140rpx;
-}
-
-.category-item.active {
-  background: var(--td-brand-color, #0052d9);
-}
-
-.category-item.active .category-name {
-  color: white;
-  font-weight: 600;
-}
-
-.category-item.active .category-count {
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.category-name {
-  font-size: 30rpx;
-  color: #333;
-  font-weight: 500;
-  margin-bottom: 8rpx;
-}
-
-.category-count {
-  font-size: 22rpx;
-  color: #666;
-}
-
-/* 主体内容区域调整 */
-.main-content {
-  flex: 1;
-  display: flex;
-  overflow: hidden;
-  margin-top: 0;
-}
-
-/* 侧边导航样式保持不变 */
-.sidebar {
-  width: 240rpx;
+/* 筛选区域 */
+.filter-section {
   background: white;
-  border-right: 1rpx solid #eee;
-  transition: all 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
+  padding: 20rpx 24rpx;
+  border-bottom: 30rpx solid #f0f0f0;
 }
 
-.sidebar.collapsed {
-  width: 80rpx;
+.filter-tags {
+  display: flex;
+  gap: 20rpx;
+  overflow-x: auto;
+  white-space: nowrap;
 }
 
-.sidebar-header {
-  padding: 15rpx 20rpx;
-  border-bottom: 1rpx solid #eee;
+/* 题目统计和排序 */
+.questions-stats {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 15rpx;
+  padding: 24rpx;
+  background: white;
+  border-bottom: 1rpx solid #f0f0f0;
 }
 
-.collapse-icon {
-  color: var(--td-brand-color, #0052d9);
-}
-
-.sidebar-title {
+.stats-text {
   font-size: 28rpx;
-  font-weight: 600;
-  color: #333;
-}
-
-.sidebar-content {
-  flex: 1;
-  padding: 20rpx 0;
-}
-
-.secondary-item {
-  display: flex;
-  align-items: center;
-  padding: 24rpx 30rpx;
-  gap: 15rpx;
-  transition: all 0.3s;
-  position: relative;
-}
-
-.secondary-item.active {
-  background: var(--td-brand-color-light, #e6f0ff);
-  border-right: 4rpx solid var(--td-brand-color, #0052d9);
-}
-
-.secondary-item.active .item-name {
-  color: var(--td-brand-color, #0052d9);
-  font-weight: 600;
-}
-
-.item-icon {
-  font-size: 32rpx;
   color: #666;
-  flex-shrink: 0;
+  font-weight: 500;
 }
 
-.secondary-item.active .item-icon {
-  color: var(--td-brand-color, #0052d9);
-}
-
-.item-name {
-  font-size: 26rpx;
-  color: #333;
-  flex: 1;
-}
-
-.item-count {
-  font-size: 22rpx;
-  color: #999;
-  background: #f0f0f0;
-  padding: 4rpx 12rpx;
-  border-radius: 20rpx;
-}
-
-.secondary-item.active .item-count {
-  background: var(--td-brand-color, #0052d9);
-  color: white;
-}
-
-/* 内容区域保持不变 */
-.content-area {
-  flex: 1;
-  padding: 30rpx;
-  transition: all 0.3s ease;
-}
-
-.content-area.full-width {
-  flex: 1;
-  width: 100%;
-}
-
-.images-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+.sort-options {
+  display: flex;
   gap: 30rpx;
 }
 
-.image-card {
+/* 题目列表 */
+.questions-scroll {
+  height: calc(100vh - 400rpx);
+}
+
+.question-list {
+  padding: 0 24rpx 24rpx;
+}
+
+.question-item {
   background: white;
   border-radius: 16rpx;
-  overflow: hidden;
-  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
-  transition: transform 0.3s;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+  border-left: 6rpx solid transparent;
 }
 
-.image-card:active {
+.question-item.collected {
+  border-left-color: #ff6b35;
+  background: linear-gradient(135deg, #fffaf0, white);
+}
+
+.question-item:active {
   transform: scale(0.98);
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
 }
 
-.card-image {
-  width: 100%;
-  height: 300rpx;
-}
-
-.card-info {
-  padding: 24rpx;
-}
-
-.image-title {
-  display: block;
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 10rpx;
-}
-
-.image-desc {
-  display: block;
-  font-size: 24rpx;
-  color: #666;
-  line-height: 1.4;
-}
-
-.tab-content {
-  height: 100%;
-  
-  .primary-categories {
-    background: white;
-    border-bottom: 1rpx solid #eee;
-    position: sticky;
-    top: 0;
-    z-index: 999;
-  }
-  
-  .main-content {
-    display: flex;
-    height: 100%;
-  }
-}
-
-.loading-container {
+.question-header {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 400rpx;
+  align-items: flex-start;
+  gap: 20rpx;
 }
 
-.empty-categories, .empty-content {
+.question-index {
+  flex-shrink: 0;
+  width: 60rpx;
+  height: 60rpx;
+  background: linear-gradient(135deg, var(--td-brand-color, #0052d9), #4d7cfe);
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.index-number {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: white;
+}
+
+.question-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.question-title-section {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.question-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.question-tags {
+  display: flex;
+  gap: 16rpx;
+  flex-wrap: wrap;
+}
+
+.question-meta {
+  display: flex;
+  gap: 30rpx;
   align-items: center;
-  padding: 60rpx;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 24rpx;
   color: #999;
+}
+
+.question-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.collect-icon {
+  transition: all 0.3s ease;
+  padding: 16rpx;
+  border-radius: 50%;
+}
+
+.collect-icon:active {
+  background: rgba(255, 107, 53, 0.1);
+  transform: scale(1.1);
+}
+
+/* 题目描述 */
+.question-description {
+  margin-top: 20rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.description-text {
+  font-size: 28rpx;
+  color: #666;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 加载更多 */
+.load-more {
+  display: flex;
+  justify-content: center;
+  padding: 40rpx 0;
+}
+
+.no-more {
+  text-align: center;
+  padding: 40rpx 0;
+}
+
+.no-more-text {
+  font-size: 26rpx;
+  color: #999;
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120rpx 0;
+  text-align: center;
 }
 
 .empty-text {
-  font-size: 28rpx;
-  margin-top: 20rpx;
-  color: #999;
+  font-size: 32rpx;
+  color: #666;
+  margin: 30rpx 0 16rpx;
+  font-weight: 500;
 }
 
-// 其他现有样式保持不变...
+.empty-desc {
+  font-size: 26rpx;
+  color: #999;
+  margin-bottom: 40rpx;
+}
+
+.empty-btn {
+  width: 240rpx;
+}
+
+/* 回到顶部 */
+.back-top {
+  position: fixed;
+  right: 32rpx;
+  bottom: 200rpx;
+  width: 80rpx;
+  height: 80rpx;
+  background: var(--td-brand-color, #0052d9);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 32rpx rgba(0, 82, 217, 0.3);
+  transition: all 0.3s ease;
+}
+
+.back-top:active {
+  transform: scale(0.95);
+  box-shadow: 0 4rpx 16rpx rgba(0, 82, 217, 0.4);
+}

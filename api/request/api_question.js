@@ -1,19 +1,21 @@
 // api/auth.js
 import http from '../api_request'
 
+// api_question.js
 export const authApi = {
-  
-  // 获取分类信息
-  getCategories: (categoryParams) => {
-    return http.get('/repository/category', categoryParams, {
+
+  // 获取题目列表
+  getQuestionList: (questionParams) => {
+    return http.get('/repository/questions', questionParams, {
       showLoading: false
     })
   },
 
-  //获取问题列表
-  getQuestions: (categoryParams) => {
-    return http.get('/repository/category', categoryParams, {
-      showLoading: false
+  // 收藏/取消收藏题目
+  toggleCollect: (params) => {
+    return http.post('/repository/questions/collect', params, {
+      showLoading: true,
+      loadingText: '操作中...'
     })
   }
 }

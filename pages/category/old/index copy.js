@@ -1,5 +1,5 @@
-import Message from 'tdesign-miniprogram/message/index';
-import { authApi } from '~/api/request/api_question';
+import Message from 'tdesign-miniprogram/message';
+import { authApi } from '~/api/request/api_category';
 import { CategoryParams } from '~/api/param/param_category'
 import { QuestionParams } from '~/api/param/param_category'
 

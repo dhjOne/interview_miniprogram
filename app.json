@@ -4,8 +4,8 @@
     "pages/message/index",
     "pages/my/index",
     "pages/agreement/agreement",
-    "pages/question/index",
-    "pages/question/old/index"
+    "pages/category/index",
+    "pages/question/index"
   ],
   "usingComponents": {
     "t-cell": "/miniprogram_npm/tdesign-miniprogram/cell/cell",
@@ -95,7 +95,7 @@
         "text": "首页"
       },
       {
-        "pagePath": "pages/question/index",
+        "pagePath": "pages/category/index",
         "text": "题库"
       },
       {

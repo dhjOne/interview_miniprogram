@@ -1,347 +1,236 @@
+// pages/question/list/index.js
 import Message from 'tdesign-miniprogram/message/index';
 import { authApi } from '~/api/request/api_question';
-
-import { CategoryParams } from '~/api/param/param_category';
-import { QuestionParams } from '~/api/param/param_category';
-import { BusinessError } from '~/api/api_request';
-
-const app = getApp();
+import { QuestionParams } from '~/api/param/param_question';
 
 Page({
   data: {
-    isSidebarCollapsed: false,
-    currentPrimary: null,
-    currentSecondary: null,
-    scrollLeft: 0,
-    primaryCategories: [],
-    secondaryCategories: [],
-    currentQuestions: [],
-    navBarHeight: 90,
-    enable: false,
+    searchValue: '',
+    activeFilter: 'all',
+    sortType: 'default',
+    questionList: [],
+    totalCount: 0,
     loading: false,
-    lastRefreshTime: 0,
-    needRefresh: false,
-    showSecondarySidebar: true, // 新增：控制二级侧边栏显示
-    messageOffset: 100 
-  },
-
-  onLoad() {
-    console.log('页面加载开始');
-    this.calculateNavBarHeight();
-    this.loadPrimaryCategories();
-
-    app.on('refreshQuestionBank', this.handleRefresh.bind(this));
-  },
-
-  onUnload() {
-    app.off('refreshQuestionBank', this.handleRefresh);
-  },
-
-  handleRefresh() {
-    console.log('收到刷新指令');
-    this.setData({ needRefresh: true });
+    hasMore: true,
+    page: 1,
+    pageSize: 10,
+    showBackTop: false,
+    categoryId: null, // 新增：分类ID
+    categoryName: '', // 新增：分类名称
     
-    if (this.data.currentPrimary) {
-      this.refreshCurrentData();
-    }
+    filterTags: [
+      { label: '全部', value: 'all' },
+      { label: '已收藏', value: 'collected' },
+      { label: '未收藏', value: 'uncollected' },
+      { label: '简单', value: 'easy' },
+      { label: '中等', value: 'medium' },
+      { label: '困难', value: 'hard' }
+    ]
+  },
+
+  onLoad(options) {
+    console.log('题库列表页面加载', options);
+    
+    // 从上一页获取分类ID和名称
+    const { categoryId, categoryName, secondaryCategoryId, secondaryCategoryName } = options;
+    
+    this.setData({
+      categoryId: categoryId || secondaryCategoryId,
+      categoryName: categoryName || secondaryCategoryName
+    });
+    
+    this.loadQuestions(true);
   },
 
   onShow() {
-    console.log('页面显示');
-    const now = Date.now();
-    const shouldRefresh = this.data.needRefresh || 
-                        (now - this.data.lastRefreshTime > 5 * 60 * 1000) ||
-                        !this.data.primaryCategories.length;
-    
-    if (shouldRefresh && this.data.currentPrimary) {
-      this.refreshCurrentData();
-      this.setData({ needRefresh: false });
-    }
-  },
-  
-  onHide() {
-    console.log('页面隐藏');
-    this.setData({
-      lastRefreshTime: Date.now()
-    });
-  },
-  
-  async refreshCurrentData() {
-    console.log('刷新当前页面数据');
-    
-    try {
-      this.setData({ loading: true });
-      await this.loadSecondaryCategories();
-      
-      if (this.data.currentSecondary) {
-        await this.loadQuestions();
-      }
-      Message.success('数据已更新');
-    } catch (error) {
-      console.error('刷新数据失败:', error);
-      Message.error('刷新失败');
-    } finally {
-      this.setData({ loading: false });
-    }
+    // 页面显示时刷新收藏状态
+    this.refreshCollectStatus();
   },
 
-  // 加载一级分类
-  async loadPrimaryCategories() {
+  onPageScroll(e) {
+    // 显示回到顶部按钮
+    this.setData({
+      showBackTop: e.scrollTop > 400
+    });
+  },
+
+  // 加载题目列表
+  async loadQuestions(refresh = false) {
+    if (this.data.loading) return;
+
+    const page = refresh ? 1 : this.data.page;
+    
+    this.setData({ loading: true });
+
     try {
-      this.setData({ loading: true });
-      console.log('开始加载数据')
-      const categoryParams = new CategoryParams(null, 0)
-      const response = await authApi.getCategories(categoryParams);
-      console.log('一级分类：：', response);
-      const primaryCategories = response.data.rows;
-      this.setData({
-        primaryCategories: primaryCategories,
-        currentPrimary: primaryCategories[0]?.id || null
-      });
-      if (this.data.currentPrimary) {
-        await this.loadSecondaryCategories();
-      }
-    } catch (error) {
-      console.error('加载一级分类失败:', error);
-      this.showErrorMessage('网络错误，请重试');
-      // 统一错误处理
-      if (error instanceof BusinessError) {
-        // 业务错误
-        this.showErrorMessage(error.message || '请求失败');
-        // 可以根据错误码进行特殊处理
-        if (error.code === 401) {
-          // token过期，已经在请求层处理了，这里可以补充逻辑
-          console.log('token过期');
+      const params = {
+        page,
+        pageSize: this.data.pageSize,
+        keyword: this.data.searchValue,
+        filter: this.data.activeFilter,
+        sort: this.data.sortType,
+        categoryId: this.data.categoryId // 添加分类ID参数
+      };
+
+      // 过滤空参数
+      const filteredParams = Object.keys(params).reduce((acc, key) => {
+        if (params[key] !== null && params[key] !== undefined && params[key] !== '') {
+          acc[key] = params[key];
         }
-      } else {
-        // 其他错误
+        return acc;
+      }, {});
+
+      console.log('请求参数:', filteredParams);
+      const questionParams = new QuestionParams(null, this.data.categoryId, null)
+      const response = await authApi.getQuestionList(questionParams);
       
-        this.showErrorMessage('网络错误，请重试');
-      }
-    } finally {
-      this.setData({ loading: false });
-    }
-  },
-
-  // 加载二级分类 - 关键修改
-  async loadSecondaryCategories() {
-    // 先重置数据
-    this.setData({
-      secondaryCategories: [],
-      currentSecondary: null,
-      currentQuestions: [],
-      showSecondarySidebar: false // 默认隐藏侧边栏
-    });
-    
-    if (!this.data.currentPrimary) return;
-    
-    try {
-      const categoryParams = new CategoryParams(null, this.data.currentPrimary)
-      const response = await authApi.getCategories(categoryParams);
-      console.log('二级分类：：', response);
-      
-      if (response.code === "0000" && response.data) {
-        const secondaryCategories = response.data.rows;
+      if (response.code === "0000") {
+        const newList = response.data.rows || [];
+        const total = response.data.total || 0;
         
-        // 判断是否有二级分类数据
-        const hasSecondaryCategories = secondaryCategories && secondaryCategories.length > 0;
-        
-        this.setData({
-          secondaryCategories: secondaryCategories,
-          currentSecondary: hasSecondaryCategories ? secondaryCategories[0]?.id : null,
-          showSecondarySidebar: hasSecondaryCategories // 有数据才显示侧边栏
-        });
-        
-        // 如果有二级分类，加载对应的问题
-        if (this.data.currentSecondary) {
-          await this.loadQuestions();
-        } else {
-          this.setData({ currentQuestions: [] });
-        }
-      } else {
-        // 接口返回失败，确保数据为空
-        this.setData({
-          secondaryCategories: [],
-          currentSecondary: null,
-          currentQuestions: [],
-          showSecondarySidebar: false
-        });
-      }
-    } catch (error) {
-      console.error('加载二级分类失败:', error);
-      this.showErrorMessage('加载分类失败');
-      this.setData({
-        secondaryCategories: [],
-        currentSecondary: null,
-        currentQuestions: [],
-        showSecondarySidebar: false
-      });
-    }
-  },
-
-  // 加载问题数据
-  async loadQuestions() {
-    if (!this.data.currentSecondary) {
-      this.setData({ currentQuestions: [] });
-      return;
-    }
-    
-    try {
-      const questionParams = new QuestionParams(null, this.data.currentSecondary, null)
-      const response = await authApi.getQuestions(questionParams);
-      console.log('问题列表：：', response);
-  
-      if (response.code === "0000" && response.data) {
-        this.setData({
-          currentQuestions: response.data.rows
-        });
-      } else {
-        this.setData({ currentQuestions: [] });
-      }
-    } catch (error) {
-      console.error('加载问题失败:', error);
-      this.showErrorMessage('加载内容失败');
-      this.setData({ currentQuestions: [] });
-    }
-  },
-
-  // Tabs 切换事件
-  async onTabChange(e) {
-    const categoryId = parseInt(e.detail.value);
-    
-    // 立即重置数据
-    this.setData({
-      currentPrimary: categoryId,
-      secondaryCategories: [],
-      currentSecondary: null,
-      currentQuestions: [],
-      showSecondarySidebar: false // 切换时先隐藏侧边栏
-    });
-    
-    await this.loadSecondaryCategories();
-    this.autoScrollToCurrent();
-  },
-
-  // 计算导航栏高度
-  calculateNavBarHeight() {
-    const systemInfo = wx.getSystemInfoSync();
-    const menuButtonInfo = wx.getMenuButtonBoundingClientRect();
-    
-    const navBarHeight = (menuButtonInfo.top - systemInfo.statusBarHeight) * 2 + menuButtonInfo.height;
-    
-    // 计算消息偏移量，确保在导航栏下方
-    const messageOffset = navBarHeight + 60; // 导航栏高度 + 安全间距
-
-    this.setData({
-      navBarHeight: navBarHeight,
-      messageOffset: messageOffset
-    });
-    
-    wx.setStorageSync('navBarHeight', navBarHeight + 'rpx');
-    wx.setStorageSync('statusBarHeight', systemInfo.statusBarHeight + 'px');
-  },
-
-   // 显示错误消息的统一方法
-   showErrorMessage(content) {
-    Message.error({
-      content: content,
-      offset: [this.data.messageOffset, 16], // 使用计算出的偏移量
-      duration: 3000
-    });
-  },
-
-  // 显示成功消息的统一方法
-  showSuccessMessage(content) {
-    Message.success({
-      content: content,
-      offset: [this.data.messageOffset, 16],
-      duration: 2000
-    });
-  },
-
-  // 切换一级分类（点击横向导航时）
-  async switchPrimaryCategory(e) {
-    const categoryId = e.currentTarget.dataset.id;
-    
-    // 立即重置数据
-    this.setData({
-      currentPrimary: categoryId,
-      secondaryCategories: [],
-      currentSecondary: null,
-      currentQuestions: [],
-      showSecondarySidebar: false // 切换时先隐藏侧边栏
-    });
-    
-    await this.loadSecondaryCategories();
-    this.autoScrollToCurrent();
-  },
-
-  // 自动滚动到当前选中的分类
-  autoScrollToCurrent() {
-    this.setData({ scrollLeft: 0 });
-    
-    setTimeout(() => {
-      const query = wx.createSelectorQuery();
-      query.select('.category-item.active').boundingClientRect();
-      query.select('.categories-scroll').boundingClientRect();
-      query.exec((res) => {
-        if (res[0] && res[1]) {
-          const activeItem = res[0];
-          const scrollView = res[1];
-          const scrollLeft = activeItem.left - scrollView.left + (activeItem.width - scrollView.width) / 2;
-          
+        if (refresh) {
           this.setData({
-            scrollLeft: Math.max(0, scrollLeft)
+            questionList: newList,
+            totalCount: total,
+            page: 1,
+            hasMore: newList.length >= this.data.pageSize
+          });
+        } else {
+          this.setData({
+            questionList: [...this.data.questionList, ...newList],
+            totalCount: total,
+            page: page + 1,
+            hasMore: newList.length >= this.data.pageSize
           });
         }
-      });
-    }, 100);
-  },
-
-  // 切换二级分类
-  async switchSecondaryCategory(e) {
-    const categoryId = e.currentTarget.dataset.id;
-    this.setData({
-      currentSecondary: categoryId
-    });
-    
-    await this.loadQuestions();
-  },
-
-  // 切换侧边栏收起状态
-  toggleSidebar() {
-    this.setData({
-      isSidebarCollapsed: !this.data.isSidebarCollapsed
-    });
-  },
-
-  // 图片预览
-  previewImage(e) {
-    const url = e.currentTarget.dataset.url;
-    const images = this.data.currentQuestions.map(item => item.url);
-    
-    wx.previewImage({
-      urls: images,
-      current: url
-    });
-  },
-
-  // 下拉刷新
-  async onRefresh() {
-    try {
-      await this.loadQuestions();
-      this.showSuccessMessage('刷新成功');
+      } else {
+        Message.error(response.message || '加载失败');
+      }
     } catch (error) {
-      this.showErrorMessage('刷新失败');
+      console.error('加载题目列表失败:', error);
+      Message.error('网络错误，请重试');
     } finally {
-      this.setData({ enable: false });
+      this.setData({ loading: false });
     }
   },
 
-  // 发布
+  // 搜索相关
+  onSearchChange(e) {
+    this.setData({
+      searchValue: e.detail.value
+    });
+  },
+
+  onSearch() {
+    this.loadQuestions(true);
+  },
+
+  // 筛选条件改变
+  onFilterChange(e) {
+    const value = e.currentTarget.dataset.value;
+    this.setData({
+      activeFilter: value
+    }, () => {
+      this.loadQuestions(true);
+    });
+  },
+
+  // 排序改变
+  onSortChange(e) {
+    this.setData({
+      sortType: e.detail.value
+    }, () => {
+      this.loadQuestions(true);
+    });
+  },
+
+  // 收藏/取消收藏
+  async onCollect(e) {
+    const questionId = e.currentTarget.dataset.id;
+    const question = this.data.questionList.find(item => item.id === questionId);
+    
+    if (!question) return;
+
+    try {
+      const response = await authApi.toggleCollect({
+        questionId: questionId,
+        collect: !question.isCollected
+      });
+
+      if (response.code === "0000") {
+        // 更新本地收藏状态
+        const updatedList = this.data.questionList.map(item => {
+          if (item.id === questionId) {
+            return {
+              ...item,
+              isCollected: !item.isCollected
+            };
+          }
+          return item;
+        });
+
+        this.setData({
+          questionList: updatedList
+        });
+
+        Message.success(question.isCollected ? '已取消收藏' : '收藏成功');
+      } else {
+        Message.error(response.message || '操作失败');
+      }
+    } catch (error) {
+      console.error('收藏操作失败:', error);
+      Message.error('操作失败，请重试');
+    }
+  },
+
+  // 刷新收藏状态
+  async refreshCollectStatus() {
+    // 可以调用接口获取最新的收藏状态
+    // 这里简单实现：重新加载第一页数据
+    if (this.data.questionList.length > 0) {
+      this.loadQuestions(true);
+    }
+  },
+
+  // 加载更多
+  loadMore() {
+    if (!this.data.loading && this.data.hasMore) {
+      this.loadQuestions(false);
+    }
+  },
+
+  // 滚动到顶部
+  scrollToTop() {
+    wx.pageScrollTo({
+      scrollTop: 0,
+      duration: 300
+    });
+  },
+
+  // 获取难度主题色
+  getDifficultyTheme(difficulty) {
+    const themes = {
+      easy: 'success',
+      medium: 'warning',
+      hard: 'danger'
+    };
+    return themes[difficulty] || 'outline';
+  },
+
+  // 获取难度文本
+  getDifficultyText(difficulty) {
+    const texts = {
+      easy: '简单',
+      medium: '中等',
+      hard: '困难'
+    };
+    return texts[difficulty] || '未知';
+  },
+
+  // 发布题目
   goRelease() {
     wx.navigateTo({
-      url: '/pages/release/release'
+      url: `/pages/release/question/index?categoryId=${this.data.categoryId}`
     });
   }
 });

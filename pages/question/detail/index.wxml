@@ -1,0 +1,260 @@
+<!-- pages/question/detail/index.wxml -->
+<nav nav-type="title" title="题目详情" />
+
+<view class="question-detail-container">
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading-state">
+    <view class="loading-content">
+      <t-loading size="60rpx" text="加载中..."></t-loading>
+    </view>
+  </view>
+
+  <!-- 错误状态 -->
+  <view wx:elif="{{error}}" class="error-state">
+    <view class="error-content">
+      <t-icon name="error-circle" size="120rpx" color="#ff4d4f"></t-icon>
+      <text class="error-text">{{errorMessage || '加载失败'}}</text>
+      <t-button theme="primary" bindtap="retryLoad" class="retry-btn">
+        重新加载
+      </t-button>
+    </view>
+  </view>
+
+  <!-- 空数据状态 -->
+  <view wx:elif="{{isEmpty}}" class="empty-state">
+    <view class="empty-content">
+      <t-icon name="file" size="120rpx" color="#ccc"></t-icon>
+      <text class="empty-text">题目不存在</text>
+      <text class="empty-desc">该题目可能已被删除或不存在</text>
+      <t-button theme="outline" bindtap="goBack" class="empty-btn">
+        返回上一页
+      </t-button>
+    </view>
+  </view>
+
+  <!-- 正常内容 -->
+  <view wx:else>
+    <!-- 内容区域 -->
+    <scroll-view class="content-scroll" scroll-y="true" bindscroll="onPageScroll">
+      <!-- 题目卡片 -->
+      <view class="question-card">
+        <!-- 标题区域 -->
+        <view class="question-header">
+          <view class="question-title-section">
+            <text class="question-title">{{questionDetail.title}}</text>
+            <view class="question-meta-top">
+              <t-tag
+                wx:if="{{questionDetail.difficulty}}"
+                theme="{{getDifficultyTheme(questionDetail.difficulty)}}"
+                size="small"
+              >
+                {{getDifficultyText(questionDetail.difficulty)}}
+              </t-tag>
+              <t-tag
+                wx:if="{{questionDetail.type}}"
+                theme="outline"
+                size="small"
+              >
+                {{questionDetail.type}}
+              </t-tag>
+              <text class="view-count">
+                <t-icon name="view" size="24rpx"></t-icon>
+                {{questionDetail.viewCount || 0}} 浏览
+              </text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 标签区域 -->
+        <view wx:if="{{questionDetail.tags && questionDetail.tags.length > 0}}" class="tags-section">
+          <view class="section-title">标签</view>
+          <view class="tags-list">
+            <t-tag
+              wx:for="{{questionDetail.tags}}"
+              wx:key="*this"
+              theme="outline"
+              size="small"
+            >
+              {{item}}
+            </t-tag>
+          </view>
+        </view>
+
+        <!-- 题目内容 -->
+        <view class="content-section">
+          <view class="section-title">题目描述</view>
+          <view class="question-content">
+            <!-- 使用 towxml 渲染 markdown -->
+            <towxml wx:if="{{contentNodes}}" nodes="{{contentNodes}}"/>
+            <view wx:else class="no-content">
+              <text class="no-content-text">暂无题目描述</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 代码区域（如果有） -->
+        <view wx:if="{{questionDetail.code}}" class="code-section">
+          <view class="section-title">参考代码</view>
+          <view class="code-content">
+            <text class="code-text">{{questionDetail.code}}</text>
+          </view>
+          <view class="code-actions">
+            <t-button theme="outline" size="small" bindtap="onCopyCode">
+              <t-icon name="copy" size="24rpx"></t-icon>
+              复制代码
+            </t-button>
+          </view>
+        </view>
+
+        <!-- 答案区域（如果有） -->
+        <view wx:if="{{questionDetail.content}}" class="answer-section">
+          <view class="section-title">参考答案</view>
+          <view class="answer-content">
+            <towxml wx:if="{{answerNodes}}" nodes="{{answerNodes}}"/>
+            <view wx:else class="no-content">
+              <text class="no-content-text">{{questionDetail.answer}}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 元信息 -->
+        <view class="meta-section">
+          <view class="meta-item">
+            <t-icon name="time" size="24rpx" color="#999"></t-icon>
+            <text class="meta-text">创建时间：{{questionDetail.createTime}}</text>
+          </view>
+          <view class="meta-item">
+            <t-icon name="user" size="24rpx" color="#999"></t-icon>
+            <text class="meta-text">创建者：{{questionDetail.author || '匿名用户'}}</text>
+          </view>
+          <view wx:if="{{questionDetail.updateTime}}" class="meta-item">
+            <t-icon name="edit" size="24rpx" color="#999"></t-icon>
+            <text class="meta-text">更新时间：{{questionDetail.updateTime}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 相关题目 -->
+      <view wx:if="{{relatedQuestions.length > 0}}" class="related-section">
+        <view class="section-header">
+          <text class="section-title">相关题目</text>
+          <text class="more-link" bindtap="viewAllRelated">查看更多</text>
+        </view>
+        <view class="related-list">
+          <block wx:for="{{relatedQuestions}}" wx:key="id">
+            <view class="related-item" bindtap="onRelatedQuestionClick" data-id="{{item.id}}">
+              <text class="related-title">{{item.title}}</text>
+              <t-tag
+                wx:if="{{item.difficulty}}"
+                theme="{{getDifficultyTheme(item.difficulty)}}"
+                size="small"
+              >
+                {{getDifficultyText(item.difficulty)}}
+              </t-tag>
+            </view>
+          </block>
+        </view>
+      </view>
+
+      <!-- 评论区（可选） -->
+      <view class="comment-section">
+        <view class="section-header">
+          <text class="section-title">评论 ({{commentCount}})</text>
+        </view>
+        <view class="comment-input-area">
+          <t-textarea
+            value="{{commentText}}"
+            placeholder="写下你的评论..."
+            maxlength="500"
+            bind:change="onCommentChange"
+          ></t-textarea>
+          <t-button theme="primary" size="small" bindtap="onSubmitComment" class="submit-btn">
+            发布评论
+          </t-button>
+        </view>
+        <view class="comment-list">
+          <block wx:for="{{comments}}" wx:key="id">
+            <view class="comment-item">
+              <view class="comment-header">
+                <image class="comment-avatar" src="{{item.avatar}}"></image>
+                <view class="comment-user">
+                  <text class="user-name">{{item.userName}}</text>
+                  <text class="comment-time">{{item.createTime}}</text>
+                </view>
+              </view>
+              <view class="comment-content">{{item.content}}</view>
+              <view class="comment-actions">
+                <view class="action-item" bindtap="onLikeComment" data-id="{{item.id}}">
+                  <t-icon name="thumb-up" size="24rpx"></t-icon>
+                  <text>{{item.likeCount || 0}}</text>
+                </view>
+                <view class="action-item" bindtap="onReplyComment" data-id="{{item.id}}">
+                  <t-icon name="chat" size="24rpx"></t-icon>
+                  <text>回复</text>
+                </view>
+              </view>
+            </view>
+          </block>
+        </view>
+      </view>
+    </scroll-view>
+
+    <!-- 底部操作栏 -->
+    <view class="action-bar {{showActionBar ? 'show' : 'hide'}}">
+      <view class="action-buttons">
+        <view class="action-button" bindtap="onLike">
+          <t-icon
+            name="{{questionDetail.isLiked ? 'heart-filled' : 'heart'}}"
+            size="36rpx"
+            color="{{questionDetail.isLiked ? '#ff4d4f' : '#666'}}"
+          ></t-icon>
+          <text class="action-text">{{questionDetail.likeCount || 0}}</text>
+        </view>
+        
+        <view class="action-button" bindtap="onCollect">
+          <t-icon
+            name="{{questionDetail.isCollected ? 'star-filled' : 'star'}}"
+            size="36rpx"
+            color="{{questionDetail.isCollected ? '#ff6b35' : '#666'}}"
+          ></t-icon>
+          <text class="action-text">{{questionDetail.collectCount || 0}}</text>
+        </view>
+        
+        <view class="action-button" bindtap="onShare">
+          <t-icon name="share" size="36rpx" color="#666"></t-icon>
+          <text class="action-text">分享</text>
+        </view>
+        
+        <view class="action-divider"></view>
+        
+        <t-button theme="primary" class="action-primary-btn" bindtap="onTryAnswer">
+          尝试解答
+        </t-button>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 分享弹窗 -->
+<t-popup visible="{{showSharePopup}}" bind:visible-change="onSharePopupChange">
+  <view class="share-popup">
+    <view class="share-title">分享题目</view>
+    <view class="share-options">
+      <view class="share-option" bindtap="onShareToWechat">
+        <t-icon name="wechat" size="48rpx" color="#09bb07"></t-icon>
+        <text>微信好友</text>
+      </view>
+      <view class="share-option" bindtap="onShareToMoment">
+        <t-icon name="wechat-moment" size="48rpx" color="#7bcfa9"></t-icon>
+        <text>朋友圈</text>
+      </view>
+      <view class="share-option" bindtap="onCopyLink">
+        <t-icon name="link" size="48rpx" color="#1890ff"></t-icon>
+        <text>复制链接</text>
+      </view>
+    </view>
+    <t-button theme="outline" bindtap="onCancelShare">取消</t-button>
+  </view>
+</t-popup>
+
+<t-message id="t-message" />

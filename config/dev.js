@@ -4,8 +4,8 @@ export default {
   env: 'develop',
   
   // API 基础配置
-  // baseUrl: 'http://localhost:9991',
-  baseUrl: 'https://175vq12004jn.vicp.fun',
+  baseUrl: 'http://localhost:9991',
+  // baseUrl: 'https://175vq12004jn.vicp.fun',
   apiPrefix: '/api',
   
   // 业务接口

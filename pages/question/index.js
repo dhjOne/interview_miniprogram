@@ -232,5 +232,18 @@ Page({
     wx.navigateTo({
       url: `/pages/release/question/index?categoryId=${this.data.categoryId}`
     });
+  },
+
+   // 点击问题项跳转到详情
+   onQuestionClick(e) {
+    const questionId = e.currentTarget.dataset.id;
+    const questionTitle = e.currentTarget.dataset.title;
+    
+    console.log('点击问题:', questionId, questionTitle);
+    
+    // 跳转到问题详情页面
+    wx.navigateTo({
+      url: `/pages/question/detail/index?id=${questionId}&title=${encodeURIComponent(questionTitle)}`
+    });
   }
 });

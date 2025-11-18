@@ -30,22 +30,17 @@
 
   <!-- 题目列表 -->
   <view class="questions-section">
-    <!-- <view class="questions-stats">
-      <text class="stats-text">共 {{totalCount}} 道题目</text>
-      <view class="sort-options">
-        <t-radio-group value="{{sortType}}" bind:change="onSortChange">
-          <t-radio value="default" label="默认"></t-radio>
-          <t-radio value="difficulty" label="难度"></t-radio>
-          <t-radio value="hot" label="热度"></t-radio>
-        </t-radio-group>
-      </view>
-    </view> -->
-
     <!-- 题目列表 -->
     <scroll-view class="questions-scroll" scroll-y="true" bindscroll="onPageScroll">
       <view class="question-list">
         <block wx:for="{{questionList}}" wx:key="id">
-          <view class="question-item {{item.isCollected ? 'collected' : ''}}">
+          <!-- 添加 bindtap 事件到整个问题项 -->
+          <view 
+            class="question-item {{item.isCollected ? 'collected' : ''}}"
+            bindtap="onQuestionClick"
+            data-id="{{item.id}}"
+            data-title="{{item.title}}"
+          >
             <view class="question-header">
               <view class="question-index">
                 <text class="index-number">{{index + 1}}</text>
@@ -86,14 +81,15 @@
                 </view>
               </view>
               <view class="question-actions">
-                <t-icon
-                  name="{{item.isCollected ? 'star-filled' : 'star'}}"
-                  size="36rpx"
-                  color="{{item.isCollected ? '#ff6b35' : '#999'}}"
-                  bindtap="onCollect"
-                  data-id="{{item.id}}"
-                  class="collect-icon"
-                ></t-icon>
+                <!-- 阻止收藏按钮的事件冒泡 -->
+                <view catchtap="onCollect" data-id="{{item.id}}">
+                  <t-icon
+                    name="{{item.isCollected ? 'star-filled' : 'star'}}"
+                    size="36rpx"
+                    color="{{item.isCollected ? '#ff6b35' : '#999'}}"
+                    class="collect-icon"
+                  ></t-icon>
+                </view>
               </view>
             </view>
             

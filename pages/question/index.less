@@ -241,3 +241,27 @@
   transform: scale(0.95);
   box-shadow: 0 4rpx 16rpx rgba(0, 82, 217, 0.4);
 }
+
+//点击问题
+/* 在现有的 CSS 中添加以下样式 */
+
+.question-item {
+  /* 确保有点击反馈 */
+  transition: all 0.2s ease;
+}
+
+.question-item:active {
+  background: #f8f9fa;
+  transform: scale(0.995);
+}
+
+/* 确保收藏按钮区域不会阻止事件 */
+.question-actions {
+  z-index: 10;
+}
+
+.collect-icon {
+  /* 确保收藏图标有足够的点击区域 */
+  padding: 16rpx;
+  border-radius: 50%;
+}

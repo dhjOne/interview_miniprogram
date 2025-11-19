@@ -76,12 +76,25 @@
 
 /* 内容区域 */
 .content-section {
-  margin-bottom: 32rpx;
+  margin-bottom: 24rpx;
+  padding-bottom: 24rpx;
+  // border-bottom: 1rpx solid #f0f0f0;
 
   .question-content {
     font-size: 28rpx;
     line-height: 1.6;
     color: #333;
+    
+    .content-text {
+      white-space: pre-wrap;
+      word-break: break-word;
+      
+      /* 首行缩进样式 */
+      &.indent-paragraph {
+        text-indent: 2em; /* 2个字符的缩进，适合中文排版 */
+        display: block;
+      }
+    }
   }
 }
 
@@ -126,24 +139,54 @@
   }
 }
 
+
+/* 元信息区域 */
 /* 元信息区域 */
 .meta-section {
-  padding-top: 24rpx;
+  padding-top: 20rpx;
   border-top: 1rpx solid #f0f0f0;
 
-  .meta-item {
+  /* 转评赞数据行 */
+  .stats-row {
     display: flex;
     align-items: center;
-    gap: 12rpx;
+    justify-content: space-between;
     margin-bottom: 16rpx;
-
-    &:last-child {
-      margin-bottom: 0;
+    padding: 0 10rpx; /* 调整内边距以适应更多项目 */
+    
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 6rpx;
+      flex: 1; /* 每个项目平均分配空间 */
+      justify-content: center; /* 内容居中 */
+      
+      .stat-text {
+        font-size: 22rpx; /* 稍微调小字体以适应更多项目 */
+        color: #666;
+        font-weight: 500;
+        white-space: nowrap; /* 防止文字换行 */
+      }
     }
+  }
 
-    .meta-text {
-      font-size: 24rpx;
-      color: #999;
+  /* 原有元信息行 */
+  .meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16rpx;
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 6rpx;
+
+      .meta-text {
+        font-size: 22rpx;
+        color: #999;
+      }
     }
   }
 }
@@ -207,10 +250,15 @@
     margin-bottom: 32rpx;
     display: flex;           /* 添加这一行 */
     flex-direction: column;  /* 添加这一行 */
+    .submit-btn-wrapper {
+      display: flex;
+      justify-content: flex-end; /* 确保这是右对齐 */
+      margin-top: 16rpx;
+      width: 100%;           /* 添加这个确保容器宽度100% */
+    }
     .submit-btn {
-      margin-top: 20rpx;
       width: 200rpx;
-      align-self: flex-end; 
+      /* 如果上面的方法不行，添加这个强制右对齐 */
       margin-left: auto;
       margin-right: 0;
     }

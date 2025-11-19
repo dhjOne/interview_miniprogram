@@ -10,8 +10,6 @@ Page({
   data: {
     questionId: null,
     questionDetail: {},
-    contentNodes: {},
-    answerNodes: {},
     relatedQuestions: [],
     comments: [],
     commentCount: 0,
@@ -97,24 +95,7 @@ Page({
       if (response.code === "0000") {
         if (response.data) {
           const questionDetail = response.data;
-          
-          // 使用 towxml 解析 markdown 内容
-          // let contentNodes = {};
-          // let answerNodes = {};
-          
-          // if (questionDetail.content) {
-          //   contentNodes = this.towxml.toJson(questionDetail.content, 'markdown', {
-          //     base: 'https://example.com',
-          //     theme: 'light'
-          //   });
-          // }
-          
-          // if (questionDetail.answer) {
-          //   answerNodes = this.towxml.toJson(questionDetail.answer, 'markdown', {
-          //     base: 'https://example.com',
-          //     theme: 'light'
-          //   });
-          // }
+        
           // 直接在这里预处理难度信息
           if (questionDetail.difficulty) {
             questionDetail.difficultyTheme = this.getDifficultyTheme(questionDetail.difficulty);
@@ -122,10 +103,7 @@ Page({
           }
           this.setData({
             questionDetail,
-            // contentNodes,
-            // answerNodes,
-            contentNodes: questionDetail.content || [],
-            answerNodes: questionDetail.content || [],
+  
             loading: false,
             error: false,
             isEmpty: false

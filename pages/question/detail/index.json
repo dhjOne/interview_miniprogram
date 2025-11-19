@@ -6,6 +6,7 @@
     "t-tag": "tdesign-miniprogram/tag/tag",
     "t-textarea": "tdesign-miniprogram/textarea/textarea",
     "t-popup": "tdesign-miniprogram/popup/popup",
-    "t-message": "tdesign-miniprogram/message/message"
+    "t-message": "tdesign-miniprogram/message/message",
+    "t-fab": "tdesign-miniprogram/fab/fab"
   }
 }

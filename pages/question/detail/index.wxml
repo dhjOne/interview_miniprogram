@@ -1,5 +1,5 @@
 <!-- pages/question/detail/index.wxml -->
-<nav nav-type="title" title="题目详情" />
+<!-- <nav nav-type="title" title="题目详情" /> -->
 
 <view class="question-detail-container">
   <!-- 加载状态 -->
@@ -42,19 +42,12 @@
         <view class="question-header">
           <view class="question-title-section">
             <text class="question-title">{{questionDetail.title}}</text>
+            <!-- 修改这部分代码 -->
             <view class="question-meta-top">
-              <t-tag
-                wx:if="{{questionDetail.difficulty}}"
-                theme="{{getDifficultyTheme(questionDetail.difficulty)}}"
-                size="small"
-              >
-                {{getDifficultyText(questionDetail.difficulty)}}
+              <t-tag wx:if="{{questionDetail.difficulty}}" theme="{{questionDetail.difficultyTheme}}" size="small">
+                {{questionDetail.difficultyText}}
               </t-tag>
-              <t-tag
-                wx:if="{{questionDetail.type}}"
-                theme="outline"
-                size="small"
-              >
+              <t-tag wx:if="{{questionDetail.type}}" theme="outline" size="small">
                 {{questionDetail.type}}
               </t-tag>
               <text class="view-count">
@@ -69,31 +62,25 @@
         <view wx:if="{{questionDetail.tags && questionDetail.tags.length > 0}}" class="tags-section">
           <view class="section-title">标签</view>
           <view class="tags-list">
-            <t-tag
-              wx:for="{{questionDetail.tags}}"
-              wx:key="*this"
-              theme="outline"
-              size="small"
-            >
+            <t-tag wx:for="{{questionDetail.tags}}" wx:key="*this" theme="outline" size="small">
               {{item}}
             </t-tag>
           </view>
         </view>
 
         <!-- 题目内容 -->
-        <view class="content-section">
+        <!-- <view class="content-section">
           <view class="section-title">题目描述</view>
           <view class="question-content">
-            <!-- 使用 towxml 渲染 markdown -->
             <towxml wx:if="{{contentNodes}}" nodes="{{contentNodes}}"/>
             <view wx:else class="no-content">
               <text class="no-content-text">暂无题目描述</text>
             </view>
           </view>
-        </view>
+        </view> -->
 
         <!-- 代码区域（如果有） -->
-        <view wx:if="{{questionDetail.code}}" class="code-section">
+        <!-- <view wx:if="{{questionDetail.code}}" class="code-section">
           <view class="section-title">参考代码</view>
           <view class="code-content">
             <text class="code-text">{{questionDetail.code}}</text>
@@ -104,15 +91,15 @@
               复制代码
             </t-button>
           </view>
-        </view>
+        </view> -->
 
         <!-- 答案区域（如果有） -->
         <view wx:if="{{questionDetail.content}}" class="answer-section">
           <view class="section-title">参考答案</view>
           <view class="answer-content">
-            <towxml wx:if="{{answerNodes}}" nodes="{{answerNodes}}"/>
+            <towxml wx:if="{{answerNodes}}" nodes="{{answerNodes}}" />
             <view wx:else class="no-content">
-              <text class="no-content-text">{{questionDetail.answer}}</text>
+              <text class="no-content-text">{{questionDetail.content}}</text>
             </view>
           </view>
         </view>
@@ -144,11 +131,7 @@
           <block wx:for="{{relatedQuestions}}" wx:key="id">
             <view class="related-item" bindtap="onRelatedQuestionClick" data-id="{{item.id}}">
               <text class="related-title">{{item.title}}</text>
-              <t-tag
-                wx:if="{{item.difficulty}}"
-                theme="{{getDifficultyTheme(item.difficulty)}}"
-                size="small"
-              >
+              <t-tag wx:if="{{item.difficulty}}" theme="{{getDifficultyTheme(item.difficulty)}}" size="small">
                 {{getDifficultyText(item.difficulty)}}
               </t-tag>
             </view>
@@ -162,12 +145,7 @@
           <text class="section-title">评论 ({{commentCount}})</text>
         </view>
         <view class="comment-input-area">
-          <t-textarea
-            value="{{commentText}}"
-            placeholder="写下你的评论..."
-            maxlength="500"
-            bind:change="onCommentChange"
-          ></t-textarea>
+          <t-textarea value="{{commentText}}" placeholder="写下你的评论..." maxlength="500" bind:change="onCommentChange"></t-textarea>
           <t-button theme="primary" size="small" bindtap="onSubmitComment" class="submit-btn">
             发布评论
           </t-button>
@@ -203,30 +181,22 @@
     <view class="action-bar {{showActionBar ? 'show' : 'hide'}}">
       <view class="action-buttons">
         <view class="action-button" bindtap="onLike">
-          <t-icon
-            name="{{questionDetail.isLiked ? 'heart-filled' : 'heart'}}"
-            size="36rpx"
-            color="{{questionDetail.isLiked ? '#ff4d4f' : '#666'}}"
-          ></t-icon>
+          <t-icon name="{{questionDetail.isLiked ? 'heart-filled' : 'heart'}}" size="36rpx" color="{{questionDetail.isLiked ? '#ff4d4f' : '#666'}}"></t-icon>
           <text class="action-text">{{questionDetail.likeCount || 0}}</text>
         </view>
-        
+
         <view class="action-button" bindtap="onCollect">
-          <t-icon
-            name="{{questionDetail.isCollected ? 'star-filled' : 'star'}}"
-            size="36rpx"
-            color="{{questionDetail.isCollected ? '#ff6b35' : '#666'}}"
-          ></t-icon>
+          <t-icon name="{{questionDetail.isCollected ? 'star-filled' : 'star'}}" size="36rpx" color="{{questionDetail.isCollected ? '#ff6b35' : '#666'}}"></t-icon>
           <text class="action-text">{{questionDetail.collectCount || 0}}</text>
         </view>
-        
+
         <view class="action-button" bindtap="onShare">
           <t-icon name="share" size="36rpx" color="#666"></t-icon>
           <text class="action-text">分享</text>
         </view>
-        
+
         <view class="action-divider"></view>
-        
+
         <t-button theme="primary" class="action-primary-btn" bindtap="onTryAnswer">
           尝试解答
         </t-button>
@@ -234,6 +204,8 @@
     </view>
   </view>
 </view>
+
+<t-fab icon="gesture-press" text="拖我" aria-label="增加" usingCustomNavbar draggable y-bounds="{{[0, 32]}}" bind:click="handleClick" bind:dragstart="handleDragStart" bind:dragend="handleDragEnd"></t-fab>
 
 <!-- 分享弹窗 -->
 <t-popup visible="{{showSharePopup}}" bind:visible-change="onSharePopupChange">

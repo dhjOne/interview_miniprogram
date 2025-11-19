@@ -205,11 +205,14 @@
 
   .comment-input-area {
     margin-bottom: 32rpx;
-
+    display: flex;           /* 添加这一行 */
+    flex-direction: column;  /* 添加这一行 */
     .submit-btn {
       margin-top: 20rpx;
       width: 200rpx;
-      align-self: flex-end;
+      align-self: flex-end; 
+      margin-left: auto;
+      margin-right: 0;
     }
   }
 

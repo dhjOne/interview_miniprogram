@@ -41,13 +41,15 @@ Page({
     }
 
     this.setData({ questionId: id });
-    
+    // 确保方法绑定正确
+    this.getDifficultyTheme = this.getDifficultyTheme.bind(this);
+    this.getDifficultyText = this.getDifficultyText.bind(this);
     // 初始化 towxml 实例
     // this.towxml = new Towxml();
     
     this.loadQuestionDetail();
-    this.loadRelatedQuestions();
-    this.loadComments();
+    // this.loadRelatedQuestions();
+    // this.loadComments();
   },
 
   onShow() {
@@ -113,13 +115,17 @@ Page({
           //     theme: 'light'
           //   });
           // }
-          
+          // 直接在这里预处理难度信息
+          if (questionDetail.difficulty) {
+            questionDetail.difficultyTheme = this.getDifficultyTheme(questionDetail.difficulty);
+            questionDetail.difficultyText = this.getDifficultyText(questionDetail.difficulty);
+          }
           this.setData({
             questionDetail,
             // contentNodes,
             // answerNodes,
             contentNodes: questionDetail.content || [],
-            answerNodes: questionDetail.answer || [],
+            answerNodes: questionDetail.content || [],
             loading: false,
             error: false,
             isEmpty: false
@@ -127,7 +133,7 @@ Page({
 
           // 设置页面标题
           wx.setNavigationBarTitle({
-            title: questionDetail.title || '题目详情'
+            title: '题目详情'
           });
 
           // 增加浏览量
@@ -425,20 +431,22 @@ Page({
 
   // 获取难度主题色
   getDifficultyTheme(difficulty) {
+    console.log('获取难度文本')
     const themes = {
-      easy: 'success',
-      medium: 'warning',
-      hard: 'danger'
+      1: 'success',
+      2: 'warning',
+      3: 'danger'
     };
     return themes[difficulty] || 'outline';
   },
 
   // 获取难度文本
   getDifficultyText(difficulty) {
+    console.log('获取难度文本')
     const texts = {
-      easy: '简单',
-      medium: '中等',
-      hard: '困难'
+      1: '简单',
+      2: '中等',
+      3: '困难'
     };
     return texts[difficulty] || '未知';
   },

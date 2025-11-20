@@ -144,16 +144,45 @@
 <!-- 分享弹窗 -->
 <!-- ActionSheet 分享弹窗 -->
 <t-action-sheet
+  id="t-action-sheet"
   visible="{{showSharePopup}}"
-  bind:tap="handleAction"
-  bind:close="onCancelShare"
+  bind:close="onCloseShare"
   bind:selected="onShareSelect"
   theme="grid"
   align="center"
   items="{{shareOptions}}"
-  cancel-text="取消"
-  class="custom-action-sheet"
+  cancel-text="取消分享"
+  class="share-action-sheet"
 />
 
-
 <t-message id="t-message" />
+
+
+
+<!-- 分享引导 -->
+<t-guide
+  visible="{{showGuide}}"
+  steps="{{guideSteps}}"
+  bind:change="onGuideChange"
+  bind:complete="onGuideComplete"
+  bind:close="onCloseGuide"
+>
+  <!-- 自定义引导内容 -->
+  <view slot="content" class="custom-guide-content">
+    <view class="guide-header">
+      <t-icon name="share" size="32rpx" color="#0052D9"></t-icon>
+      <text class="guide-title">分享题目</text>
+    </view>
+    <view class="guide-detail">
+      <text>点击右上角"···"按钮\n选择"转发"分享给好友</text>
+    </view>
+    <view class="guide-actions">
+      <t-button theme="outline" size="small" bindtap="onCloseGuide" class="guide-btn">
+        知道了
+      </t-button>
+      <t-button theme="primary" size="small" bindtap="onCopyLink" class="guide-btn">
+        复制链接
+      </t-button>
+    </view>
+  </view>
+</t-guide>

@@ -2,7 +2,6 @@
 import Message from 'tdesign-miniprogram/message/index';
 import { authApi } from '~/api/request/api_question';
 import { QuestionParams } from '~/api/param/param_question';
-import ActionSheet, { ActionSheetTheme } from 'tdesign-miniprogram/action-sheet/index';
 
 // 引入 towxml
 // import Towxml from '../../../../towxml/towxml';
@@ -24,7 +23,32 @@ Page({
     error: false,       // 错误状态
     errorMessage: '',   // 错误信息
     isEmpty: false,      // 空数据状态
-    shareOptions: firstGrid
+    shareOptions: [
+      { label: '复制', icon: 'queue', value: 'copy' },
+      { label: '朋友圈', image: 'https://tdesign.gtimg.com/mobile/demos/times.png', value: 'moment' },
+      { label: '刷新', icon: 'refresh', value: 'refresh' },
+      { label: '微信', image: 'https://tdesign.gtimg.com/mobile/demos/wechat.png', value: 'wechat' }
+    ],
+    showGuide: false,
+    guideSteps: [
+      {
+        id: 'step1',
+        title: '分享题目',
+        detail: '点击右上角"···"按钮，选择"转发"即可分享给好友',
+        target: '.ustom-guide-content', // 必须指定目标元素
+        mode: 'rectangle',
+        placement: 'top',
+        offset: [0, 10], // 添加偏移量
+        highlightPadding: 10,
+        custom: true,
+        overlay: true, // 确保有遮罩层
+        skipButton: false, // 不显示跳过按钮
+        nextButton: false, // 不显示下一步按钮
+        prevButton: false, // 不显示上一步按钮
+        showOverlay: true // 显示遮罩
+      }
+    ]
+
   },
 
   onLoad(options) {
@@ -50,6 +74,10 @@ Page({
     this.loadQuestionDetail();
     // this.loadRelatedQuestions();
     // this.loadComments();
+    wx.showShareMenu({
+      withShareTicket: true,
+      menus: ['shareAppMessage', 'shareTimeline']
+    });
   },
 
   onShow() {
@@ -280,17 +308,27 @@ Page({
   onShare() {
     if (this.data.error || this.data.isEmpty) return;
     this.setData({ showSharePopup: true });
-    ActionSheet.show({
-      theme: ActionSheetTheme.Grid,
-      selector: '#t-action-sheet',
-      context: this,
-      items: firstGrid,
-    });
+  },
+
+  // 关闭分享弹窗
+  onCloseShare() {
+    this.setData({
+      showSharePopup: false
+    })
   },
 
   // 分享选项选择事件
   onShareSelect(event) {
-    const { value } = event.detail;
+    console.log('完整的分享事件对象:', event);
+    console.log('event.detail:', event.detail);
+    
+    const value = event.detail?.selected?.value;
+    console.log('选择了分享方式:', event.detail?.selected?.value);
+  
+    if (!value) {
+      console.error('没有获取到 value 值');
+      return;
+    }
     switch (value) {
       case 'wechat':
         this.onShareToWechat();
@@ -378,13 +416,20 @@ Page({
 
   onShareToWechat() {
     if (this.data.error || this.data.isEmpty) return;
-    // 微信分享逻辑
-    wx.shareAppMessage({
-      title: this.data.questionDetail.title,
-      path: `/pages/question/detail/index?id=${this.data.questionId}`,
-      imageUrl: '' // 可以设置分享图片
+    this.setData({ 
+      showGuide: true 
+    }, () => {
+      // 在 setData 回调中检查是否真的更新了
+      console.log('设置后 showGuide 值:', this.data.showGuide);
     });
-    this.setData({ showSharePopup: false });
+    // // 微信分享逻辑
+     console.log('触发微信分享')
+    // wx.shareAppMessage({
+    //   title: this.data.questionDetail.title,
+    //   path: `/pages/question/detail/index?id=${this.data.questionId}`,
+    //   imageUrl: '' // 可以设置分享图片
+    // });
+    // this.setData({ showSharePopup: false });
   },
 
   onShareToMoment() {
@@ -534,69 +579,60 @@ Page({
       path: `/pages/question/detail/index?id=${this.data.questionId}`,
       imageUrl: '' // 分享图片
     };
+  },
+  // 配置分享到朋友圈
+  onShareTimeline() {
+    if (this.data.error || this.data.isEmpty) {
+      return {
+        title: '题目详情',
+        path: '/pages/question/list/index'
+      };
+    }
+    
+    return {
+      title: this.data.questionDetail.title,
+      path: `/pages/question/detail/index?id=${this.data.questionId}`,
+      imageUrl: '' // 分享图片
+    };
+  },
+   // 关闭引导
+   onCloseGuide() {
+    this.setData({
+      showGuide: false
+    });
+  },
+
+  // 引导变化事件
+  onGuideChange(e) {
+    console.log('引导变化:', e.detail);
+  },
+
+  // 引导完成事件
+  onGuideComplete() {
+    console.log('引导完成');
+    this.setData({
+      showGuide: false
+    });
   }
 });
 
-const firstGrid = [
-  {
-    label: '微信',
-    image: 'https://tdesign.gtimg.com/mobile/demos/wechat.png',
-  },
-  {
-    label: '朋友圈',
-    image: 'https://tdesign.gtimg.com/mobile/demos/times.png',
-  },
-  {
-    label: 'QQ',
-    image: 'https://tdesign.gtimg.com/mobile/demos/qq.png',
-  },
-  {
-    label: '企业微信',
-    image: 'https://tdesign.gtimg.com/mobile/demos/wecom.png',
-  },
-  {
-    label: '收藏',
-    icon: 'star',
-  },
-  {
-    label: '刷新',
-    icon: 'refresh',
-  },
-  {
-    label: '下载',
-    icon: 'download',
-  },
-  {
-    label: '复制',
-    icon: 'queue',
-  },
-];
+// const firstGrid = [
+//   {
+//     label: '复制',
+//     icon: 'queue',
+//   },
+//   {
+//     label: '刷新',
+//     icon: 'refresh',
+//   },
+//   {
+//     label: '朋友圈',
+//     image: 'https://tdesign.gtimg.com/mobile/demos/times.png',
+//   },
+//   {
+//     label: '微信',
+//     image: 'https://tdesign.gtimg.com/mobile/demos/wechat.png',
+//     openType: 'share'
+//   }
+// ];
 
-Component({
-  methods: {
-    handleAction() {
-      ActionSheet.show({
-        theme: ActionSheetTheme.Grid,
-        selector: '#t-action-sheet',
-        context: this,
-        items: firstGrid,
-      });
-    },
-    handleMultiAction() {
-      ActionSheet.show({
-        theme: ActionSheetTheme.Grid,
-        selector: '#t-action-sheet',
-        context: this,
-        items: firstGrid.concat(
-          new Array(8).fill({
-            label: '标题文字',
-            icon: 'image',
-          }),
-        ),
-      });
-    },
-    handleSelected(e) {
-      console.log(e.detail);
-    },
-  },
-});

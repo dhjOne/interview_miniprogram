@@ -2,6 +2,7 @@
 import Message from 'tdesign-miniprogram/message/index';
 import { authApi } from '~/api/request/api_question';
 import { QuestionParams } from '~/api/param/param_question';
+import ActionSheet, { ActionSheetTheme } from 'tdesign-miniprogram/action-sheet/index';
 
 // 引入 towxml
 // import Towxml from '../../../../towxml/towxml';
@@ -22,7 +23,8 @@ Page({
     loading: true,      // 加载中
     error: false,       // 错误状态
     errorMessage: '',   // 错误信息
-    isEmpty: false      // 空数据状态
+    isEmpty: false,      // 空数据状态
+    shareOptions: firstGrid
   },
 
   onLoad(options) {
@@ -60,11 +62,14 @@ Page({
   onPageScroll(e) {
     // 控制底部操作栏显示/隐藏
     const { scrollTop } = e;
-    const showActionBar = scrollTop <= 100 || scrollTop < this.data.scrollTop;
+    
+    // 添加空值检查，确保 scrollTop 是有效数字
+    const validScrollTop = scrollTop || 0;
+    const showActionBar = validScrollTop <= 100 || validScrollTop < (this.data.scrollTop || 0);
     
     this.setData({
       showActionBar,
-      scrollTop
+      scrollTop: validScrollTop
     });
   },
 
@@ -275,15 +280,101 @@ Page({
   onShare() {
     if (this.data.error || this.data.isEmpty) return;
     this.setData({ showSharePopup: true });
+    ActionSheet.show({
+      theme: ActionSheetTheme.Grid,
+      selector: '#t-action-sheet',
+      context: this,
+      items: firstGrid,
+    });
+  },
+
+  // 分享选项选择事件
+  onShareSelect(event) {
+    const { value } = event.detail;
+    switch (value) {
+      case 'wechat':
+        this.onShareToWechat();
+        break;
+      case 'moment':
+        this.onShareToMoment();
+        break;
+      case 'link':
+        this.onCopyLink();
+        break;
+      case 'image':
+        this.onGenerateImage();
+        break;
+      case 'more':
+        this.onMoreShare();
+        break;
+    }
+    this.setData({
+      showSharePopup: false
+    });
+  },
+
+  // 取消分享
+  onCancelShare() {
+    this.setData({
+      showSharePopup: false
+    });
+  },
+
+  // 生成分享图片
+  onGenerateImage() {
+    // 实现生成图片的逻辑
+    wx.showToast({
+      title: '生成分享图片',
+      icon: 'none'
+    });
+  },
+
+  // 更多分享
+  onMoreShare() {
+    wx.showActionSheet({
+      itemList: ['QQ', '微博', '钉钉', '其他应用'],
+      success: (res) => {
+        const methods = ['onShareToQQ', 'onShareToWeibo', 'onShareToDingTalk', 'onShareToOther'];
+        if (methods[res.tapIndex]) {
+          this[methods[res.tapIndex]]();
+        }
+      }
+    });
+  },
+
+  // 其他分享方法
+  onShareToQQ() {
+    wx.showToast({
+      title: '分享到QQ',
+      icon: 'none'
+    });
+  },
+
+  onShareToWeibo() {
+    wx.showToast({
+      title: '分享到微博',
+      icon: 'none'
+    });
+  },
+
+  onShareToDingTalk() {
+    wx.showToast({
+      title: '分享到钉钉',
+      icon: 'none'
+    });
+  },
+
+  onShareToOther() {
+    wx.showToast({
+      title: '分享到其他应用',
+      icon: 'none'
+    });
   },
 
   onSharePopupChange(e) {
     this.setData({ showSharePopup: e.detail.visible });
   },
 
-  onCancelShare() {
-    this.setData({ showSharePopup: false });
-  },
 
   onShareToWechat() {
     if (this.data.error || this.data.isEmpty) return;
@@ -444,4 +535,68 @@ Page({
       imageUrl: '' // 分享图片
     };
   }
+});
+
+const firstGrid = [
+  {
+    label: '微信',
+    image: 'https://tdesign.gtimg.com/mobile/demos/wechat.png',
+  },
+  {
+    label: '朋友圈',
+    image: 'https://tdesign.gtimg.com/mobile/demos/times.png',
+  },
+  {
+    label: 'QQ',
+    image: 'https://tdesign.gtimg.com/mobile/demos/qq.png',
+  },
+  {
+    label: '企业微信',
+    image: 'https://tdesign.gtimg.com/mobile/demos/wecom.png',
+  },
+  {
+    label: '收藏',
+    icon: 'star',
+  },
+  {
+    label: '刷新',
+    icon: 'refresh',
+  },
+  {
+    label: '下载',
+    icon: 'download',
+  },
+  {
+    label: '复制',
+    icon: 'queue',
+  },
+];
+
+Component({
+  methods: {
+    handleAction() {
+      ActionSheet.show({
+        theme: ActionSheetTheme.Grid,
+        selector: '#t-action-sheet',
+        context: this,
+        items: firstGrid,
+      });
+    },
+    handleMultiAction() {
+      ActionSheet.show({
+        theme: ActionSheetTheme.Grid,
+        selector: '#t-action-sheet',
+        context: this,
+        items: firstGrid.concat(
+          new Array(8).fill({
+            label: '标题文字',
+            icon: 'image',
+          }),
+        ),
+      });
+    },
+    handleSelected(e) {
+      console.log(e.detail);
+    },
+  },
 });

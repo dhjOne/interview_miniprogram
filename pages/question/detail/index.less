@@ -263,7 +263,9 @@
       margin-right: 0;
     }
   }
+  
 
+  
   .comment-list {
     .comment-item {
       padding: 24rpx 0;
@@ -326,55 +328,55 @@
 }
 
 /* 底部操作栏 */
-.action-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: #fff;
-  border-top: 1rpx solid #f0f0f0;
-  padding: 20rpx 32rpx;
-  transition: transform 0.3s ease;
-  z-index: 100;
+// .action-bar {
+//   position: fixed;
+//   bottom: 0;
+//   left: 0;
+//   right: 0;
+//   background: #fff;
+//   border-top: 1rpx solid #f0f0f0;
+//   padding: 20rpx 32rpx;
+//   transition: transform 0.3s ease;
+//   z-index: 100;
 
-  &.show {
-    transform: translateY(0);
-  }
+//   &.show {
+//     transform: translateY(0);
+//   }
 
-  &.hide {
-    transform: translateY(100%);
-  }
+//   &.hide {
+//     transform: translateY(100%);
+//   }
 
-  .action-buttons {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+//   .action-buttons {
+//     display: flex;
+//     align-items: center;
+//     justify-content: space-between;
 
-    .action-button {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8rpx;
+//     .action-button {
+//       display: flex;
+//       flex-direction: column;
+//       align-items: center;
+//       gap: 8rpx;
 
-      .action-text {
-        font-size: 20rpx;
-        color: #666;
-      }
-    }
+//       .action-text {
+//         font-size: 20rpx;
+//         color: #666;
+//       }
+//     }
 
-    .action-divider {
-      width: 1rpx;
-      height: 40rpx;
-      background: #f0f0f0;
-      margin: 0 20rpx;
-    }
+//     .action-divider {
+//       width: 1rpx;
+//       height: 40rpx;
+//       background: #f0f0f0;
+//       margin: 0 20rpx;
+//     }
 
-    .action-primary-btn {
-      flex: 1;
-      max-width: 300rpx;
-    }
-  }
-}
+//     .action-primary-btn {
+//       flex: 1;
+//       max-width: 300rpx;
+//     }
+//   }
+// }
 
 /* 分享弹窗 */
 .share-popup {
@@ -421,4 +423,120 @@
   .question-title {
     font-size: 32rpx;
   }
+}
+
+
+/* 底部浮动操作栏 */
+.floating-bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: white;
+  border-top: 1rpx solid #f0f0f0;
+  padding: 20rpx 24rpx;
+  box-shadow: 0 -2rpx 20rpx rgba(0, 0, 0, 0.06);
+  z-index: 999;
+}
+
+.floating-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 750rpx;
+  margin: 0 auto;
+}
+
+.action-item {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 16rpx 24rpx;
+  border-radius: 24rpx;
+  transition: all 0.3s ease;
+  flex: 1;
+  justify-content: center;
+  max-width: 140rpx;
+}
+
+.action-item:active {
+  background: #f8f9fa;
+  transform: scale(0.95);
+}
+
+.action-item.active {
+  background: rgba(255, 107, 53, 0.1);
+}
+
+.action-item.active .t-icon {
+  color: #ff6b35 !important;
+}
+
+.action-count {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #333;
+  min-width: 40rpx;
+}
+
+.action-divider {
+  width: 1rpx;
+  height: 40rpx;
+  background: #e8e8e8;
+  margin: 0 20rpx;
+}
+
+.share-action {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 16rpx 24rpx;
+  border-radius: 24rpx;
+  background: #f8f9fa;
+  transition: all 0.3s ease;
+  flex: 1;
+  justify-content: center;
+  max-width: 140rpx;
+}
+
+.share-action:active {
+  background: #e9ecef;
+  transform: scale(0.95);
+}
+
+.share-action text {
+  font-size: 28rpx;
+  color: #666;
+  font-weight: 500;
+}
+
+/* 底部占位区域，防止内容被底部操作栏遮挡 */
+.bottom-placeholder {
+  height: 120rpx;
+  width: 100%;
+}
+
+/* 调整评论区底部间距 */
+.comment-section {
+  margin-bottom: 0;
+}
+
+/* 带安全区域的底部浮动操作栏 */
+.floating-bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: white;
+  border-top: 1rpx solid #f0f0f0;
+  padding: 20rpx 24rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -2rpx 20rpx rgba(0, 0, 0, 0.06);
+  z-index: 999;
+}
+
+/* 调整占位区域高度 */
+.bottom-placeholder {
+  height: calc(120rpx + env(safe-area-inset-bottom));
+  width: 100%;
 }

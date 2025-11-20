@@ -1,5 +1,4 @@
-<!-- pages/question/list/index.wxml -->
-<nav nav-type="title" title="{{categoryName || '题库列表'}}" />
+<!-- <nav nav-type="title" title="{{categoryName || '题库列表'}}" /> -->
 
 <view class="question-list-container">
   <!-- 搜索区域 -->
@@ -9,32 +8,51 @@
       placeholder="搜索题目..."
       bind:change="onSearchChange"
       bind:search="onSearch"
+      bind:clear="onSearchClear"
       shape="round"
     ></t-search>
   </view>
 
   <!-- 筛选条件 -->
   <view class="filter-section">
-    <view class="filter-tags">
-      <t-tag
-        wx:for="{{filterTags}}"
-        wx:key="value"
-        theme="{{activeFilter === item.value ? 'primary' : 'outline'}}"
-        bind:click="onFilterChange"
-        data-value="{{item.value}}"
-      >
-        {{item.label}}
-      </t-tag>
+    <scroll-view class="filter-tags-scroll" scroll-x="true" show-scrollbar="{{false}}">
+      <view class="filter-tags">
+        <t-tag
+          wx:for="{{filterTags}}"
+          wx:key="value"
+          theme="{{activeFilter === item.value ? 'primary' : 'outline'}}"
+          bind:click="onFilterChange"
+          data-value="{{item.value}}"
+          size="medium"
+        >
+          {{item.label}}
+        </t-tag>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 题目统计 -->
+  <view class="questions-stats" wx:if="{{questionList.length > 0}}">
+    <text class="stats-text">共 {{totalCount}} 道题目</text>
+    <view class="sort-options">
+      <t-radio-group value="{{sortType}}" bind:change="onSortChange">
+        <t-radio value="default">默认</t-radio>
+        <t-radio value="latest">最新</t-radio>
+        <t-radio value="hot">热门</t-radio>
+      </t-radio-group>
     </view>
   </view>
 
   <!-- 题目列表 -->
   <view class="questions-section">
-    <!-- 题目列表 -->
-    <scroll-view class="questions-scroll" scroll-y="true" bindscroll="onPageScroll">
+    <scroll-view 
+      class="questions-scroll" 
+      scroll-y="true" 
+      bindscroll="onPageScroll"
+      bindscrolltolower="loadMore"
+    >
       <view class="question-list">
-        <block wx:for="{{questionList}}" wx:key="id">
-          <!-- 添加 bindtap 事件到整个问题项 -->
+        <block wx:for="{{questionList}}" wx:key="id" wx:for-index="idx">
           <view 
             class="question-item {{item.isCollected ? 'collected' : ''}}"
             bindtap="onQuestionClick"
@@ -43,11 +61,11 @@
           >
             <view class="question-header">
               <view class="question-index">
-                <text class="index-number">{{index + 1}}</text>
+                <text class="index-number">{{(page - 1) * pageSize + idx + 1}}</text>
               </view>
               <view class="question-main">
                 <view class="question-title-section">
-                  <text class="question-title">{{item.title}}</text>
+                  <text class="question-title">{{item.title || '无标题'}}</text>
                   <view class="question-tags">
                     <t-tag
                       wx:if="{{item.difficulty}}"
@@ -61,27 +79,33 @@
                       theme="outline"
                       size="small"
                     >
-                      {{item.type}}
+                      {{item.type || '未知类型'}}
+                    </t-tag>
+                    <t-tag
+                      wx:if="{{item.isCollected}}"
+                      theme="warning"
+                      size="small"
+                    >
+                      已收藏
                     </t-tag>
                   </view>
                 </view>
                 <view class="question-meta">
                   <text class="meta-item">
                     <t-icon name="time" size="24rpx"></t-icon>
-                    {{item.createTime}}
+                    {{item.createTime || '未知时间'}}
                   </text>
                   <text class="meta-item">
                     <t-icon name="view" size="24rpx"></t-icon>
-                    {{item.viewCount}} 浏览
+                    {{item.viewCount || 0}} 浏览
                   </text>
                   <text class="meta-item">
                     <t-icon name="app" size="24rpx"></t-icon>
-                    {{item.commentCount}} 评论
+                    {{item.commentCount || 0}} 评论
                   </text>
                 </view>
               </view>
               <view class="question-actions">
-                <!-- 阻止收藏按钮的事件冒泡 -->
                 <view catchtap="onCollect" data-id="{{item.id}}">
                   <t-icon
                     name="{{item.isCollected ? 'star-filled' : 'star'}}"
@@ -93,7 +117,7 @@
               </view>
             </view>
             
-            <!-- 题目描述（可选，点击展开） -->
+            <!-- 题目描述 -->
             <view wx:if="{{item.description}}" class="question-description">
               <text class="description-text">{{item.description}}</text>
             </view>
@@ -101,22 +125,24 @@
         </block>
       </view>
 
-      <!-- 加载更多 -->
-      <view wx:if="{{hasMore}}" class="load-more">
-        <t-loading size="32rpx" text="加载中..." wx:if="{{loading}}" />
+      <!-- 加载状态 -->
+      <view class="load-more">
+        <t-loading 
+          wx:if="{{loading}}" 
+          size="32rpx" 
+          text="{{page === 1 ? '加载中...' : '加载更多...'}}" 
+        />
         <t-button
-          wx:else
+          wx:elif="{{hasMore && !loading}}"
           theme="outline"
           size="small"
           bindtap="loadMore"
         >
           加载更多
         </t-button>
-      </view>
-
-      <!-- 没有更多数据 -->
-      <view wx:if="{{!hasMore && questionList.length > 0}}" class="no-more">
-        <text class="no-more-text">没有更多题目了</text>
+        <view wx:elif="{{!hasMore && questionList.length > 0}}" class="no-more">
+          <text class="no-more-text">— 没有更多题目了 —</text>
+        </view>
       </view>
 
       <!-- 空状态 -->
@@ -133,6 +159,11 @@
 </view>
 
 <!-- 回到顶部 -->
-<view wx:if="{{showBackTop}}" class="back-top" bindtap="scrollToTop">
+<view 
+  wx:if="{{showBackTop}}" 
+  class="back-top" 
+  bindtap="scrollToTop"
+  hover-class="back-top-hover"
+>
   <t-icon name="caret-up" size="32rpx" color="#fff"></t-icon>
 </view>

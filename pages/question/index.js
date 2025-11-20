@@ -31,17 +31,32 @@ Page({
   onLoad(options) {
     console.log('题库列表页面加载', options);
     
-    // 从上一页获取分类ID和名称
     const { categoryId, categoryName, secondaryCategoryId, secondaryCategoryName } = options;
     
+    const finalCategoryId = categoryId || secondaryCategoryId;
+    const finalCategoryName = categoryName || secondaryCategoryName;
+    
     this.setData({
-      categoryId: categoryId || secondaryCategoryId,
-      categoryName: categoryName || secondaryCategoryName
+      categoryId: finalCategoryId,
+      categoryName: finalCategoryName
+    });
+    
+    // 动态设置导航栏标题
+    wx.setNavigationBarTitle({
+      title: finalCategoryName || '题库列表'
     });
     
     this.loadQuestions(true);
   },
-
+  
+  onReady() {
+    // 组件渲染完成后再次确保标题正确
+    if (this.data.categoryName) {
+      wx.setNavigationBarTitle({
+        title: this.data.categoryName
+      });
+    }
+  },
   onShow() {
     // 页面显示时刷新收藏状态
     this.refreshCollectStatus();
@@ -62,6 +77,7 @@ Page({
     
     this.setData({ loading: true });
 
+    
     try {
       const params = {
         page,

@@ -76,10 +76,10 @@ Page({
       if (this.data.currentSecondary) {
         await this.loadQuestions();
       }
-      Message.success('数据已更新');
+      this.showSuccessMessage('数据已更新');
     } catch (error) {
       console.error('刷新数据失败:', error);
-      Message.error('刷新失败');
+      this.showSuccessMessage('刷新失败');
     } finally {
       this.setData({ loading: false });
     }
@@ -231,7 +231,7 @@ Page({
     
     // 计算消息偏移量，确保在导航栏下方
     const messageOffset = navBarHeight + 60; // 导航栏高度 + 安全间距
-
+    console.log('messageOffset:', messageOffset);
     this.setData({
       navBarHeight: navBarHeight,
       messageOffset: messageOffset
@@ -252,6 +252,7 @@ Page({
 
   // 显示成功消息的统一方法
   showSuccessMessage(content) {
+    console.log('messageOffset', this.data.messageOffset)
     Message.success({
       content: content,
       offset: [this.data.messageOffset, 16],

@@ -69,30 +69,6 @@
             <text class="content-text indent-paragraph">{{questionDetail.content}}</text>
           </view>
         </view>
-
-        <!-- 元信息 -->
-        <view class="meta-section">
-          <!-- 转评赞数据 - 一行展示 -->
-          <view class="stats-row">
-            <view class="stat-item">
-              <t-icon name="view" size="24rpx" color="#999"></t-icon>
-              <text class="stat-text">{{questionDetail.viewCount || 0}} 浏览</text>
-            </view>
-            <view class="stat-item">
-              <t-icon name="heart" size="24rpx" color="#ff4d4f"></t-icon>
-              <text class="stat-text">{{questionDetail.likeCount || 0}} 点赞</text>
-            </view>
-            <view class="stat-item">
-              <t-icon name="star" size="24rpx" color="#ff6b35"></t-icon>
-              <text class="stat-text">{{questionDetail.collectCount || 0}} 收藏</text>
-            </view>
-            <view class="stat-item">
-              <t-icon name="chat" size="24rpx" color="#1890ff"></t-icon>
-              <text class="stat-text">{{questionDetail.commentCount || 0}} 评论</text>
-            </view>
-
-          </view>
-        </view>
       </view>
 
       <!-- 评论区 -->
@@ -133,56 +109,51 @@
           </block>
         </view>
       </view>
+
+      <!-- 底部占位区域，防止内容被底部操作栏遮挡 -->
+      <view class="bottom-placeholder"></view>
     </scroll-view>
 
-    <!-- 底部操作栏 -->
-    <view class="action-bar {{showActionBar ? 'show' : 'hide'}}">
-      <view class="action-buttons">
-        <view class="action-button" bindtap="onLike">
-          <t-icon name="{{questionDetail.isLiked ? 'heart-filled' : 'heart'}}" size="36rpx" color="{{questionDetail.isLiked ? '#ff4d4f' : '#666'}}"></t-icon>
-          <text class="action-text">{{questionDetail.likeCount || 0}}</text>
+    <!-- 底部浮动操作栏 -->
+    <view class="floating-bottom-bar">
+      <view class="floating-actions">
+        <view class="action-item">
+          <t-icon name="chat" size="32rpx"></t-icon>
+          <text class="action-count">{{questionDetail.commentCount || 0}}</text>
         </view>
-
-        <view class="action-button" bindtap="onCollect">
-          <t-icon name="{{questionDetail.isCollected ? 'star-filled' : 'star'}}" size="36rpx" color="{{questionDetail.isCollected ? '#ff6b35' : '#666'}}"></t-icon>
-          <text class="action-text">{{questionDetail.collectCount || 0}}</text>
+        <view class="action-item {{questionDetail.isLiked ? 'active' : ''}}" bindtap="onLike">
+          <t-icon name="{{questionDetail.isLiked ? 'heart-filled' : 'heart'}}" size="32rpx"></t-icon>
+          <text class="action-count">{{questionDetail.likeCount || 0}}</text>
         </view>
-
-        <view class="action-button" bindtap="onShare">
-          <t-icon name="share" size="36rpx" color="#666"></t-icon>
-          <text class="action-text">分享</text>
+        <view class="action-item {{questionDetail.isCollected ? 'active' : ''}}" bindtap="onCollect">
+          <t-icon name="{{questionDetail.isCollected ? 'star-filled' : 'star'}}" size="32rpx"></t-icon>
+          <text class="action-count">{{questionDetail.collectCount || 0}}</text>
         </view>
 
         <view class="action-divider"></view>
 
-        <t-button theme="primary" class="action-primary-btn" bindtap="onTryAnswer">
-          尝试解答
-        </t-button>
+        <view class="share-action" bindtap="onShare">
+          <t-icon name="share" size="32rpx"></t-icon>
+          <text>分享</text>
+        </view>
       </view>
     </view>
   </view>
 </view>
 
 <!-- 分享弹窗 -->
-<t-popup visible="{{showSharePopup}}" bind:visible-change="onSharePopupChange">
-  <view class="share-popup">
-    <view class="share-title">分享题目</view>
-    <view class="share-options">
-      <view class="share-option" bindtap="onShareToWechat">
-        <t-icon name="wechat" size="48rpx" color="#09bb07"></t-icon>
-        <text>微信好友</text>
-      </view>
-      <view class="share-option" bindtap="onShareToMoment">
-        <t-icon name="wechat-moment" size="48rpx" color="#7bcfa9"></t-icon>
-        <text>朋友圈</text>
-      </view>
-      <view class="share-option" bindtap="onCopyLink">
-        <t-icon name="link" size="48rpx" color="#1890ff"></t-icon>
-        <text>复制链接</text>
-      </view>
-    </view>
-    <t-button theme="outline" bindtap="onCancelShare">取消</t-button>
-  </view>
-</t-popup>
+<!-- ActionSheet 分享弹窗 -->
+<t-action-sheet
+  visible="{{showSharePopup}}"
+  bind:tap="handleAction"
+  bind:close="onCancelShare"
+  bind:selected="onShareSelect"
+  theme="grid"
+  align="center"
+  items="{{shareOptions}}"
+  cancel-text="取消"
+  class="custom-action-sheet"
+/>
+
 
 <t-message id="t-message" />

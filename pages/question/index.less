@@ -6,7 +6,7 @@
 
 /* 搜索区域 */
 .search-section {
-  padding: 24rpx;
+  padding: 10rpx 24rpx;
   background: white;
   position: sticky;
   top: 0;
@@ -20,11 +20,16 @@
   border-bottom: 30rpx solid #f0f0f0;
 }
 
-.filter-tags {
-  display: flex;
-  gap: 20rpx;
-  overflow-x: auto;
+/* 优化筛选区域滚动 */
+.filter-tags-scroll {
+  width: 100%;
   white-space: nowrap;
+}
+
+.filter-tags {
+  display: inline-flex;
+  gap: 20rpx;
+  padding: 0 24rpx;
 }
 
 /* 题目统计和排序 */
@@ -83,22 +88,7 @@
   gap: 20rpx;
 }
 
-.question-index {
-  flex-shrink: 0;
-  width: 60rpx;
-  height: 60rpx;
-  background: linear-gradient(135deg, var(--td-brand-color, #0052d9), #4d7cfe);
-  border-radius: 12rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 
-.index-number {
-  font-size: 26rpx;
-  font-weight: 600;
-  color: white;
-}
 
 .question-main {
   flex: 1;
@@ -177,12 +167,6 @@
   overflow: hidden;
 }
 
-/* 加载更多 */
-.load-more {
-  display: flex;
-  justify-content: center;
-  padding: 40rpx 0;
-}
 
 .no-more {
   text-align: center;
@@ -194,7 +178,7 @@
   color: #999;
 }
 
-/* 空状态 */
+/* 优化空状态布局 */
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -202,8 +186,8 @@
   justify-content: center;
   padding: 120rpx 0;
   text-align: center;
+  min-height: 60vh;
 }
-
 .empty-text {
   font-size: 32rpx;
   color: #666;
@@ -244,7 +228,6 @@
 
 //点击问题
 /* 在现有的 CSS 中添加以下样式 */
-
 .question-item {
   /* 确保有点击反馈 */
   transition: all 0.2s ease;
@@ -265,3 +248,41 @@
   padding: 16rpx;
   border-radius: 50%;
 }
+
+
+
+
+
+/* 优化题目序号计算 */
+.question-index {
+  flex-shrink: 0;
+  width: 60rpx;
+  height: 60rpx;
+  background: linear-gradient(135deg, var(--td-brand-color, #0052d9), #4d7cfe);
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.index-number {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: white;
+}
+
+/* 优化加载更多布局 */
+.load-more {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40rpx 0;
+  min-height: 120rpx;
+}
+
+/* 回到顶部按钮悬停效果 */
+.back-top-hover {
+  opacity: 0.8;
+  transform: scale(0.95);
+}
+

@@ -20,3 +20,22 @@ export class QuestionParams extends PaginationParams {
     }
   }
 }
+
+//点赞收藏参数
+export class QuestionLikeOrCollectParams extends BaseParams {
+  constructor(questionId, like, collect) {
+    super()
+    this.questionId = questionId
+    this.like = like
+    this.collect = collect
+  }
+  
+  // 转换为请求数据
+  toRequestData() {
+    return {
+      questionId: this.questionId,
+      like: this.like,
+      collect: this.collect
+    }
+  }
+}

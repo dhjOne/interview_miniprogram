@@ -259,7 +259,7 @@ Page({
     
     // 跳转到问题详情页面
     wx.navigateTo({
-      url: `/pages/question/detail/index?id=${questionId}&title=${encodeURIComponent(questionTitle)}`
+      url: `/pages/question/detail/index?id=${questionId}&title=${questionTitle}`
     });
   }
 });

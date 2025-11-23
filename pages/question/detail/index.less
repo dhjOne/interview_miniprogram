@@ -327,56 +327,6 @@
   }
 }
 
-/* 底部操作栏 */
-// .action-bar {
-//   position: fixed;
-//   bottom: 0;
-//   left: 0;
-//   right: 0;
-//   background: #fff;
-//   border-top: 1rpx solid #f0f0f0;
-//   padding: 20rpx 32rpx;
-//   transition: transform 0.3s ease;
-//   z-index: 100;
-
-//   &.show {
-//     transform: translateY(0);
-//   }
-
-//   &.hide {
-//     transform: translateY(100%);
-//   }
-
-//   .action-buttons {
-//     display: flex;
-//     align-items: center;
-//     justify-content: space-between;
-
-//     .action-button {
-//       display: flex;
-//       flex-direction: column;
-//       align-items: center;
-//       gap: 8rpx;
-
-//       .action-text {
-//         font-size: 20rpx;
-//         color: #666;
-//       }
-//     }
-
-//     .action-divider {
-//       width: 1rpx;
-//       height: 40rpx;
-//       background: #f0f0f0;
-//       margin: 0 20rpx;
-//     }
-
-//     .action-primary-btn {
-//       flex: 1;
-//       max-width: 300rpx;
-//     }
-//   }
-// }
 
 /* 分享弹窗 */
 .share-popup {
@@ -464,13 +414,13 @@
   transform: scale(0.95);
 }
 
-.action-item.active {
-  background: rgba(255, 107, 53, 0.1);
-}
+// .action-item.active {
+//   background: rgba(255, 107, 53, 0.1);
+// }
 
-.action-item.active .t-icon {
-  color: #ff6b35 !important;
-}
+// .action-item.active .t-icon {
+//   color: #ff6b35 !important;
+// }
 
 .action-count {
   font-size: 28rpx;
@@ -542,13 +492,24 @@
 }
 
 
-/* 自定义引导样式 */
+/* 确保引导组件在最顶层 */
+.global-guide {
+  z-index: 10000 !important;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* 自定义引导内容样式 */
 .custom-guide-content {
   padding: 32rpx;
   background: #fff;
   border-radius: 16rpx;
   box-shadow: 0 8rpx 40rpx rgba(0, 0, 0, 0.12);
   max-width: 560rpx;
+  z-index: 10001;
 }
 
 .guide-header {
@@ -566,13 +527,13 @@
 
 .guide-detail {
   margin-bottom: 32rpx;
-}
-
-.guide-detail text {
-  font-size: 28rpx;
-  color: #666;
-  line-height: 1.6;
-  white-space: pre-line;
+  
+  text {
+    font-size: 28rpx;
+    color: #666;
+    line-height: 1.6;
+    white-space: pre-line;
+  }
 }
 
 .guide-actions {
@@ -583,4 +544,216 @@
 
 .guide-btn {
   flex: 1;
+}
+
+
+/* 自定义引导弹窗样式 */
+.custom-guide-popup {
+  padding: 40rpx;
+  background: white;
+  border-radius: 16rpx;
+  width: 600rpx;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.guide-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 30rpx;
+}
+
+.guide-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  margin-top: 20rpx;
+  color: #333;
+}
+
+.guide-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  margin-bottom: 40rpx;
+}
+
+.guide-text {
+  font-size: 30rpx;
+  color: #666;
+  line-height: 1.5;
+}
+
+.guide-actions {
+  display: flex;
+  justify-content: center;
+}
+
+
+
+
+/* 重新设计点赞和收藏样式 - 方案一：简洁图标变色 */
+.action-item {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 16rpx 24rpx;
+  border-radius: 24rpx;
+  transition: all 0.3s ease;
+  flex: 1;
+  justify-content: center;
+  max-width: 140rpx;
+  background: transparent;
+}
+
+.action-item:active {
+  background: #f8f9fa;
+  transform: scale(0.95);
+}
+
+/* 点赞激活状态 */
+.action-item.like-active {
+  .t-icon {
+    color: #ff6b6b !important;
+    animation: likePulse 0.4s ease;
+  }
+  .action-count {
+    color: #ff6b6b;
+    font-weight: 600;
+  }
+}
+
+/* 收藏激活状态 */
+.action-item.collect-active {
+  .t-icon {
+    color: #ffd93d !important;
+    animation: collectPulse 0.4s ease;
+  }
+  .action-count {
+    color: #ffd93d;
+    font-weight: 600;
+  }
+}
+
+/* 点赞动画 */
+@keyframes likePulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* 收藏动画 */
+@keyframes collectPulse {
+  0% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.2) rotate(10deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.action-count {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #666;
+  min-width: 40rpx;
+  transition: all 0.3s ease;
+}
+
+//加载样式
+
+/* 增强版状态样式 */
+.loading-state, .error-state, .empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 70vh;
+  padding: 80rpx 40rpx;
+}
+
+.loading-content, .error-content, .empty-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  max-width: 400rpx;
+}
+
+/* 加载状态 */
+.loading-content {
+  .t-loading {
+    margin-bottom: 40rpx;
+  }
+}
+
+/* 错误状态 - 卡片样式 */
+.error-content {
+  background: #fff;
+  padding: 60rpx 40rpx;
+  border-radius: 20rpx;
+  box-shadow: 0 8rpx 40rpx rgba(0, 0, 0, 0.08);
+  
+  .t-icon {
+    margin-bottom: 40rpx;
+    color: #ff4d4f;
+  }
+  
+  .error-text {
+    font-size: 34rpx;
+    color: #333;
+    margin-bottom: 32rpx;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  
+  .retry-btn {
+    margin-top: 24rpx;
+    min-width: 240rpx;
+    height: 80rpx;
+    border-radius: 40rpx;
+  }
+}
+
+/* 空数据状态 - 卡片样式 */
+.empty-content {
+  background: #fff;
+  padding: 60rpx 40rpx;
+  border-radius: 20rpx;
+  box-shadow: 0 8rpx 40rpx rgba(0, 0, 0, 0.08);
+  
+  .t-icon {
+    margin-bottom: 40rpx;
+    color: #ccc;
+  }
+  
+  .empty-text {
+    font-size: 34rpx;
+    color: #333;
+    margin-bottom: 24rpx;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  
+  .empty-desc {
+    font-size: 28rpx;
+    color: #999;
+    margin-bottom: 40rpx;
+    line-height: 1.5;
+  }
+  
+  .empty-btn {
+    min-width: 240rpx;
+    height: 80rpx;
+    border-radius: 40rpx;
+  }
+}
+
+/* 响应式调整 */
+@media (max-width: 375px) {
+  .loading-state, .error-state, .empty-state {
+    padding: 60rpx 30rpx;
+    min-height: 60vh;
+  }
+  
+  .error-content, .empty-content {
+    padding: 50rpx 30rpx;
+  }
 }

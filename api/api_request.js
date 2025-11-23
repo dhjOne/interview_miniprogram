@@ -107,11 +107,14 @@ class Request {
             return
           }
           // 统一处理业务状态码异常
+          console.log("统一处理业务状态码异常222")
           if (checkBusinessCode && !this._isBusinessSuccess(res.data)) {
+            console.log("统一处理业务状态码异常")
             const error = this._handleBusinessError(res.data)
             reject(error)
             return
           }
+          console.log("请求成功")
           // 请求成功
           resolve(res.data)
         },
@@ -194,10 +197,26 @@ class Request {
   // 处理业务错误
   _handleBusinessError(responseData) {
     const { code, message, data } = responseData
+      console.log("🔍 处理业务问题 - 开始")
+    console.log("完整responseData:", responseData)
+    console.log("code值:", code)
+    console.log("code类型:", typeof code)
+    console.log("code长度:", code.length)
+    console.log("code字符代码:", code.charCodeAt ? code.charCodeAt(0) : '无charCodeAt')
     
+    // 临时调试：直接比较
+    if (code === 'C015') {
+      console.log("✅ 直接比较匹配 C015")
+    } else {
+      console.log("❌ 直接比较不匹配，期望:'C015'，实际:", code)
+    }
+     // 使用trim去除可能的空格
+    const trimmedCode = code ? code.trim() : code
+    console.log("trim后code:", trimmedCode)
     // 可以根据不同的业务错误码进行特殊处理
-    switch(code) {
-      case '1001': // 示例：token过期
+    switch(trimmedCode) {
+      case 'C105': // 示例：token过期
+        console.log("token过期: ",trimmedCode)
         this._handleUnauthorized()
         break
       case '1002': // 示例：权限不足
@@ -226,6 +245,7 @@ class Request {
 
   // 处理未授权（token过期）
   _handleUnauthorized() {
+    console.log("处理未授权（token过期）")
     // 清除token
     try {
       wx.removeStorageSync('access_token')
@@ -234,23 +254,42 @@ class Request {
       console.error('清除token失败:', error)
     }
     
-    // 可以在这里触发全局的重新登录逻辑
-    // 例如：跳转到登录页面
+    // 获取当前页面信息用于返回
+    const pages = getCurrentPages()
+    const currentPage = pages[pages.length - 1]
+    let returnUrl = ''
+    
+    if (currentPage) {
+      const route = currentPage.route
+      const options = currentPage.options
+      const params = Object.keys(options).map(key => `${key}=${options[key]}`).join('&')
+      returnUrl = `/${route}${params ? '?' + params : ''}`
+      
+      // 存储返回URL
+      try {
+        wx.setStorageSync('return_url', returnUrl)
+      } catch (error) {
+        console.error('存储返回URL失败:', error)
+      }
+    }
+    
+    // 延迟显示弹窗，确保存储操作完成
     setTimeout(() => {
       wx.showModal({
         title: '提示',
         content: '登录已过期，请重新登录',
         showCancel: false,
+        confirmText: '去登录',
         success: (res) => {
           if (res.confirm) {
-            // 跳转到登录页
-            wx.reLaunch({
-              url: '/pages/login/login'
+            // 跳转到登录页，携带来源信息
+            wx.redirectTo({
+              url: `/pages/login/login?from=token_expired${returnUrl ? '&return=' + encodeURIComponent(returnUrl) : ''}`
             })
           }
         }
       })
-    }, 500)
+    }, 300)
   }
 
 

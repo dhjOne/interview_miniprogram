@@ -1,6 +1,4 @@
 <!-- pages/question/detail/index.wxml -->
-<!-- <nav nav-type="title" title="题目详情" /> -->
-
 <view class="question-detail-container">
   <!-- 加载状态 -->
   <view wx:if="{{loading}}" class="loading-state">
@@ -35,21 +33,13 @@
   <!-- 正常内容 -->
   <view wx:else>
     <!-- 内容区域 -->
-    <scroll-view class="content-scroll" scroll-y="true" bindscroll="onPageScroll">
+    <scroll-view class="content-scroll" scroll-y="true">
       <!-- 题目卡片 -->
       <view class="question-card">
         <!-- 标题区域 -->
         <view class="question-header">
           <view class="question-title-section">
             <text class="question-title">{{questionDetail.title}}</text>
-            <view class="question-meta-top">
-              <t-tag wx:if="{{questionDetail.difficulty}}" theme="{{questionDetail.difficultyTheme}}" size="small">
-                {{questionDetail.difficultyText}}
-              </t-tag>
-              <t-tag wx:if="{{questionDetail.type}}" theme="outline" size="small">
-                {{questionDetail.type}}
-              </t-tag>
-            </view>
           </view>
         </view>
 
@@ -121,12 +111,15 @@
           <t-icon name="chat" size="32rpx"></t-icon>
           <text class="action-count">{{questionDetail.commentCount || 0}}</text>
         </view>
-        <view class="action-item {{questionDetail.isLiked ? 'active' : ''}}" bindtap="onLike">
-          <t-icon name="{{questionDetail.isLiked ? 'heart-filled' : 'heart'}}" size="32rpx"></t-icon>
+        <!-- 修改点赞按钮 -->
+        <view class="action-item {{questionDetail.liked ? 'like-active' : ''}}" bindtap="onLike">
+          <t-icon name="{{questionDetail.liked ? 'heart-filled' : 'heart'}}" size="32rpx" color="{{questionDetail.liked ? '#ff6b6b' : '#666'}}"></t-icon>
           <text class="action-count">{{questionDetail.likeCount || 0}}</text>
         </view>
-        <view class="action-item {{questionDetail.isCollected ? 'active' : ''}}" bindtap="onCollect">
-          <t-icon name="{{questionDetail.isCollected ? 'star-filled' : 'star'}}" size="32rpx"></t-icon>
+
+        <!-- 修改收藏按钮 -->
+        <view class="action-item {{questionDetail.collected ? 'collect-active' : ''}}" bindtap="onCollect">
+          <t-icon name="{{questionDetail.collected ? 'star-filled' : 'star'}}" size="32rpx" color="{{questionDetail.collected ? '#ffd93d' : '#666'}}"></t-icon>
           <text class="action-count">{{questionDetail.collectCount || 0}}</text>
         </view>
 
@@ -140,49 +133,26 @@
     </view>
   </view>
 </view>
-
-<!-- 分享弹窗 -->
-<!-- ActionSheet 分享弹窗 -->
-<t-action-sheet
-  id="t-action-sheet"
-  visible="{{showSharePopup}}"
-  bind:close="onCloseShare"
-  bind:selected="onShareSelect"
-  theme="grid"
-  align="center"
-  items="{{shareOptions}}"
-  cancel-text="取消分享"
-  class="share-action-sheet"
-/>
-
-<t-message id="t-message" />
-
+<!-- 分享 ActionSheet -->
+<t-action-sheet id="t-action-sheet" visible="{{showShareActionSheet}}" bind:close="onShareActionSheetClose" bind:cancel="onShareActionSheetClose" bind:selected="onShareOptionSelect" theme="grid" align="center" items="{{shareOptions}}" cancel-text="取消分享" class="share-action-sheet" />
+<!-- index.wxml -->
 
 
 <!-- 分享引导 -->
-<t-guide
-  visible="{{showGuide}}"
-  steps="{{guideSteps}}"
-  bind:change="onGuideChange"
-  bind:complete="onGuideComplete"
-  bind:close="onCloseGuide"
->
-  <!-- 自定义引导内容 -->
-  <view slot="content" class="custom-guide-content">
+<t-popup visible="{{showCustomGuide}}" bind:visible-change="onCloseCustomGuide" placement="center" overlay-props="{{ { background: 'rgba(0, 0, 0, 0.6)' } }}">
+  <view class="custom-guide-popup">
     <view class="guide-header">
-      <t-icon name="share" size="32rpx" color="#0052D9"></t-icon>
-      <text class="guide-title">分享题目</text>
+      <t-icon name="share" size="48rpx" color="#07c160"></t-icon>
+      <text class="guide-title">分享指引</text>
     </view>
-    <view class="guide-detail">
-      <text>点击右上角"···"按钮\n选择"转发"分享给好友</text>
+    <view class="guide-content">
+      <text class="guide-text">请点击右上角"···"按钮</text>
+      <text class="guide-text">然后选择"转发"将题目分享给好友</text>
     </view>
     <view class="guide-actions">
-      <t-button theme="outline" size="small" bindtap="onCloseGuide" class="guide-btn">
-        知道了
-      </t-button>
-      <t-button theme="primary" size="small" bindtap="onCopyLink" class="guide-btn">
-        复制链接
-      </t-button>
+      <t-button theme="primary" bindtap="onCloseCustomGuide" size="large">知道了</t-button>
     </view>
   </view>
-</t-guide>
+</t-popup>
+
+<t-message id="t-message" />

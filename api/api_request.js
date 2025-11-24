@@ -155,6 +155,7 @@ class Request {
   _getToken() {
     try {
       const token = wx.getStorageSync('access_token')
+      console.log('access_token:::::', token)
       return token ? `Bearer ${token}` : ''
     } catch (error) {
       return ''

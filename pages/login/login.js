@@ -29,7 +29,7 @@ Page({
     console.log('登录页面参数:', options);
     
     // 绑定方法上下文，确保this始终指向页面实例
-    this.wxLogin = this.wxLogin.bind(this);
+    // this.wxLogin = this.wxLogin.bind(this);
     
     // 设置页面数据
     this.setData({
@@ -134,7 +134,8 @@ Page({
       
       if (result.code === "0000") {
         wx.setStorageSync('access_token', result.data.accessToken);
-        
+        const token = wx.getStorageSync('access_token')
+         console.log('login:::::', token)
         // 登录成功后的跳转处理
         await this.handleLoginSuccess(result);
       } else {
@@ -155,8 +156,9 @@ Page({
   // 处理登录成功后的跳转
   async handleLoginSuccess(result) {
     try {
+      console.log(" this.data", this.data)
       const { from, returnUrl } = this.data;
-      
+      console.log(" from, returnUrl", from, returnUrl)
       // 清除存储的返回URL
       // try {
       //   wx.removeStorageSync('return_url');
@@ -169,6 +171,8 @@ Page({
       if (result.data.userInfo) {
         app.setUserInfo(result.data.userInfo);
       }
+      const token = wx.getStorageSync('access_token')
+     console.log('login22:::::', token)
       
       wx.showToast({
         title: '登录成功',
@@ -182,8 +186,10 @@ Page({
           console.log('🔙 登录成功，返回原页面:', returnUrl);
           
           // 使用 redirectTo 返回原页面
+          const decodedUrl = decodeURIComponent(returnUrl);
+          console.log('解码后的URL:', decodedUrl);
           wx.redirectTo({
-            url: returnUrl
+            url: decodedUrl
           });
         } else {
           // 默认跳转到我的页面
@@ -354,6 +360,9 @@ Page({
       console.log("微信登录结果", result);
       
       if (result.code === "0000") {
+        wx.setStorageSync('access_token', result.data.accessToken);
+        const token = wx.getStorageSync('access_token')
+         console.log('login:::::', token)
         // 登录成功后的统一处理
         await this.handleLoginSuccess(result);
       } else {

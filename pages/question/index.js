@@ -226,9 +226,9 @@ Page({
   // 获取难度主题色
   getDifficultyTheme(difficulty) {
     const themes = {
-      easy: 'success',
-      medium: 'warning',
-      hard: 'danger'
+      1: 'success',
+      2: 'warning',
+      3: 'danger'
     };
     return themes[difficulty] || 'outline';
   },
@@ -236,9 +236,9 @@ Page({
   // 获取难度文本
   getDifficultyText(difficulty) {
     const texts = {
-      easy: '简单',
-      medium: '中等',
-      hard: '困难'
+      1: '简单',
+      2: '中等',
+      3: '困难'
     };
     return texts[difficulty] || '未知';
   },

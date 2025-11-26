@@ -66,34 +66,11 @@
               <view class="question-main">
                 <view class="question-title-section">
                   <text class="question-title">{{item.title || '无标题'}}</text>
-                  <view class="question-tags">
-                    <t-tag
-                      wx:if="{{item.difficulty}}"
-                      theme="{{getDifficultyTheme(item.difficulty)}}"
-                      size="small"
-                    >
-                      {{getDifficultyText(item.difficulty)}}
-                    </t-tag>
-                    <t-tag
-                      wx:if="{{item.type}}"
-                      theme="outline"
-                      size="small"
-                    >
-                      {{item.type || '未知类型'}}
-                    </t-tag>
-                    <t-tag
-                      wx:if="{{item.isCollected}}"
-                      theme="warning"
-                      size="small"
-                    >
-                      已收藏
-                    </t-tag>
-                  </view>
                 </view>
                 <view class="question-meta">
                   <text class="meta-item">
                     <t-icon name="time" size="24rpx"></t-icon>
-                    {{item.createTime || '未知时间'}}
+                    {{item.createAt || '未知时间'}}
                   </text>
                   <text class="meta-item">
                     <t-icon name="view" size="24rpx"></t-icon>
@@ -108,9 +85,9 @@
               <view class="question-actions">
                 <view catchtap="onCollect" data-id="{{item.id}}">
                   <t-icon
-                    name="{{item.isCollected ? 'star-filled' : 'star'}}"
+                    name="{{item.collected ? 'star-filled' : 'star'}}"
                     size="36rpx"
-                    color="{{item.isCollected ? '#ff6b35' : '#999'}}"
+                    color="{{item.collected ? '#ff6b35' : '#999'}}"
                     class="collect-icon"
                   ></t-icon>
                 </view>
@@ -126,7 +103,7 @@
       </view>
 
       <!-- 加载状态 -->
-      <view class="load-more">
+      <!-- <view class="load-more">
         <t-loading 
           wx:if="{{loading}}" 
           size="32rpx" 
@@ -143,7 +120,7 @@
         <view wx:elif="{{!hasMore && questionList.length > 0}}" class="no-more">
           <text class="no-more-text">— 没有更多题目了 —</text>
         </view>
-      </view>
+      </view> -->
 
       <!-- 空状态 -->
       <view wx:if="{{questionList.length === 0 && !loading}}" class="empty-state">

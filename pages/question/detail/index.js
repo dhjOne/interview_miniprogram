@@ -265,13 +265,13 @@ Page({
     
       if (response.code === "0000") {
         this.setData({
-          'questionDetail.isLiked': !questionDetail.isLiked,
-          'questionDetail.likeCount': questionDetail.isLiked 
+          'questionDetail.liked': !questionDetail.liked,
+          'questionDetail.likeCount': questionDetail.liked 
             ? (questionDetail.likeCount - 1) 
             : (questionDetail.likeCount + 1)
         });
         Message.success({
-          content: questionDetail.isLiked ? '已取消点赞' : '点赞成功',
+          content: questionDetail.liked ? '已取消点赞' : '点赞成功',
           duration: 2000
         });
       } else {
@@ -300,13 +300,13 @@ Page({
       const response = await authApi.toggleCollect(collectQuestion);
       if (response.code === "0000") {
         this.setData({
-          'questionDetail.isCollected': !questionDetail.isCollected,
-          'questionDetail.collectCount': questionDetail.isCollected 
+          'questionDetail.collected': !questionDetail.collected,
+          'questionDetail.collectCount': questionDetail.collected 
             ? (questionDetail.collectCount - 1) 
             : (questionDetail.collectCount + 1)
         });
 
-        Message.success(questionDetail.isCollected ? '已取消收藏' : '收藏成功');
+        Message.success(questionDetail.collected ? '已取消收藏' : '收藏成功');
       } else {
         Message.error(response.message || '操作失败');
       }

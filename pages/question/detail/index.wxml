@@ -64,7 +64,7 @@
       <!-- 评论区 -->
       <view class="comment-section">
         <view class="section-header">
-          <text class="section-title">评论 ({{commentCount}})</text>
+          <text class="section-title">评论 ({{questionDetail.commentCount || 0}})</text>
         </view>
         <view class="comment-input-area">
           <t-textarea value="{{commentText}}" placeholder="写下你的评论..." maxlength="200" bind:change="onCommentChange"></t-textarea>

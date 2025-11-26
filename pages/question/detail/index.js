@@ -271,7 +271,7 @@ Page({
             : (questionDetail.likeCount + 1)
         });
         Message.success({
-          content: questionDetail.liked ? '已取消点赞' : '点赞成功',
+          content: !questionDetail.liked ? '已取消点赞' : '点赞成功',
           duration: 2000
         });
       } else {
@@ -306,13 +306,21 @@ Page({
             : (questionDetail.collectCount + 1)
         });
 
-        Message.success(questionDetail.collected ? '已取消收藏' : '收藏成功');
+        Message.success({
+          content: !questionDetail.collected ? '已取消收藏' : '收藏成功',
+          duration: 2000
+        });
       } else {
-        Message.error(response.message || '操作失败');
+        Message.error({
+          content: response.message || '操作失败',
+          duration: 2000
+        });
       }
     } catch (error) {
-      console.error('收藏操作失败:', error);
-      Message.error('操作失败，请重试');
+      Message.error({
+        content: '操作失败，请重试',
+        duration: 2000
+      });
     }
   },
 });

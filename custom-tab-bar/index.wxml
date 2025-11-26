@@ -1,6 +1,6 @@
 <t-tab-bar value="{{ value }}" theme="tag" split="{{ false }}" bind:change="handleChange">
-  <t-tab-bar-item icon="home" value="home">首页</t-tab-bar-item>
-  <t-tab-bar-item icon="book-open" value="category">题库</t-tab-bar-item>
-  <t-tab-bar-item icon="chat" value="message" badge-props="{{ { count: unreadNum } }}">聊天</t-tab-bar-item>
+  <t-tab-bar-item icon="home" value="category">首页</t-tab-bar-item>
+  <!-- <t-tab-bar-item icon="book-open" value="category">题库</t-tab-bar-item> -->
+  <t-tab-bar-item icon="upload" value="message" badge-props="{{ { count: unreadNum } }}">发布</t-tab-bar-item>
   <t-tab-bar-item icon="user" value="my">我的</t-tab-bar-item>
 </t-tab-bar>

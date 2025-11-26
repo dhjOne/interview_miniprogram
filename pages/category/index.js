@@ -91,6 +91,8 @@ Page({
       this.setData({ loading: true });
       console.log('开始加载数据')
       const categoryParams = new CategoryParams(null, 0)
+      categoryParams.sortField = 'sort_order'
+      categoryParams.order = 'asc'
       const response = await authApi.getCategories(categoryParams);
       console.log('一级分类：：', response);
       const primaryCategories = response.data.rows;
@@ -137,6 +139,8 @@ Page({
     
     try {
       const categoryParams = new CategoryParams(null, this.data.currentPrimary)
+      categoryParams.sortField = 'sort_order'
+      categoryParams.order = 'asc'
       const response = await authApi.getCategories(categoryParams);
       console.log('二级分类：：', response);
       
@@ -188,6 +192,8 @@ Page({
     
     try {
       const questionParams = new QuestionParams(null, this.data.currentSecondary, null)
+      questionParams.sortField = 'sort_order'
+      questionParams.order = 'asc'
       const response = await authApi.getQuestions(questionParams);
       console.log('问题列表：：', response);
   

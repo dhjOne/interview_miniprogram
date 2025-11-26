@@ -7,13 +7,13 @@ Component({
     list: [
       {
         icon: 'home',
-        value: 'question',
+        value: 'category',
         label: '首页',
       },
       {
-        icon: 'chat',
+        icon: 'upload',
         value: 'notice',
-        label: '消息',
+        label: '发布',
       },
       {
         icon: 'user',

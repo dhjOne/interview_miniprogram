@@ -56,7 +56,12 @@
         <!-- 题目内容区域 -->
         <view wx:if="{{questionDetail.content}}" class="content-section">
           <view class="question-content">
-            <text class="content-text indent-paragraph">{{questionDetail.content}}</text>
+            <!-- <text class="content-text indent-paragraph">{{questionDetail.content}}</text> -->
+            <!-- 使用rich-text渲染HTML -->
+            <!-- <rich-text class="content-text indent-paragraph" nodes="{{questionDetail.content}}"></rich-text> -->
+            <style>{{customStyle}}</style>
+            <!-- 渲染HTML内容 -->
+            <rich-text nodes="{{htmlContent}}" bindtap="onLinkTap"></rich-text>
           </view>
         </view>
       </view>

@@ -29,16 +29,17 @@ export class PaginationParams {
 /**
  * 排序参数
  */
-export class SortParams {
-  constructor(field = 'createTime', order = 'desc') {
-    this.field = field
+export class SortParams extends PaginationParams {
+  constructor(sortField = 'created_at', order = 'desc') {
+    super()
+    this.sortField = sortField
     this.order = order
   }
   
-  toQuery() {
-    return {
-      sortField: this.field,
-      sortOrder: this.order
-    }
-  }
+  // toQuery() {
+  //   return {
+  //     sortField: this.sortField,
+  //     order: this.order
+  //   }
+  // }
 }

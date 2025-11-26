@@ -45,7 +45,9 @@ Page({
         image: 'https://tdesign.gtimg.com/mobile/demos/wechat.png', 
         value: 'wechat' 
       }
-    ]
+    ],
+    htmlContent: '',
+    customStyle: ''
   },
 
   onLoad(options) {
@@ -84,9 +86,11 @@ Page({
           questionDetail,
           loading: false,
           error: false,
-          isEmpty: false
+          isEmpty: false,
+          htmlContent: questionDetail.content,
+          customStyle: questionDetail.answer
         });
-
+     
         // 设置页面标题
         wx.setNavigationBarTitle({
           title: this.data.title || '题目详情'

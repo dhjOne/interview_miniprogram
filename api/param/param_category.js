@@ -5,7 +5,7 @@ import { SortParams } from './param_base'
 /**
  * 分类参数
  */
-export class CategoryParams extends PaginationParams {
+export class CategoryParams extends SortParams {
   constructor(name, categoryId) {
     super()
     this.name = name
@@ -16,13 +16,17 @@ export class CategoryParams extends PaginationParams {
   toRequestData() {
     return {
       name: this.name,
-      categoryId: this.categoryId
+      categoryId: this.categoryId,
+      page: this.page,
+      limit: this.limit,
+      sortField: this.sortField,
+      order: this.order
     }
   }
 }
 
 //问题参数
-export class QuestionParams extends PaginationParams {
+export class QuestionParams extends SortParams {
   constructor(title, categoryId, questionId) {
     super()
     this.title = title
@@ -35,7 +39,11 @@ export class QuestionParams extends PaginationParams {
     return {
       title: this.title,
       categoryId: this.categoryId,
-      questionId: this.questionId
+      questionId: this.questionId,
+      page: this.page,
+      limit: this.limit,
+      sortField: this.sortField,
+      order: this.order
     }
   }
 }

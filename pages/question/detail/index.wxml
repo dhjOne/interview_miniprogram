@@ -43,28 +43,164 @@
           </view>
         </view>
 
-        <!-- 标签区域 -->
-        <view wx:if="{{questionDetail.tags && questionDetail.tags.length > 0}}" class="tags-section">
-          <view class="section-title">知识点标签</view>
-          <view class="tags-list">
-            <t-tag wx:for="{{questionDetail.tags}}" wx:key="*this" theme="outline" size="small">
-              {{item}}
-            </t-tag>
+        <!-- 内容块渲染 -->
+      <view class="content-blocks">
+        <block wx:for="{{contentBlocks}}" wx:key="id" wx:for-index="index">
+          
+          <!-- 文本块 -->
+          <view wx:if="{{item.block_type === 'text'}}" 
+                class="content-block text-block {{item.customClass}}"
+                style="{{item.customStyle}}"
+                data-block-id="{{item.id}}"
+                data-block-type="text">
+            
+            <view wx:if="{{item.textInfo.subtype === 'heading1'}}" class="heading">
+              {{item.content}}
+            </view>
+            
+            <view wx:elif="{{item.textInfo.subtype === 'heading2'}}" class="heading">
+              {{item.content}}
+            </view>
+            
+            <view wx:elif="{{item.textInfo.subtype === 'heading3'}}" class="heading">
+              {{item.content}}
+            </view>
+            
+            <view wx:else class="paragraph">
+              <text class="content-text">{{item.content}}</text>
+            </view>
           </view>
-        </view>
 
-        <!-- 题目内容区域 -->
-        <view wx:if="{{questionDetail.content}}" class="content-section">
-          <view class="question-content">
-            <!-- <text class="content-text indent-paragraph">{{questionDetail.content}}</text> -->
-            <!-- 使用rich-text渲染HTML -->
-            <!-- <rich-text class="content-text indent-paragraph" nodes="{{questionDetail.content}}"></rich-text> -->
-            <style>{{customStyle}}</style>
-            <!-- 渲染HTML内容 -->
-            <rich-text nodes="{{htmlContent}}" bindtap="onLinkTap"></rich-text>
+          <!-- 代码块 -->
+          <view wx:elif="{{item.block_type === 'code'}}"
+                class="content-block code-block {{item.customClass}}"
+                style="{{item.customStyle}}"
+                data-block-id="{{item.id}}"
+                data-block-type="code"
+                bindtap="onBlockTap">
+            
+            <view class="code-header">
+              <text class="code-language">{{item.formattedContent.language}}</text>
+              <view class="code-actions" bindtap="copyCode" data-content="{{item.content}}">
+                <t-icon name="copy" size="24rpx"></t-icon>
+                <text>复制</text>
+              </view>
+            </view>
+            
+            <view class="code-content">
+              <text class="code-text" selectable>{{item.content}}</text>
+            </view>
           </view>
-        </view>
+
+          <!-- 图片块 -->
+          <view wx:elif="{{item.block_type === 'image'}}"
+                class="content-block image-block {{item.customClass}}"
+                style="{{item.customStyle}}"
+                data-block-id="{{item.id}}"
+                data-block-type="image"
+                bindtap="onBlockTap">
+            
+            <image src="{{item.imageInfo.src}}" 
+                   mode="widthFix" 
+                   class="content-image"
+                   data-src="{{item.imageInfo.src}}"></image>
+            
+            <view wx:if="{{item.imageInfo.caption}}" class="image-caption">
+              {{item.imageInfo.caption}}
+            </view>
+          </view>
+
+          <!-- 表格块 -->
+          <view wx:elif="{{item.block_type === 'table'}}"
+                class="content-block table-block {{item.customClass}}"
+                style="{{item.customStyle}}"
+                data-block-id="{{item.id}}"
+                data-block-type="table">
+            
+            <view class="table-container">
+              <view class="table-row table-header">
+                <block wx:for="{{item.tableData.headers}}" wx:key="*this">
+                  <view class="table-cell header-cell">{{item}}</view>
+                </block>
+              </view>
+              
+              <block wx:for="{{item.tableData.rows}}" wx:key="index">
+                <view class="table-row">
+                  <block wx:for="{{item}}" wx:key="*this">
+                    <view class="table-cell">{{item}}</view>
+                  </block>
+                </view>
+              </block>
+            </view>
+          </view>
+
+          <!-- 公式块 -->
+          <view wx:elif="{{item.block_type === 'formula'}}"
+                class="content-block formula-block {{item.customClass}} {{item.formulaInfo.isInline ? 'formula-inline' : 'formula-block'}}"
+                style="{{item.customStyle}}"
+                data-block-id="{{item.id}}"
+                data-block-type="formula">
+            
+            <view class="formula-content">
+              {{item.content}}
+            </view>
+          </view>
+
+          <!-- 文件块 -->
+          <view wx:elif="{{item.block_type === 'file'}}"
+                class="content-block file-block {{item.customClass}}"
+                style="{{item.customStyle}}"
+                data-block-id="{{item.id}}"
+                data-block-type="file"
+                bindtap="onBlockTap">
+            
+            <view class="file-info">
+              <t-icon name="file" size="40rpx"></t-icon>
+              <view class="file-details">
+                <text class="file-name">{{item.fileInfo.fileName}}</text>
+                <text class="file-size">{{item.fileInfo.fileSize}}</text>
+              </view>
+              <t-icon name="download" size="32rpx"></t-icon>
+            </view>
+          </view>
+
+          <!-- 分割线块 -->
+          <view wx:elif="{{item.block_type === 'divider'}}"
+                class="content-block divider-block {{item.customClass}}"
+                style="{{item.customStyle}}"
+                data-block-id="{{item.id}}"
+                data-block-type="divider">
+          </view>
+
+          <!-- 视频块 -->
+          <view wx:elif="{{item.block_type === 'video'}}"
+                class="content-block video-block {{item.customClass}}"
+                style="{{item.customStyle}}"
+                data-block-id="{{item.id}}"
+                data-block-type="video">
+            
+            <video src="{{item.videoInfo.src}}" 
+                   poster="{{item.videoInfo.poster}}"
+                   controls="{{item.videoInfo.controls}}"
+                   autoplay="{{item.videoInfo.autoplay}}"
+                   class="content-video"></video>
+          </view>
+
+          <!-- 未知块类型 -->
+          <view wx:else class="content-block unknown-block">
+            <text>未知块类型: {{item.block_type}}</text>
+            <text>{{item.content}}</text>
+          </view>
+        </block>
       </view>
+
+
+
+
+
+      </view>
+
+
 
       <!-- 评论区 -->
       <view class="comment-section">

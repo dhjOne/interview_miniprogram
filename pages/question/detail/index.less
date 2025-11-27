@@ -29,7 +29,7 @@
 .question-title-section {
   .question-title {
     display: block;
-    font-size: 36rpx;
+    font-size: 40rpx;
     font-weight: 600;
     color: #333;
     line-height: 1.4;
@@ -757,3 +757,112 @@
     padding: 50rpx 30rpx;
   }
 }
+
+
+/**内容块渲染  开始**/
+/* pages/question/detail/index.wxss */
+/* pages/question/detail/index.wxss */
+.content-blocks {
+  padding: 0 32rpx;
+}
+
+/* 基础布局样式 */
+.content-block {
+  /* 没有具体样式，完全由数据库控制 */
+}
+
+/* 代码块内部结构样式 */
+.code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16rpx 24rpx;
+}
+
+.code-actions {
+  display: flex;
+  align-items: center;
+  font-size: 24rpx;
+}
+
+.code-content {
+  padding: 24rpx;
+}
+
+.code-text {
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: 'Monaco', 'Consolas', monospace;
+}
+
+/* 图片块内部结构 */
+.content-image {
+  max-width: 100%;
+}
+
+.image-caption {
+  text-align: center;
+  font-size: 28rpx;
+  color: #666;
+  margin-top: 16rpx;
+}
+
+/* 表格块内部结构 */
+.table-container {
+  width: 100%;
+}
+
+.table-row {
+  display: flex;
+  border-bottom: 1rpx solid #e0e0e0;
+}
+
+.table-row:last-child {
+  border-bottom: none;
+}
+
+.table-cell {
+  flex: 1;
+  padding: 20rpx 16rpx;
+  font-size: 28rpx;
+  border-right: 1rpx solid #e0e0e0;
+}
+
+.table-cell:last-child {
+  border-right: none;
+}
+
+.header-cell {
+  font-weight: bold;
+}
+
+/* 文件块内部结构 */
+.file-info {
+  display: flex;
+  align-items: center;
+}
+
+.file-details {
+  flex: 1;
+  margin-left: 20rpx;
+}
+
+.file-name {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 500;
+}
+
+.file-size {
+  display: block;
+  font-size: 24rpx;
+  color: #666;
+  margin-top: 8rpx;
+}
+
+/* 视频块内部结构 */
+.content-video {
+  width: 100%;
+  border-radius: 8rpx;
+}
+/**内容块渲染  结束**/

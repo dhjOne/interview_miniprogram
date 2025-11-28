@@ -763,7 +763,7 @@
 /* pages/question/detail/index.wxss */
 /* pages/question/detail/index.wxss */
 .content-blocks {
-  padding: 0 32rpx;
+  padding: 0 0;
 }
 
 /* 基础布局样式 */
@@ -824,7 +824,7 @@
 .table-cell {
   flex: 1;
   padding: 20rpx 16rpx;
-  font-size: 28rpx;
+  font-size: 26rpx;
   border-right: 1rpx solid #e0e0e0;
 }
 
@@ -923,5 +923,53 @@
 .td-comparison-table .header-cell {
   font-weight: bold;
   background: transparent;
+}
+
+
+.text-content {
+  font-size: 32rpx;
+  line-height: 1.6;
+  color: #333;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* 富文本样式 */
+.rich-text-content {
+  font-size: 32rpx;
+  line-height: 1.6;
+  color: #333;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* 加粗文本样式 */
+.bold-text {
+  font-weight: bold;
+  color: #333;
+}
+
+/* 斜体文本样式 */
+.italic-text {
+  font-style: italic;
+}
+
+/* 行内代码样式 */
+.inline-code {
+  background: #f6f8fa;
+  padding: 4rpx 8rpx;
+  border-radius: 4rpx;
+  font-family: 'Monaco', 'Consolas', monospace;
+  font-size: 28rpx;
+  color: #e96900;
+}
+/* 文本行样式 */
+.text-line {
+  margin-bottom: 8rpx;
+}
+
+/* 缩进行样式 */
+.indented-line {
+  text-indent: 2em; /* 两个中文字符的缩进 */
 }
 /**内容块渲染  结束**/

@@ -49,24 +49,42 @@
 
             <!-- 文本块 -->
             <view wx:if="{{item.blockType === 'text'}}" class="content-block text-block {{item.customClass}}" style="{{item.customStyle}}" data-block-id="{{item.id}}" data-block-type="text">
-
-              <view wx:if="{{item.textInfo.subtype === 'heading1'}}" class="heading">
+              <!-- 有换行的情况 -->
+              <block wx:if="{{item.textInfo.hasLineBreaks}}">
+                <block wx:for="{{item.textInfo.lines}}" wx:key="index">
+                  <view class="text-line {{index > 0 ? 'indented-line' : ''}}">
+                    <!-- 如果有加粗文本，使用 rich-text -->
+                    <rich-text wx:if="{{item.textInfo.hasBoldText || item.contentFormat === 'markdown'}}" 
+                              nodes="{{item}}" 
+                              class="rich-text-content">
+                    </rich-text>
+                    
+                    <!-- 普通文本，没有加粗标记 -->
+                    <text wx:else class="text-content" selectable>{{item}}</text>
+                  </view>
+                </block>
+              </block>
+              <!-- 没有换行的情况 -->
+              <block wx:else>
+                <!-- 如果有加粗文本，使用 rich-text -->
+                <rich-text wx:if="{{item.textInfo.hasBoldText || item.contentFormat === 'markdown'}}" 
+                          nodes="{{item.textInfo.formattedContent}}" 
+                          class="rich-text-content">
+                </rich-text>
+                
+                <!-- 普通文本，没有加粗标记 -->
+              <text wx:else class="text-content" selectable>{{item.textInfo.formattedContent}}</text>
+              </block>
+              <!-- <view wx:if="{{item.textInfo.subtype === 'heading1'}}" class="heading">
                 {{item.content}}
               </view>
-
               <view wx:elif="{{item.textInfo.subtype === 'heading2'}}" class="heading">
                 {{item.content}}
               </view>
-
               <view wx:elif="{{item.textInfo.subtype === 'heading3'}}" class="heading">
                 {{item.content}}
-              </view>
+              </view> -->
 
-              <view wx:else class="paragraph">
-                <rich-text wx:if="{{item.textInfo.hasBoldText}}" nodes="{{item.textInfo.formattedContent}}" class="content-rich-text"></rich-text>
-                <!-- 普通文本直接显示 -->
-                <text wx:else class="content-text">{{item.content}}</text>
-              </view>
             </view>
 
             <!-- 代码块 -->

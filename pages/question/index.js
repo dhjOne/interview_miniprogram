@@ -13,7 +13,7 @@ Page({
     loading: false,
     hasMore: true,
     page: 1,
-    pageSize: 10,
+    pageSize: 100,
     showBackTop: false,
     categoryId: null, // 新增：分类ID
     categoryName: '', // 新增：分类名称
@@ -98,6 +98,10 @@ Page({
 
       console.log('请求参数:', filteredParams);
       const questionParams = new QuestionParams(null, this.data.categoryId, null)
+      questionParams.sortField = 'sort_order'
+      questionParams.order = 'asc'
+      questionParams.page = 1
+      questionParams.limit = 100
       const response = await authApi.getQuestionList(questionParams);
       
       if (response.code === "0000") {

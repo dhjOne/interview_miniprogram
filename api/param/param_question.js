@@ -3,7 +3,7 @@ import { PaginationParams } from './param_base'
 import { SortParams } from './param_base'
 
 //问题参数
-export class QuestionParams extends PaginationParams {
+export class QuestionParams extends SortParams  {
   constructor(title, categoryId, questionId) {
     super()
     this.title = title
@@ -16,7 +16,11 @@ export class QuestionParams extends PaginationParams {
     return {
       title: this.title,
       categoryId: this.categoryId,
-      questionId: this.questionId
+      questionId: this.questionId,
+      page: this.page,
+      limit: this.limit,
+      sortField: this.sortField,
+      order: this.order
     }
   }
 }

@@ -54,7 +54,7 @@
                 <block wx:for="{{item.textInfo.lines}}" wx:key="index">
                   <view class="text-line {{index > 0 ? 'indented-line' : ''}}">
                     <!-- 如果有加粗文本，使用 rich-text -->
-                    <rich-text wx:if="{{item.textInfo.hasBoldText || item.contentFormat === 'markdown'}}" 
+                    <rich-text wx:if="{{item.textInfo.hasBoldText }}" 
                               nodes="{{item}}" 
                               class="rich-text-content">
                     </rich-text>
@@ -67,7 +67,7 @@
               <!-- 没有换行的情况 -->
               <block wx:else>
                 <!-- 如果有加粗文本，使用 rich-text -->
-                <rich-text wx:if="{{item.textInfo.hasBoldText || item.contentFormat === 'markdown'}}" 
+                <rich-text wx:if="{{item.textInfo.hasBoldText}}" 
                           nodes="{{item.textInfo.formattedContent}}" 
                           class="rich-text-content">
                 </rich-text>

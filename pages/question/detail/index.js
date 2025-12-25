@@ -555,7 +555,7 @@ Page({
       formattedContent = this.formatNumberedContent(block.content, {
         // 配置处理规则
         symbols: ['、', '.', ':', '．'], // 需要处理的符号
-        indent: '　　', // 两个全角空格缩进
+        indent: '', // 两个全角空格缩进
         lineBreak: '\n', // 换行符
         processSpaces: true // 处理空格换行
       });

@@ -9,11 +9,21 @@
     <t-tabs wx:else value="{{currentPrimary}}" bind:change="onTabChange">
       <block wx:for="{{primaryCategories}}" wx:key="id">
         <t-tab-panel label="{{item.name}}" value="{{item.id}}">
-          <t-pull-down-refresh value="{{enable}}" bind:refresh="onRefresh" loadingTexts="{{['下拉刷新', '松手刷新', '正在刷新', '刷新完成']}}">
+          <!-- 使用 scroll-view 替代 t-pull-down-refresh，以支持滚动监听 -->
+          <scroll-view 
+            scroll-y 
+            style="height: 100%;"
+            bindscrolltolower="onScrollToLower"
+            bindscroll="onPageScroll"
+            scroll-top="{{scrollTop}}"
+            refresher-enabled
+            refresher-triggered="{{enable}}"
+            bindrefresherrefresh="onRefresh"
+          >
             <view class="tab-content">
               <!-- 主体内容区域 -->
               <view class="main-content">
-                <!-- 侧边二级导航 - 根据 showSecondarySidebar 决定是否显示 -->
+                <!-- 侧边二级导航 -->
                 <view wx:if="{{showSecondarySidebar}}" class="sidebar {{isSidebarCollapsed ? 'collapsed' : ''}}">
                   <view class="sidebar-header">
                     <t-icon 
@@ -44,26 +54,12 @@
                   </view>
                 </view>
 
-                <!-- 内容展示区域 - 根据是否有侧边栏调整宽度 -->
+                <!-- 内容展示区域 -->
                 <view class="content-area {{!showSecondarySidebar || isSidebarCollapsed ? 'full-width' : ''}}">
-                  <!-- 图片展示区域 -->
+                  <!-- 问题列表区域 -->
                   <view wx:if="{{currentQuestions.length > 0}}" class="questions-list">
                     <block wx:for="{{currentQuestions}}" wx:key="id">
-                      <!-- <view class="image-card">
-                        <image 
-                          src="{{item.url}}" 
-                          mode="aspectFill"
-                          class="card-image"
-                          bindtap="previewImage"
-                          data-url="{{item.url}}"
-                        ></image>
-                        <view class="card-info">
-                          <text class="image-title">{{item.name}}</text>
-                          <text class="image-desc">{{item.description}}</text>
-                        </view>
-                      </view> -->
-                       <!-- 使用 TDesign 的单行单元格样式 -->
-                       <view class="question-item">
+                      <view class="question-item">
                         <t-cell 
                           title="{{item.name}}" 
                           description="{{item.description}}" 
@@ -72,7 +68,6 @@
                           bindtap="onQuestionClick"
                           data-id="{{item.id}}"
                         >
-                          <!-- 左侧图标（可选） -->
                           <t-icon 
                             slot="left-icon" 
                             name="file" 
@@ -81,7 +76,6 @@
                             class="avatar"
                           ></t-icon>
                           
-                          <!-- 右侧附加内容（可选） -->
                           <view slot="right-icon" class="question-meta">
                             <text class="question-difficulty {{item.difficulty}}">
                               {{item.difficulty === 'easy' ? '简单' : item.difficulty === 'medium' ? '中等' : '困难'}}
@@ -90,10 +84,18 @@
                         </t-cell>
                       </view>
                     </block>
+                    
+                    <!-- 加载更多提示 -->
+                    <view wx:if="{{isLoadingMore}}" class="loading-more">
+                      <t-loading size="32rpx" text="正在加载更多..." />
+                    </view>
+                    
+                    <view wx:if="{{!hasMore && currentQuestions.length > 0}}" class="no-more">
+                      <text>没有更多数据了</text>
+                    </view>
                   </view>
                   
-                  
-                  <!-- 图片为空时的提示 -->
+                  <!-- 问题为空时的提示 -->
                   <view wx:else class="empty-content">
                     <t-icon name="image" size="120rpx" color="#ccc"></t-icon>
                     <text class="empty-text">暂无内容</text>
@@ -101,16 +103,16 @@
                 </view>
               </view>
             </view>
-          </t-pull-down-refresh>
+          </scroll-view>
         </t-tab-panel>
       </block>
     </t-tabs>
   </view>
 </view>
 
-<view class="home-release">
+<!-- <view class="home-release">
   <t-button theme="primary" size="large" icon="add" shape="round" bindtap="goRelease">
     发布
   </t-button>
-</view>
+</view> -->
 <t-message id="t-message" />

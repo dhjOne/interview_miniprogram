@@ -391,3 +391,46 @@
   }
 }
 // 内容样式 end
+
+
+// 在文件末尾添加以下样式
+
+// 分页加载相关样式
+.loading-more {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40rpx 0;
+  color: #999;
+  font-size: 26rpx;
+  
+  .t-loading {
+    margin-right: 20rpx;
+  }
+}
+
+.no-more {
+  text-align: center;
+  padding: 40rpx 0;
+  color: #999;
+  font-size: 26rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+// 优化滚动区域
+scroll-view {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  
+  -webkit-overflow-scrolling: touch;
+}
+
+// 确保内容区域高度正确
+.tab-content {
+  height: 100%;
+  
+  .main-content {
+    min-height: calc(100vh - 200rpx); // 确保有足够高度触发滚动
+  }
+}

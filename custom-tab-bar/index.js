@@ -6,7 +6,7 @@ Component({
     unreadNum: 0, // 未读消息数量
     list: [
       {
-        icon: 'home',
+        icon: 'book-open',
         value: 'category',
         label: '首页',
       },

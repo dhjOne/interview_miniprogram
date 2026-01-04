@@ -2,6 +2,8 @@
 import Message from 'tdesign-miniprogram/message/index';
 import { authApi } from '~/api/request/api_question';
 import { QuestionParams } from '~/api/param/param_question';
+// 在页面中使用
+const app = getApp();
 
 Page({
   data: {
@@ -262,7 +264,7 @@ Page({
     console.log('点击问题:', questionId, questionTitle);
     
     // 跳转到问题详情页面
-    wx.navigateTo({
+    app.navigateToWithAuth({
       url: `/pages/question/detail/index?id=${questionId}&title=${questionTitle}`
     });
   }

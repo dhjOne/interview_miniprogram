@@ -31,6 +31,8 @@ App({
 
     this.getUnreadNum();
     this.connect();
+    // 初始化时检查登录状态
+    this.checkLoginStatus();
 
   },
   globalData: {
@@ -106,5 +108,55 @@ App({
     if (listeners) {
       this.globalData.eventListeners[event] = listeners.filter(cb => cb !== callback);
     }
+  },
+
+   // 检查登录状态
+   checkLoginStatus() {
+    const token = wx.getStorageSync('access_token');
+    const userInfo = wx.getStorageSync('user_info');
+    
+    if (token && userInfo) {
+      this.globalData.token = token;
+      this.globalData.userInfo = userInfo;
+    }
+    return !!(token && userInfo);
+  },
+
+   // 统一跳转方法
+   navigateToWithAuth(options) {
+    const { url, success, fail, complete } = options;
+    
+    // 先检查登录状态
+    if (!this.checkLoginStatus()) {
+
+      wx.showModal({
+        title: '提示',
+        content: '登录已过期，请重新登录',
+        showCancel: false,
+        confirmText: '去登录',
+        success: (res) => {
+          if (res.confirm) {
+            // 跳转到登录页，携带来源信息
+            wx.redirectTo({
+              url: `/pages/login/login?from=token_expired${url ? '&return=' + encodeURIComponent(url) : ''}`
+            })
+          }
+        }
+      })
+
+      // 跳转到登录页
+      wx.navigateTo({
+        url: `/pages/login/index?redirectUrl=${encodeURIComponent(url)}`,
+        success: () => {
+          // 可以在登录页设置回调，登录成功后自动跳转
+        }
+      });
+      return;
+    }
+    
+    // 已登录，正常跳转
+    wx.navigateTo(options);
   }
+
+
 });

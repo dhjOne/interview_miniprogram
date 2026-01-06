@@ -76,7 +76,7 @@ Page({
     });
   },
   goRelease() {
-    wx.navigateTo({
+    wx.switchTab({
       url: '/pages/release/index',
     });
   },

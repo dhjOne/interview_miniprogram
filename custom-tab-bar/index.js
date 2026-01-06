@@ -12,7 +12,7 @@ Component({
       },
       {
         icon: 'upload',
-        value: 'notice',
+        value: 'release',
         label: '发布',
       },
       {

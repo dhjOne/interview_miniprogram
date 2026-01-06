@@ -110,9 +110,9 @@
   </view>
 </view>
 
-<!-- <view class="home-release">
+<view class="home-release">
   <t-button theme="primary" size="large" icon="add" shape="round" bindtap="goRelease">
     发布
   </t-button>
-</view> -->
+</view>
 <t-message id="t-message" />

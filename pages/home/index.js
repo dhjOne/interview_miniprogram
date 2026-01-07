@@ -76,8 +76,12 @@ Page({
     });
   },
   goRelease() {
-    wx.switchTab({
-      url: '/pages/release/index',
+    console.log('-----发布问题------')
+    wx.navigateTo({
+      url: '/pages/publish/index',
+      fail: function(res) {
+        console.log('跳转失败', res)
+      }
     });
   },
 });

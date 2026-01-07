@@ -1,0 +1,19 @@
+{
+  "navigationBarTitleText": "发布技术问答",
+  "navigationBarBackgroundColor": "#667eea",
+  "navigationBarTextStyle": "white",
+  "usingComponents": {
+    "t-input": "tdesign-miniprogram/input/input",
+    "t-textarea": "tdesign-miniprogram/textarea/textarea",
+    "t-select": "tdesign-miniprogram/select/select",
+    "t-option": "tdesign-miniprogram/select/option",
+    "t-button": "tdesign-miniprogram/button/button",
+    "t-icon": "tdesign-miniprogram/icon/icon",
+    "t-switch": "tdesign-miniprogram/switch/switch",
+    "t-tag": "tdesign-miniprogram/tag/tag",
+    "t-tag-select": "tdesign-miniprogram/tag-select/tag-select",
+    "t-cell-group": "tdesign-miniprogram/cell-group/cell-group",
+    "t-dialog": "tdesign-miniprogram/dialog/dialog",
+    "t-toast": "tdesign-miniprogram/toast/toast"
+  }
+}

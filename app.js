@@ -39,7 +39,8 @@ App({
     userInfo: null,
     unreadNum: 0, // 未读消息数量
     socket: null, // SocketTask 对象
-    eventListeners: {}
+    eventListeners: {},
+    showFloatButton: true
   },
 
   /** 全局事件总线 */
@@ -144,18 +145,40 @@ App({
         }
       })
 
-      // 跳转到登录页
-      wx.navigateTo({
-        url: `/pages/login/index?redirectUrl=${encodeURIComponent(url)}`,
-        success: () => {
-          // 可以在登录页设置回调，登录成功后自动跳转
-        }
-      });
+      // // 跳转到登录页
+      // wx.navigateTo({
+      //   url: `/pages/login/index?redirectUrl=${encodeURIComponent(url)}`,
+      //   success: () => {
+      //     // 可以在登录页设置回调，登录成功后自动跳转
+      //   }
+      // });
       return;
     }
     
     // 已登录，正常跳转
     wx.navigateTo(options);
+  },
+  // 不检查，直接跳转登陆
+  navigateToLogin(options) {
+    const { url, success, fail, complete } = options;
+    if (!this.checkLoginStatus()) {
+      // 跳转到登录页，携带来源信息
+      wx.redirectTo({
+        url: `/pages/login/login?from=token_expired${url ? '&return=' + encodeURIComponent(url) : ''}`
+      })
+    }
+    return;
+  },
+  // 全局显示/隐藏浮动按钮
+  showGlobalFloatButton() {
+    this.globalData.showFloatButton = true;
+    // 通知所有页面
+    this.eventBus.emit('float-button-change', true);
+  },
+  
+  hideGlobalFloatButton() {
+    this.globalData.showFloatButton = false;
+    this.eventBus.emit('float-button-change', false);
   }
 
 

@@ -1,160 +1,28 @@
-<t-toast id="t-toast" />
-
-<view class="publish-container">
-  <t-toast id="toast" />
-  
-  <!-- 头部 -->
-  <view class="header">
-    <view class="title">发布技术问答</view>
-    <view class="subtitle">分享你的技术问题与解决方案</view>
-  </view>
-
-  <!-- 表单区域 -->
-  <view class="form-container">
-    <!-- 分类选择 -->
-    <t-cell-group title="问题分类" borderless>
-      <t-select
-        value="{{category}}"
-        options="{{categoryOptions}}"
-        placeholder="请选择问题分类"
-        label="技术分类"
-        bind:change="onCategoryChange"
-      />
-    </t-cell-group>
-
-    <!-- 问题标题 -->
-    <view class="form-item">
-      <t-input
-        label="问题标题"
-        placeholder="请输入问题标题"
-        value="{{questionTitle}}"
-        borderless
-        maxlength="100"
-        bind:change="onQuestionTitleChange"
-      />
+<t-navbar title="发布动态" left-arrow />
+<view class="page">
+  <view class="release-container">
+    <view class="title box">
+      <t-input prefixIcon="article" placeholder="请输入标题">
+        <view slot="label" class="custom-label"> 标题 </view>
+      </t-input> 
     </view>
-
-    <!-- 问题描述 -->
-    <view class="form-item">
-      <t-textarea
-        label="问题描述"
-        placeholder="请详细描述你的技术问题，包括复现步骤、相关代码等"
-        value="{{questionContent}}"
-        maxlength="2000"
-        autosize
-        bind:change="onQuestionContentChange"
-      />
+    <view class="desc box">
+      <view class="desc-label">问题简介</view>
+      <t-textarea  t-class="desc-class" t-class-textarea="placeholder-class" placeholder="分享你此刻的想法" maxlength="500" disableDefaultPadding="{{true}}" indicator />
     </view>
-
-    <!-- 答案区域 -->
-    <view class="answer-section">
-      <view class="section-header">
-        <view class="section-title">解决方案</view>
-        <view class="style-tools">
-          <t-button size="small" variant="outline" bindtap="showCodeEditor">
-            <t-icon name="code" slot="icon" />
-            代码编辑
-          </t-button>
-          <t-button size="small" variant="outline" bindtap="showStylePanel">
-            <t-icon name="style" slot="icon" />
-            样式设置
-          </t-button>
-        </view>
-      </view>
-
-      <!-- 代码编辑器弹窗 -->
-      <t-dialog
-        visible="{{showCodeDialog}}"
-        title="代码编辑器"
-        bind:confirm="insertCode"
-        bind:cancel="hideCodeEditor"
-        confirm-btn="插入代码"
-      >
-        <view class="code-editor-dialog">
-          <t-select
-            value="{{codeLanguage}}"
-            options="{{languageOptions}}"
-            placeholder="选择编程语言"
-            bind:change="onLanguageChange"
-          />
-          <t-textarea
-            value="{{codeContent}}"
-            placeholder="请输入代码..."
-            autosize
-            bind:input="onCodeInput"
-            class="code-textarea"
-          />
-          <view class="code-preview">
-            <view class="preview-title">预览：</view>
-            <text class="code-block" wx:if="{{codeContent}}">
-              {{codeContent}}
-            </text>
-          </view>
-        </view>
-      </t-dialog>
-
-      <!-- 答案编辑器 -->
-      <view class="answer-editor">
-        <!-- 格式工具栏 -->
-        <view class="format-toolbar" wx:if="{{showToolbar}}">
-          <view class="toolbar-buttons">
-            <t-button size="small" variant="text" bindtap="formatText" data-type="bold">
-              <t-icon name="format-bold" /> 粗体
-            </t-button>
-            <t-button size="small" variant="text" bindtap="formatText" data-type="italic">
-              <t-icon name="format-italic" /> 斜体
-            </t-button>
-            <t-button size="small" variant="text" bindtap="formatText" data-type="code">
-              <t-icon name="code" /> 行内代码
-            </t-button>
-            <t-button size="small" variant="text" bindtap="insertLink">
-              <t-icon name="link" /> 链接
-            </t-button>
-          </view>
-        </view>
-
-        <!-- 答案输入 -->
-        <t-textarea
-          placeholder="请输入详细的技术解决方案，支持Markdown格式"
-          value="{{answerContent}}"
-          maxlength="5000"
-          autosize
-          bind:change="onAnswerChange"
-          bind:focus="showToolbar = true"
-          bind:blur="hideToolbar"
-        />
-
-        <!-- 样式预览 -->
-        <view class="preview-section" wx:if="{{previewContent}}">
-          <view class="preview-title">预览效果：</view>
-          <view class="preview-content rich-text">
-            <rich-text nodes="{{previewContent}}"></rich-text>
-          </view>
-        </view>
-      </view>
+    <view class="taggroup box">
+      <t-cell t-class-title="cell-title-class" t-class-note="cell-note-class" title="添加标签">
+        <block wx:for="{{tags}}" wx:key="index">
+          <t-check-tag t-class="tag-class" size="medium" default-checked="{{index===0}}" variant="dark" content="#{{item}}" slot="note" />
+        </block>
+      </t-cell>
     </view>
-
-    <!-- 附加选项 -->
-    <t-cell-group title="附加选项" borderless>
-      <t-switch label="设为公开" checked="{{isPublic}}" bind:change="onPublicChange" />
-      <t-switch label="允许评论" checked="{{allowComments}}" bind:change="onCommentsChange" />
-      <t-tag-select
-        value="{{selectedTags}}"
-        options="{{tagOptions}}"
-        bind:change="onTagChange"
-        label="技术标签"
-        multiple
-      />
-    </t-cell-group>
-  </view>
-
-  <!-- 底部操作栏 -->
-  <view class="action-bar">
-    <t-button theme="default" bindtap="saveDraft" size="large">
-      保存草稿
-    </t-button>
-    <t-button theme="primary" bindtap="handlePublish" size="large">
-      发布问答
-    </t-button>
+    <view class="location box">
+      <t-cell title="所在位置" hover arrow leftIcon="location" bindtap="gotoMap" />
+    </view>
+    <view class="btngroup box">
+      <t-button t-class="btn-class" theme="light" icon="file-copy" content="存草稿" size="large" bindtap="saveDraft"></t-button>
+      <t-button t-class="btn-class" theme="primary" icon="upload" content="发布" size="large" bindtap="release"></t-button>
+    </view>
   </view>
 </view>

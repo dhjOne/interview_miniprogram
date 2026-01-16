@@ -110,9 +110,7 @@
   </view>
 </view>
 
-<view class="home-release">
-  <t-button theme="primary" size="large" icon="add" shape="round" bindtap="goRelease">
-    发布
-  </t-button>
-</view>
+<float-release-button 
+  bind:onTap="onReleaseTap"
+/>
 <t-message id="t-message" />

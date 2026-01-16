@@ -13,6 +13,7 @@
     "t-cell": "tdesign-miniprogram/cell/cell",
     "t-icon": "tdesign-miniprogram/icon/icon",
     "nav": "/components/nav",
-    "card": "/components/card"
+    "card": "/components/card",
+    "float-release-button": "/components/float-release-button/index"
   }
 }

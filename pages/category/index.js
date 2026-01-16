@@ -447,6 +447,14 @@ Page({
     });
   },
 
+  onReleaseTap: function() {
+    // 在这里调用 app.js 中的方法
+    // 跳转到问题详情页面
+    app.navigateToLogin({
+      url: `/pages/publish/index`
+    });
+  },
+
   // 监听页面滚动到底部（备选方案）
   onScrollToLower() {
     console.log('滚动到底部');

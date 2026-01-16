@@ -76,7 +76,7 @@ Page({
     });
   },
   goRelease() {
-    console.log('-----发布问题------')
+    console.log('-----发布问题-x-----')
     wx.navigateTo({
       url: '/pages/publish/index',
       fail: function(res) {

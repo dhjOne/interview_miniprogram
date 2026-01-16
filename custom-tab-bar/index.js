@@ -2,13 +2,13 @@ const app = getApp();
 
 Component({
   data: {
-    value: '', // 初始值设置为空，避免第一次加载时闪烁
+    value: 'category', // 初始值设置为空，避免第一次加载时闪烁
     unreadNum: 0, // 未读消息数量
     list: [
       {
         icon: 'book-open',
         value: 'category',
-        label: '首页',
+        label: '题库',
       },
       {
         icon: 'upload',

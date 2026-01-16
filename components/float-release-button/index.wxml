@@ -1,0 +1,11 @@
+<view class="float-release-button {{customClass}}" style="{{customStyle}}">
+  <t-button 
+    theme="{{buttonTheme || 'primary'}}" 
+    size="{{buttonSize || 'large'}}" 
+    icon="{{buttonIcon || 'add'}}" 
+    shape="{{buttonShape || 'round'}}" 
+    bindtap="handleTap"
+  >
+    {{buttonText || '发布'}}
+  </t-button>
+</view>

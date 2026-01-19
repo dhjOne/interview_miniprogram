@@ -15,14 +15,9 @@ Page({
     showConfirmDialog: false,
     showClearConfirmDialog: false,
     
-    // 工具栏状态
-    showToolbarDropdown: false,
-    
-    // 历史记录（用于撤销/重做）
-    contentHistory: [],
-    historyIndex: -1,
-    canUndo: false,
-    canRedo: false,
+    // 下拉菜单状态
+    showFormatDropdown: false,
+    showInsertDropdown: false,
     
     // 分类选项
     categories: [
@@ -45,144 +40,36 @@ Page({
   initEditor() {
     // 尝试从草稿中恢复
     this.loadDraft();
-    
-    // 初始化历史记录
-    if (this.data.content) {
-      this.saveToHistory(this.data.content);
-    }
   },
 
-  // 返回编辑模式
-  backToEdit() {
+  // 切换格式下拉菜单
+  toggleFormatDropdown() {
     this.setData({
-      activeTab: 'edit'
+      showFormatDropdown: !this.data.showFormatDropdown,
+      // 关闭其他下拉菜单
+      showInsertDropdown: false
     });
   },
 
-  // 获取分类名称
-  getCategoryName(categoryId) {
-    const category = this.data.categories.find(item => item.id === categoryId);
-    return category ? category.name : '';
-  },
-
-  // 切换工具栏下拉菜单
-  toggleToolbarDropdown() {
+  // 切换插入下拉菜单
+  toggleInsertDropdown() {
     this.setData({
-      showToolbarDropdown: !this.data.showToolbarDropdown
+      showInsertDropdown: !this.data.showInsertDropdown,
+      // 关闭其他下拉菜单
+      showFormatDropdown: false
     });
   },
 
-  // 关闭工具栏下拉菜单
-  closeToolbarDropdown() {
+  // 关闭所有下拉菜单
+  closeAllDropdowns() {
     this.setData({
-      showToolbarDropdown: false
-    });
-  },
-
-  // 保存到历史记录
-  saveToHistory(content) {
-    let { contentHistory, historyIndex } = this.data;
-    
-    // 如果当前位置不是最后一个，移除后面的记录
-    if (historyIndex < contentHistory.length - 1) {
-      contentHistory = contentHistory.slice(0, historyIndex + 1);
-    }
-    
-    // 添加新记录
-    contentHistory.push(content);
-    
-    // 最多保存50条记录
-    if (contentHistory.length > 50) {
-      contentHistory.shift();
-    }
-    
-    this.setData({
-      contentHistory,
-      historyIndex: contentHistory.length - 1,
-      canUndo: contentHistory.length > 1,
-      canRedo: false
-    });
-  },
-
-  // 撤销操作
-  undoAction() {
-    this.closeToolbarDropdown();
-    
-    const { contentHistory, historyIndex } = this.data;
-    if (historyIndex > 0) {
-      const newIndex = historyIndex - 1;
-      const content = contentHistory[newIndex];
-      
-      this.setData({
-        content,
-        parsedContent: this.parseMarkdown(content),
-        historyIndex: newIndex,
-        canUndo: newIndex > 0,
-        canRedo: true
-      });
-    }
-  },
-
-  // 重做操作
-  redoAction() {
-    this.closeToolbarDropdown();
-    
-    const { contentHistory, historyIndex } = this.data;
-    if (historyIndex < contentHistory.length - 1) {
-      const newIndex = historyIndex + 1;
-      const content = contentHistory[newIndex];
-      
-      this.setData({
-        content,
-        parsedContent: this.parseMarkdown(content),
-        historyIndex: newIndex,
-        canUndo: true,
-        canRedo: newIndex < contentHistory.length - 1
-      });
-    }
-  },
-
-  // 标题变更
-  onTitleChange(e) {
-    this.setData({
-      title: e.detail.value
-    });
-  },
-
-  // 内容变更
-  onContentChange(e) {
-    const content = e.detail.value;
-    this.setData({
-      content,
-      parsedContent: this.parseMarkdown(content)
-    });
-    
-    // 保存到历史记录
-    this.saveToHistory(content);
-    
-    // 自动保存草稿
-    this.autoSaveDraft();
-  },
-
-  // 选择分类
-  selectCategory(e) {
-    const categoryId = e.currentTarget.dataset.id;
-    this.setData({
-      selectedCategory: categoryId
-    });
-  },
-
-  // 切换标签页
-  onTabChange(e) {
-    this.setData({
-      activeTab: e.detail.value
+      showFormatDropdown: false,
+      showInsertDropdown: false
     });
   },
 
   // 插入 Markdown 语法
   insertMarkdown(e) {
-    this.closeToolbarDropdown();
-    
     const type = e.currentTarget.dataset.type;
     const { content, cursorPosition } = this.data;
     
@@ -222,18 +109,23 @@ Page({
         insertText = '> 引用内容';
         newCursorPosition = cursorPosition + 2;
         break;
-      case 'inline-code':
-        insertText = '`行内代码`';
-        newCursorPosition = cursorPosition + 1;
-        break;
       case 'code':
         insertText = '```\n代码块\n```';
         newCursorPosition = cursorPosition + 4;
+        break;
+      case 'inline-code':
+        insertText = '`代码`';
+        newCursorPosition = cursorPosition + 1;
         break;
       case 'link':
         insertText = '[链接文字](https://)';
         newCursorPosition = cursorPosition + 5;
         break;
+      case 'image':
+        this.chooseImage();
+        // 关闭下拉菜单
+        this.setData({ showInsertDropdown: false });
+        return;
       case 'table':
         insertText = '| 标题1 | 标题2 |\n|-------|-------|\n| 内容1 | 内容2 |';
         newCursorPosition = cursorPosition + 2;
@@ -242,12 +134,9 @@ Page({
         insertText = '\n---\n';
         newCursorPosition = cursorPosition + 4;
         break;
-      case 'checklist':
-        insertText = '- [ ] 任务项';
-        newCursorPosition = cursorPosition + 2;
-        break;
     }
     
+    // 插入文本
     const newContent = 
       content.substring(0, cursorPosition) + 
       insertText + 
@@ -256,49 +145,49 @@ Page({
     this.setData({
       content: newContent,
       cursorPosition: newCursorPosition,
-      parsedContent: this.parseMarkdown(newContent)
+      parsedContent: this.parseMarkdown(newContent),
+      // 关闭下拉菜单
+      showFormatDropdown: false,
+      showInsertDropdown: false
     });
-    
-    // 保存到历史记录
-    this.saveToHistory(newContent);
   },
 
-  // 插入模板
-  insertTemplate(e) {
-    this.closeToolbarDropdown();
-    
-    const type = e.currentTarget.dataset.type;
-    const { content, cursorPosition } = this.data;
-    
-    let insertText = '';
-    
-    switch (type) {
-      case 'question':
-        insertText = '\n## 问题描述\n\n请详细描述你遇到的问题...\n\n## 复现步骤\n\n1. 第一步\n2. 第二步\n3. 第三步\n\n## 期望结果\n\n描述你期望的正常结果...\n\n## 实际结果\n\n描述实际出现的异常结果...\n\n';
-        break;
-      case 'code':
-        insertText = '\n```\n// 请在此处粘贴你的代码\nfunction example() {\n  console.log("Hello, World!");\n}\n```\n';
-        break;
-    }
-    
-    const newContent = 
-      content.substring(0, cursorPosition) + 
-      insertText + 
-      content.substring(cursorPosition);
-    
+  // 标题变更
+  onTitleChange(e) {
     this.setData({
-      content: newContent,
-      parsedContent: this.parseMarkdown(newContent)
+      title: e.detail.value
+    });
+  },
+
+  // 内容变更
+  onContentChange(e) {
+    const content = e.detail.value;
+    this.setData({
+      content,
+      parsedContent: this.parseMarkdown(content)
     });
     
-    // 保存到历史记录
-    this.saveToHistory(newContent);
+    // 自动保存草稿
+    this.autoSaveDraft();
+  },
+
+  // 选择分类
+  selectCategory(e) {
+    const categoryId = e.currentTarget.dataset.id;
+    this.setData({
+      selectedCategory: categoryId
+    });
+  },
+
+  // 切换标签页
+  onTabChange(e) {
+    this.setData({
+      activeTab: e.detail.value
+    });
   },
 
   // 选择图片
   chooseImage() {
-    this.closeToolbarDropdown();
-    
     wx.chooseMedia({
       count: 9 - this.data.images.length,
       mediaType: ['image'],
@@ -315,21 +204,23 @@ Page({
         });
         
         // 插入图片 Markdown
-        const imageMarkdown = newImages.map(img => `\n![图片](${img.url})\n`).join('\n');
-        const { content, cursorPosition } = this.data;
-        const newContent = 
-          content.substring(0, cursorPosition) + 
-          imageMarkdown + 
-          content.substring(cursorPosition);
-        
-        this.setData({
-          content: newContent,
-          parsedContent: this.parseMarkdown(newContent)
-        });
-        
-        // 保存到历史记录
-        this.saveToHistory(newContent);
+        const imageMarkdown = newImages.map(img => `![图片](${img.url})`).join('\n');
+        this.insertImageMarkdown(imageMarkdown);
       }
+    });
+  },
+
+  // 插入图片 Markdown
+  insertImageMarkdown(markdown) {
+    const { content, cursorPosition } = this.data;
+    const newContent = 
+      content.substring(0, cursorPosition) + 
+      '\n' + markdown + '\n' + 
+      content.substring(cursorPosition);
+    
+    this.setData({
+      content: newContent,
+      parsedContent: this.parseMarkdown(newContent)
     });
   },
 
@@ -346,37 +237,18 @@ Page({
     });
   },
 
+  onEditorConfirm() {
+    // 可以在这里处理回车键的逻辑
+  },
+
   // 简单的 Markdown 解析器
   parseMarkdown(text) {
     if (!text) return [];
     
     const nodes = [];
     const lines = text.split('\n');
-    let inCodeBlock = false;
-    let codeContent = [];
     
     lines.forEach((line, index) => {
-      // 处理代码块
-      if (line.startsWith('```')) {
-        if (!inCodeBlock) {
-          inCodeBlock = true;
-          codeContent = [];
-        } else {
-          inCodeBlock = false;
-          nodes.push({
-            name: 'pre',
-            attrs: { class: 'md-code-block' },
-            children: [{ type: 'text', text: codeContent.join('\n') }]
-          });
-        }
-        return;
-      }
-      
-      if (inCodeBlock) {
-        codeContent.push(line);
-        return;
-      }
-      
       // 处理标题
       if (line.startsWith('# ')) {
         nodes.push({
@@ -412,7 +284,26 @@ Page({
           }
         });
         nodes.push({
-          name: 'p',
+          name: 'div',
+          children
+        });
+      }
+      // 处理斜体
+      else if (line.includes('*') && !line.startsWith('* ') && !line.endsWith('*')) {
+        const parts = line.split('*');
+        const children = [];
+        parts.forEach((part, i) => {
+          if (i % 2 === 1) {
+            children.push({
+              name: 'em',
+              children: [{ type: 'text', text: part }]
+            });
+          } else if (part) {
+            children.push({ type: 'text', text: part });
+          }
+        });
+        nodes.push({
+          name: 'div',
           children
         });
       }
@@ -424,6 +315,14 @@ Page({
           children: [{ type: 'text', text: line.substring(2) }]
         });
       }
+      // 处理有序列表
+      else if (/^\d+\. /.test(line)) {
+        nodes.push({
+          name: 'li',
+          attrs: { class: 'md-ordered-item' },
+          children: [{ type: 'text', text: line.replace(/^\d+\. /, '') }]
+        });
+      }
       // 处理引用
       else if (line.startsWith('> ')) {
         nodes.push({
@@ -432,8 +331,36 @@ Page({
           children: [{ type: 'text', text: line.substring(2) }]
         });
       }
+      // 处理代码块
+      else if (line.startsWith('```')) {
+        nodes.push({
+          name: 'pre',
+          attrs: { class: 'md-code-block' },
+          children: [{ type: 'text', text: line.substring(3) }]
+        });
+      }
+      // 处理行内代码
+      else if (line.includes('`')) {
+        const parts = line.split('`');
+        const children = [];
+        parts.forEach((part, i) => {
+          if (i % 2 === 1) {
+            children.push({
+              name: 'code',
+              attrs: { class: 'md-inline-code' },
+              children: [{ type: 'text', text: part }]
+            });
+          } else if (part) {
+            children.push({ type: 'text', text: part });
+          }
+        });
+        nodes.push({
+          name: 'div',
+          children
+        });
+      }
       // 处理分割线
-      else if (line.trim() === '---') {
+      else if (line.trim() === '---' || line.trim() === '***') {
         nodes.push({
           name: 'hr',
           attrs: { class: 'md-divider' }
@@ -459,8 +386,6 @@ Page({
 
   // 显示清除确认弹窗
   showClearConfirmDialog() {
-    this.closeToolbarDropdown();
-    
     if (!this.data.content.trim() && !this.data.title.trim()) {
       wx.showToast({
         title: '暂无内容可清除',
@@ -485,22 +410,16 @@ Page({
   // 清除内容
   clearContent() {
     this.setData({
-      title: '',
       content: '',
-      selectedCategory: '',
-      images: [],
       parsedContent: [],
       cursorPosition: 0,
-      showClearConfirmDialog: false,
-      contentHistory: [],
-      historyIndex: -1,
-      canUndo: false,
-      canRedo: false
+      showClearConfirmDialog: false
     });
     
     // 清除草稿
     wx.removeStorageSync('question_draft');
     
+    // 显示成功消息
     wx.showToast({
       title: '内容已清除',
       icon: 'success',
@@ -529,6 +448,7 @@ Page({
 
   // 自动保存草稿
   autoSaveDraft() {
+    // 防抖处理，避免频繁保存
     if (this.autoSaveTimer) {
       clearTimeout(this.autoSaveTimer);
     }
@@ -630,23 +550,27 @@ Page({
         createTime: new Date().toISOString()
       };
       
+      // 这里应该调用实际的 API 接口
       console.log('发布问题数据:', questionData);
       
       // 清空草稿
       wx.removeStorageSync('question_draft');
       
+      // 显示成功消息
       wx.showToast({
         title: '问题发布成功！',
         icon: 'success',
         duration: 2000
       });
       
+      // 重置表单
       this.resetForm();
       
       this.setData({
         isPublishing: false
       });
       
+      // 跳转到问题列表或详情页
       setTimeout(() => {
         wx.navigateBack();
       }, 1500);
@@ -667,24 +591,19 @@ Page({
       content: '',
       selectedCategory: '',
       images: [],
-      parsedContent: [],
-      contentHistory: [],
-      historyIndex: -1,
-      canUndo: false,
-      canRedo: false
+      parsedContent: []
     });
   },
 
   onUnload() {
+    // 页面卸载时保存草稿
     if (this.data.title || this.data.content) {
       this.saveDraft();
     }
   },
 
-  // 监听页面滚动，如果下拉菜单打开，则关闭它
-  onPageScroll() {
-    if (this.data.showToolbarDropdown) {
-      this.closeToolbarDropdown();
-    }
+  // 监听页面点击，点击其他地方时关闭下拉菜单
+  onPageTap(e) {
+    // 可以在这里添加逻辑，点击页面其他地方时关闭下拉菜单
   }
 });

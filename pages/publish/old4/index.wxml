@@ -1,0 +1,44 @@
+<view class="doc-container">
+  <!-- 文档标题 -->
+  <view class="form-item">
+    <label class="label">文档标题</label>
+    <input 
+      class="input" 
+      placeholder="请输入技术文档标题" 
+      bindinput="onTitleInput"
+      value="{{docTitle}}"
+    />
+  </view>
+
+  <!-- Markdown内容编辑 -->
+  <view class="form-item">
+    <label class="label">文档内容（Markdown）</label>
+    <textarea 
+      class="textarea" 
+      placeholder="请输入Markdown格式的技术文档内容，支持代码、表格、公式等"
+      bindinput="onContentInput"
+      value="{{markdownContent}}"
+      auto-height
+    />
+  </view>
+
+  <!-- 预览区 -->
+  <view class="preview-section">
+    <view class="preview-title">实时预览</view>
+    <!-- towxml核心渲染组件 -->
+    <towxml 
+      nodes="{{renderedContent}}" 
+      type="markdown"
+      style="padding: 10rpx;"
+    />
+  </view>
+
+  <!-- 发布按钮 -->
+  <button 
+    class="publish-btn" 
+    bindtap="onPublish"
+    disabled="{{!docTitle || !markdownContent}}"
+  >
+    发布技术文档
+  </button>
+</view>

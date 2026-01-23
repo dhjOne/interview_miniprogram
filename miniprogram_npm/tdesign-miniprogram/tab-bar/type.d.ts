@@ -3,10 +3,6 @@ export interface TdTabBarProps {
         type: BooleanConstructor;
         value?: boolean;
     };
-    externalClasses?: {
-        type: ArrayConstructor;
-        value?: ['t-class'];
-    };
     fixed?: {
         type: BooleanConstructor;
         value?: boolean;

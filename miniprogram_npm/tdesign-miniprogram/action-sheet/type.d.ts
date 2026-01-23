@@ -41,15 +41,13 @@ export interface TdActionSheetProps {
         type: BooleanConstructor;
         value?: boolean;
     };
-    visible: {
+    visible?: {
         type: BooleanConstructor;
         value?: boolean;
-        required?: boolean;
     };
-    defaultVisible: {
+    defaultVisible?: {
         type: BooleanConstructor;
         value?: boolean;
-        required?: boolean;
     };
 }
 export interface ActionSheetItem {

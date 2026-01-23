@@ -1,9 +1,11 @@
-// pages/publish/publish.js
+// 获取应用实例
+const app = getApp();
+
 Page({
   data: {
     // 表单数据
-    title: '',
-    content: '',
+    docTitle: '',
+    markdownContent: '',
     selectedCategory: '',
     images: [],
     
@@ -26,15 +28,27 @@ Page({
     
     // 分类选项
     categories: [
-      { id: 'tech', name: '技术问题' },
-      { id: 'product', name: '产品建议' },
-      { id: 'bug', name: 'Bug反馈' },
-      { id: 'question', name: '使用咨询' },
-      { id: 'other', name: '其他问题' }
+      { id: 'tech', name: '技术文档' },
+      { id: 'tutorial', name: '使用教程' },
+      { id: 'api', name: 'API文档' },
+      { id: 'guide', name: '开发指南' },
+      { id: 'other', name: '其他文档' }
     ],
     
-    // 解析后的内容
-    parsedContent: []
+    // towxml 渲染数据
+    renderedContent: null,
+    
+    // 字数统计
+    wordCount: 0,
+    
+    // 完整的预览内容（包含标题和分类）
+    previewFullContent: '',
+    
+    // 分类名称缓存
+    categoryName: '',
+    
+    // 最近插入的内容类型（用于反馈）
+    lastInsertType: ''
   },
 
   onLoad() {
@@ -46,52 +60,55 @@ Page({
     // 尝试从草稿中恢复
     this.loadDraft();
     
-    // 初始化历史记录
-    if (this.data.content) {
-      this.saveToHistory(this.data.content);
+    // 初始化示例内容
+    if (!this.data.markdownContent) {
+      this.setData({
+        markdownContent: '# 欢迎使用技术文档编辑器\n\n这是一个支持Markdown实时预览的编辑器，您可以开始撰写您的技术文档。'
+      }, () => {
+        this.updatePreviewContent();
+      });
     }
   },
 
-  // 返回编辑模式
-  backToEdit() {
+  // 标题输入
+  onTitleChange(e) {
+    const title = e.detail.value.trim();
     this.setData({
-      activeTab: 'edit'
+      docTitle: title
+    }, () => {
+      this.updatePreviewContent();
     });
   },
 
-  // 获取分类名称
-  getCategoryName(categoryId) {
-    const category = this.data.categories.find(item => item.id === categoryId);
-    return category ? category.name : '';
-  },
-
-  // 切换工具栏下拉菜单
-  toggleToolbarDropdown() {
+  // 内容输入
+  onContentChange(e) {
+    const content = e.detail.value;
+    const wordCount = content.length;
+    
     this.setData({
-      showToolbarDropdown: !this.data.showToolbarDropdown
+      markdownContent: content,
+      wordCount: wordCount
+    }, () => {
+      this.updatePreviewContent();
     });
-  },
-
-  // 关闭工具栏下拉菜单
-  closeToolbarDropdown() {
-    this.setData({
-      showToolbarDropdown: false
-    });
+    
+    // 保存到历史记录
+    this.saveToHistory(content);
+    
+    // 自动保存草稿
+    this.autoSaveDraft();
   },
 
   // 保存到历史记录
   saveToHistory(content) {
     let { contentHistory, historyIndex } = this.data;
     
-    // 如果当前位置不是最后一个，移除后面的记录
     if (historyIndex < contentHistory.length - 1) {
       contentHistory = contentHistory.slice(0, historyIndex + 1);
     }
     
-    // 添加新记录
     contentHistory.push(content);
     
-    // 最多保存50条记录
     if (contentHistory.length > 50) {
       contentHistory.shift();
     }
@@ -114,11 +131,12 @@ Page({
       const content = contentHistory[newIndex];
       
       this.setData({
-        content,
-        parsedContent: this.parseMarkdown(content),
+        markdownContent: content,
         historyIndex: newIndex,
         canUndo: newIndex > 0,
         canRedo: true
+      }, () => {
+        this.updatePreviewContent();
       });
     }
   },
@@ -133,42 +151,28 @@ Page({
       const content = contentHistory[newIndex];
       
       this.setData({
-        content,
-        parsedContent: this.parseMarkdown(content),
+        markdownContent: content,
         historyIndex: newIndex,
         canUndo: true,
         canRedo: newIndex < contentHistory.length - 1
+      }, () => {
+        this.updatePreviewContent();
       });
     }
-  },
-
-  // 标题变更
-  onTitleChange(e) {
-    this.setData({
-      title: e.detail.value
-    });
-  },
-
-  // 内容变更
-  onContentChange(e) {
-    const content = e.detail.value;
-    this.setData({
-      content,
-      parsedContent: this.parseMarkdown(content)
-    });
-    
-    // 保存到历史记录
-    this.saveToHistory(content);
-    
-    // 自动保存草稿
-    this.autoSaveDraft();
   },
 
   // 选择分类
   selectCategory(e) {
     const categoryId = e.currentTarget.dataset.id;
+    const categories = this.data.categories;
+    const selectedCategory = categories.find(item => item.id === categoryId);
+    const categoryName = selectedCategory ? selectedCategory.name : '';
+    
     this.setData({
-      selectedCategory: categoryId
+      selectedCategory: categoryId,
+      categoryName: categoryName
+    }, () => {
+      this.updatePreviewContent();
     });
   },
 
@@ -179,123 +183,241 @@ Page({
     });
   },
 
-  // 插入 Markdown 语法
+  // 构建完整的预览内容
+  buildFullPreviewContent() {
+    const { docTitle, categoryName, markdownContent } = this.data;
+    
+    let fullContent = '';
+    
+    // 1. 标题部分 - 使用 HTML 实现标题居中和分类右对齐
+    if (docTitle) {
+      fullContent += `<div style="text-align: center; margin-bottom: 40rpx;">\n`;
+      fullContent += `  <h1 style="font-size: 48rpx; font-weight: 700; color: #1d2129; margin: 0;">${docTitle}</h1>\n`;
+      
+      // 2. 分类标签 - 如果存在分类，右对齐且无间距
+      if (categoryName) {
+        fullContent += `  <div style="text-align: right; margin: 0;">\n`;
+        fullContent += `    <span style="background: #165dff; color: white; padding: 4rpx 16rpx; border-radius: 16rpx; font-size: 24rpx; display: inline-block;">${categoryName}</span>\n`;
+        fullContent += `  </div>\n`;
+      }
+      fullContent += `</div>\n\n`;
+    } else {
+      // 如果没有标题，显示占位符
+      fullContent += `<div style="text-align: center; margin-bottom: 40rpx;">\n`;
+      fullContent += `  <h1 style="font-size: 48rpx; font-weight: 700; color: #c9cdd4; margin: 0;">未命名文档</h1>\n`;
+      fullContent += `</div>\n\n`;
+    }
+    
+    // 3. 文档内容 - 直接开始文档内容，没有分割线
+    if (markdownContent) {
+      fullContent += markdownContent;
+    } else {
+      fullContent += `## 文档内容\n\n`;
+      fullContent += `请在此处输入您的文档内容...\n\n`;
+      fullContent += `### 编辑器特色功能\n\n`;
+      fullContent += `- **实时预览**：编辑内容即时渲染\n`;
+      fullContent += `- **代码高亮**：支持多种编程语言\n`;
+      fullContent += `- **数学公式**：使用 LaTeX 语法\n`;
+      fullContent += `- **表格支持**：创建美观的表格\n`;
+      fullContent += `- **模板插入**：快速插入常用模板\n`;
+    }
+    
+    return fullContent;
+  },
+
+  // 更新预览内容
+  updatePreviewContent() {
+    const fullContent = this.buildFullPreviewContent();
+    
+    this.setData({
+      previewFullContent: fullContent
+    });
+    
+    // 使用 towxml 渲染
+    if (app.towxml && fullContent) {
+      try {
+        const renderData = app.towxml(fullContent, 'markdown', {
+          theme: 'light',
+          base: '',
+          events: {}
+        });
+        
+        this.setData({
+          renderedContent: renderData
+        });
+        
+        console.log('预览已更新，内容长度:', fullContent.length);
+      } catch (error) {
+        console.error('Markdown 渲染错误:', error);
+      }
+    }
+  },
+
+  // 切换工具栏下拉菜单
+  toggleToolbarDropdown() {
+    this.setData({
+      showToolbarDropdown: !this.data.showToolbarDropdown
+    });
+  },
+
+  // 关闭工具栏下拉菜单
+  closeToolbarDropdown() {
+    this.setData({
+      showToolbarDropdown: false
+    });
+  },
+
+  // 插入 Markdown 语法 - 插入到文档末尾
   insertMarkdown(e) {
     this.closeToolbarDropdown();
     
     const type = e.currentTarget.dataset.type;
-    const { content, cursorPosition } = this.data;
+    const { markdownContent } = this.data;
     
     let insertText = '';
-    let newCursorPosition = cursorPosition;
+    let insertTypeName = '';
     
     switch (type) {
       case 'h1':
-        insertText = '# 标题';
-        newCursorPosition = cursorPosition + 2;
+        insertText = '\n\n# 一级标题\n\n这里是标题内容...';
+        insertTypeName = '一级标题';
         break;
       case 'h2':
-        insertText = '## 标题';
-        newCursorPosition = cursorPosition + 3;
+        insertText = '\n\n## 二级标题\n\n这里是二级标题内容...';
+        insertTypeName = '二级标题';
         break;
       case 'h3':
-        insertText = '### 标题';
-        newCursorPosition = cursorPosition + 4;
+        insertText = '\n\n### 三级标题\n\n这里是三级标题内容...';
+        insertTypeName = '三级标题';
         break;
       case 'bold':
-        insertText = '**粗体文字**';
-        newCursorPosition = cursorPosition + 2;
+        insertText = '\n\n**这里是粗体文字**';
+        insertTypeName = '粗体文字';
         break;
       case 'italic':
-        insertText = '*斜体文字*';
-        newCursorPosition = cursorPosition + 1;
+        insertText = '\n\n*这里是斜体文字*';
+        insertTypeName = '斜体文字';
         break;
       case 'list':
-        insertText = '- 列表项';
-        newCursorPosition = cursorPosition + 2;
+        insertText = '\n\n- 列表项一\n- 列表项二\n- 列表项三';
+        insertTypeName = '无序列表';
         break;
       case 'ordered-list':
-        insertText = '1. 列表项';
-        newCursorPosition = cursorPosition + 3;
+        insertText = '\n\n1. 列表项一\n2. 列表项二\n3. 列表项三';
+        insertTypeName = '有序列表';
         break;
       case 'quote':
-        insertText = '> 引用内容';
-        newCursorPosition = cursorPosition + 2;
+        insertText = '\n\n> 这里是引用内容\n> 可以多行显示引用内容';
+        insertTypeName = '引用块';
         break;
       case 'inline-code':
-        insertText = '`行内代码`';
-        newCursorPosition = cursorPosition + 1;
+        insertText = '\n\n`这里是行内代码`';
+        insertTypeName = '行内代码';
         break;
       case 'code':
-        insertText = '```\n代码块\n```';
-        newCursorPosition = cursorPosition + 4;
+        insertText = '\n\n```javascript\n// 这里是代码块\nfunction example() {\n  console.log("Hello World");\n}\n```';
+        insertTypeName = '代码块';
         break;
       case 'link':
-        insertText = '[链接文字](https://)';
-        newCursorPosition = cursorPosition + 5;
+        insertText = '\n\n[链接文字](https://example.com)';
+        insertTypeName = '超链接';
         break;
       case 'table':
-        insertText = '| 标题1 | 标题2 |\n|-------|-------|\n| 内容1 | 内容2 |';
-        newCursorPosition = cursorPosition + 2;
+        insertText = '\n\n| 标题1 | 标题2 | 标题3 |\n|-------|-------|-------|\n| 内容1 | 内容2 | 内容3 |\n| 内容4 | 内容5 | 内容6 |';
+        insertTypeName = '表格';
         break;
       case 'divider':
-        insertText = '\n---\n';
-        newCursorPosition = cursorPosition + 4;
+        insertText = '\n\n---\n\n';
+        insertTypeName = '分割线';
         break;
       case 'checklist':
-        insertText = '- [ ] 任务项';
-        newCursorPosition = cursorPosition + 2;
+        insertText = '\n\n- [ ] 任务项一\n- [ ] 任务项二\n- [x] 已完成任务';
+        insertTypeName = '任务列表';
+        break;
+      case 'formula':
+        insertText = '\n\n$$\ne^{i\\pi} + 1 = 0\n$$\n\n这是一个数学公式示例。';
+        insertTypeName = '数学公式';
+        break;
+      case 'mermaid':
+        insertText = '\n\n```mermaid\ngraph TD\n    A[开始] --> B(处理)\n    B --> C{判断}\n    C -->|是| D[结束]\n    C -->|否| B\n```';
+        insertTypeName = '流程图';
         break;
     }
     
-    const newContent = 
-      content.substring(0, cursorPosition) + 
-      insertText + 
-      content.substring(cursorPosition);
+    // 插入到文档末尾
+    const newContent = markdownContent + insertText;
     
     this.setData({
-      content: newContent,
-      cursorPosition: newCursorPosition,
-      parsedContent: this.parseMarkdown(newContent)
+      markdownContent: newContent,
+      lastInsertType: insertTypeName,
+      cursorPosition: newContent.length // 将光标移动到文档末尾
+    }, () => {
+      this.updatePreviewContent();
+      this.saveToHistory(newContent);
+      
+      // 显示插入成功的提示
+      wx.showToast({
+        title: `已插入${insertTypeName}到文档末尾`,
+        icon: 'success',
+        duration: 1500
+      });
+      
+      console.log(`插入${insertTypeName}到文档末尾，新内容长度:`, newContent.length);
     });
-    
-    // 保存到历史记录
-    this.saveToHistory(newContent);
   },
 
-  // 插入模板
+  // 插入模板 - 插入到文档末尾
   insertTemplate(e) {
     this.closeToolbarDropdown();
     
     const type = e.currentTarget.dataset.type;
-    const { content, cursorPosition } = this.data;
+    const { markdownContent } = this.data;
     
     let insertText = '';
+    let insertTypeName = '';
     
     switch (type) {
-      case 'question':
-        insertText = '\n## 问题描述\n\n请详细描述你遇到的问题...\n\n## 复现步骤\n\n1. 第一步\n2. 第二步\n3. 第三步\n\n## 期望结果\n\n描述你期望的正常结果...\n\n## 实际结果\n\n描述实际出现的异常结果...\n\n';
+      case 'tutorial':
+        insertText = '\n\n# 使用教程模板\n\n## 概述\n\n在这里描述您的产品/技术的背景和目的...\n\n## 安装步骤\n\n### 1. 环境准备\n\n确保您的系统满足以下要求：\n\n- Node.js 14.0 或更高版本\n- npm 6.0 或更高版本\n\n### 2. 安装命令\n\n```bash\nnpm install your-package --save\n```\n\n## 快速开始\n\n### 基本配置\n\n1. 导入模块\n2. 初始化配置\n3. 开始使用\n\n### 示例代码\n\n```javascript\nconst yourModule = require(\'your-package\');\n\n// 初始化\nconst instance = yourModule.init({\n  apiKey: \'your-api-key\',\n  endpoint: \'https://api.example.com\'\n});\n\n// 使用功能\ninstance.doSomething();\n```\n\n## 注意事项\n\n> 重要提示：在生产环境使用前，请确保充分测试。\n\n## 常见问题\n\n**Q: 如何解决常见错误？**\nA: 检查网络连接和配置参数。\n\n**Q: 如何获取支持？**\nA: 请访问我们的官方文档或联系技术支持。';
+        insertTypeName = '教程模板';
+        break;
+      case 'api':
+        insertText = '\n\n# API 文档模板\n\n## 接口概览\n\n| 接口名称 | 请求方法 | 接口路径 | 描述 | 认证要求 |\n|----------|----------|----------|------|----------|\n| 获取用户 | GET | /api/users | 获取用户列表 | 需要token |\n| 创建用户 | POST | /api/users | 创建新用户 | 需要token |\n| 用户详情 | GET | /api/users/:id | 获取用户详情 | 需要token |\n| 更新用户 | PUT | /api/users/:id | 更新用户信息 | 需要token |\n| 删除用户 | DELETE | /api/users/:id | 删除用户 | 需要token |\n\n## 通用说明\n\n### 请求头\n\n```http\nAuthorization: Bearer {token}\nContent-Type: application/json\nAccept: application/json\n```\n\n### 请求示例\n\n```bash\ncurl -X GET \\\n  "https://api.example.com/users" \\\n  -H "Authorization: Bearer your-token-here" \\\n  -H "Content-Type: application/json"\n```\n\n### 响应格式\n\n所有响应都遵循以下格式：\n\n```json\n{\n  "code": 200,\n  "data": {},\n  "message": "success",\n  "timestamp": 1640995200000\n}\n```\n\n### 参数说明\n\n| 参数名 | 类型 | 必填 | 说明 | 示例 |\n|--------|------|------|------|------|\n| page   | number | 否 | 页码，从1开始 | 1 |\n| size   | number | 否 | 每页数量，默认20 | 20 |\n| sort   | string | 否 | 排序字段 | "createdAt:desc" |\n\n### 错误码\n\n| 错误码 | 说明 |\n|--------|------|\n| 400 | 请求参数错误 |\n| 401 | 未授权 |\n| 403 | 权限不足 |\n| 404 | 资源不存在 |\n| 500 | 服务器内部错误 |';
+        insertTypeName = 'API文档模板';
         break;
       case 'code':
-        insertText = '\n```\n// 请在此处粘贴你的代码\nfunction example() {\n  console.log("Hello, World!");\n}\n```\n';
+        insertText = '\n\n```javascript\n// 代码模板\n\n/**\n * 函数名称\n * @param {string} param1 - 参数1描述\n * @param {number} param2 - 参数2描述\n * @returns {boolean} 返回值描述\n * @example\n * // 示例用法\n * const result = functionName(\'hello\', 123);\n */\nfunction functionName(param1, param2) {\n  // 函数实现\n  console.log(`参数1: ${param1}, 参数2: ${param2}`);\n  \n  // 返回结果\n  return true;\n}\n\n// 使用示例\nconst example = functionName(\'test\', 456);\nconsole.log(\'执行结果:\', example);\n```';
+        insertTypeName = '代码模板';
+        break;
+      case 'table':
+        insertText = '\n\n| 参数名 | 类型 | 必填 | 默认值 | 说明 | 示例 |\n|--------|------|------|--------|------|------|\n| id     | string | 是 | 无 | 唯一标识 | "user_123" |\n| name   | string | 是 | 无 | 用户姓名 | "张三" |\n| age    | number | 否 | 18 | 用户年龄 | 25 |\n| email  | string | 是 | 无 | 用户邮箱 | "user@example.com" |\n| status | string | 否 | "active" | 用户状态 | "active", "inactive" |\n| createdAt | string | 否 | 无 | 创建时间 | "2024-01-23T10:30:00Z" |\n| updatedAt | string | 否 | 无 | 更新时间 | "2024-01-23T11:00:00Z" |';
+        insertTypeName = '表格模板';
         break;
     }
     
-    const newContent = 
-      content.substring(0, cursorPosition) + 
-      insertText + 
-      content.substring(cursorPosition);
+    // 插入到文档末尾
+    const newContent = markdownContent + insertText;
     
     this.setData({
-      content: newContent,
-      parsedContent: this.parseMarkdown(newContent)
+      markdownContent: newContent,
+      lastInsertType: insertTypeName,
+      cursorPosition: newContent.length // 将光标移动到文档末尾
+    }, () => {
+      this.updatePreviewContent();
+      this.saveToHistory(newContent);
+      
+      // 显示插入成功的提示
+      wx.showToast({
+        title: `已插入${insertTypeName}到文档末尾`,
+        icon: 'success',
+        duration: 1500
+      });
+      
+      console.log(`插入${insertTypeName}到文档末尾，新内容长度:`, newContent.length);
     });
-    
-    // 保存到历史记录
-    this.saveToHistory(newContent);
   },
 
-  // 选择图片
+  // 选择图片 - 插入到文档末尾
   chooseImage() {
     this.closeToolbarDropdown();
     
@@ -314,21 +436,25 @@ Page({
           images: [...this.data.images, ...newImages]
         });
         
-        // 插入图片 Markdown
-        const imageMarkdown = newImages.map(img => `\n![图片](${img.url})\n`).join('\n');
-        const { content, cursorPosition } = this.data;
-        const newContent = 
-          content.substring(0, cursorPosition) + 
-          imageMarkdown + 
-          content.substring(cursorPosition);
+        // 插入图片 Markdown 到文档末尾
+        const imageMarkdown = newImages.map(img => `\n\n![图片${index + 1}](${img.url})`).join('\n');
+        const { markdownContent } = this.data;
+        const newContent = markdownContent + imageMarkdown;
         
         this.setData({
-          content: newContent,
-          parsedContent: this.parseMarkdown(newContent)
+          markdownContent: newContent,
+          lastInsertType: '图片',
+          cursorPosition: newContent.length
+        }, () => {
+          this.updatePreviewContent();
+          this.saveToHistory(newContent);
+          
+          wx.showToast({
+            title: `已插入${newImages.length}张图片到文档末尾`,
+            icon: 'success',
+            duration: 1500
+          });
         });
-        
-        // 保存到历史记录
-        this.saveToHistory(newContent);
       }
     });
   },
@@ -346,122 +472,11 @@ Page({
     });
   },
 
-  // 简单的 Markdown 解析器
-  parseMarkdown(text) {
-    if (!text) return [];
-    
-    const nodes = [];
-    const lines = text.split('\n');
-    let inCodeBlock = false;
-    let codeContent = [];
-    
-    lines.forEach((line, index) => {
-      // 处理代码块
-      if (line.startsWith('```')) {
-        if (!inCodeBlock) {
-          inCodeBlock = true;
-          codeContent = [];
-        } else {
-          inCodeBlock = false;
-          nodes.push({
-            name: 'pre',
-            attrs: { class: 'md-code-block' },
-            children: [{ type: 'text', text: codeContent.join('\n') }]
-          });
-        }
-        return;
-      }
-      
-      if (inCodeBlock) {
-        codeContent.push(line);
-        return;
-      }
-      
-      // 处理标题
-      if (line.startsWith('# ')) {
-        nodes.push({
-          name: 'h1',
-          attrs: { class: 'md-h1' },
-          children: [{ type: 'text', text: line.substring(2) }]
-        });
-      } else if (line.startsWith('## ')) {
-        nodes.push({
-          name: 'h2',
-          attrs: { class: 'md-h2' },
-          children: [{ type: 'text', text: line.substring(3) }]
-        });
-      } else if (line.startsWith('### ')) {
-        nodes.push({
-          name: 'h3',
-          attrs: { class: 'md-h3' },
-          children: [{ type: 'text', text: line.substring(4) }]
-        });
-      }
-      // 处理粗体
-      else if (line.includes('**')) {
-        const parts = line.split('**');
-        const children = [];
-        parts.forEach((part, i) => {
-          if (i % 2 === 1) {
-            children.push({
-              name: 'strong',
-              children: [{ type: 'text', text: part }]
-            });
-          } else if (part) {
-            children.push({ type: 'text', text: part });
-          }
-        });
-        nodes.push({
-          name: 'p',
-          children
-        });
-      }
-      // 处理列表
-      else if (line.startsWith('- ')) {
-        nodes.push({
-          name: 'li',
-          attrs: { class: 'md-list-item' },
-          children: [{ type: 'text', text: line.substring(2) }]
-        });
-      }
-      // 处理引用
-      else if (line.startsWith('> ')) {
-        nodes.push({
-          name: 'blockquote',
-          attrs: { class: 'md-quote' },
-          children: [{ type: 'text', text: line.substring(2) }]
-        });
-      }
-      // 处理分割线
-      else if (line.trim() === '---') {
-        nodes.push({
-          name: 'hr',
-          attrs: { class: 'md-divider' }
-        });
-      }
-      // 普通文本
-      else if (line.trim()) {
-        nodes.push({
-          name: 'p',
-          children: [{ type: 'text', text: line }]
-        });
-      }
-      // 空行
-      else {
-        nodes.push({
-          name: 'br'
-        });
-      }
-    });
-    
-    return nodes;
-  },
-
   // 显示清除确认弹窗
   showClearConfirmDialog() {
     this.closeToolbarDropdown();
     
-    if (!this.data.content.trim() && !this.data.title.trim()) {
+    if (!this.data.markdownContent.trim() && !this.data.docTitle.trim()) {
       wx.showToast({
         title: '暂无内容可清除',
         icon: 'none',
@@ -485,21 +500,25 @@ Page({
   // 清除内容
   clearContent() {
     this.setData({
-      title: '',
-      content: '',
+      docTitle: '',
+      markdownContent: '',
       selectedCategory: '',
       images: [],
-      parsedContent: [],
+      renderedContent: null,
       cursorPosition: 0,
       showClearConfirmDialog: false,
       contentHistory: [],
       historyIndex: -1,
       canUndo: false,
-      canRedo: false
+      canRedo: false,
+      wordCount: 0,
+      previewFullContent: '',
+      categoryName: '',
+      lastInsertType: ''
     });
     
     // 清除草稿
-    wx.removeStorageSync('question_draft');
+    wx.removeStorageSync('markdown_draft');
     
     wx.showToast({
       title: '内容已清除',
@@ -511,14 +530,15 @@ Page({
   // 保存草稿
   saveDraft() {
     const draft = {
-      title: this.data.title,
-      content: this.data.content,
+      docTitle: this.data.docTitle,
+      markdownContent: this.data.markdownContent,
       selectedCategory: this.data.selectedCategory,
       images: this.data.images,
+      previewFullContent: this.data.previewFullContent,
       timestamp: Date.now()
     };
     
-    wx.setStorageSync('question_draft', draft);
+    wx.setStorageSync('markdown_draft', draft);
     
     wx.showToast({
       title: '草稿已保存',
@@ -540,32 +560,42 @@ Page({
 
   // 加载草稿
   loadDraft() {
-    const draft = wx.getStorageSync('question_draft');
+    const draft = wx.getStorageSync('markdown_draft');
     if (draft) {
+      // 获取分类名称
+      let categoryName = '';
+      if (draft.selectedCategory) {
+        const selectedCat = this.data.categories.find(item => item.id === draft.selectedCategory);
+        categoryName = selectedCat ? selectedCat.name : '';
+      }
+      
       this.setData({
-        title: draft.title || '',
-        content: draft.content || '',
+        docTitle: draft.docTitle || '',
+        markdownContent: draft.markdownContent || '',
         selectedCategory: draft.selectedCategory || '',
         images: draft.images || [],
-        parsedContent: this.parseMarkdown(draft.content || '')
+        previewFullContent: draft.previewFullContent || '',
+        categoryName: categoryName
+      }, () => {
+        this.updatePreviewContent();
       });
     }
   },
 
   // 验证表单
   validateForm() {
-    if (!this.data.title.trim()) {
+    if (!this.data.docTitle.trim()) {
       wx.showToast({
-        title: '请填写问题标题',
+        title: '请填写文档标题',
         icon: 'none',
         duration: 2000
       });
       return false;
     }
     
-    if (this.data.title.length < 5) {
+    if (this.data.docTitle.length < 2) {
       wx.showToast({
-        title: '标题至少需要5个字',
+        title: '标题至少需要2个字',
         icon: 'none',
         duration: 2000
       });
@@ -574,25 +604,25 @@ Page({
     
     if (!this.data.selectedCategory) {
       wx.showToast({
-        title: '请选择问题分类',
+        title: '请选择文档分类',
         icon: 'none',
         duration: 2000
       });
       return false;
     }
     
-    if (!this.data.content.trim()) {
+    if (!this.data.markdownContent.trim()) {
       wx.showToast({
-        title: '请填写问题描述',
+        title: '请填写文档内容',
         icon: 'none',
         duration: 2000
       });
       return false;
     }
     
-    if (this.data.content.length < 20) {
+    if (this.data.markdownContent.length < 10) {
       wx.showToast({
-        title: '问题描述至少需要20个字',
+        title: '内容至少需要10个字',
         icon: 'none',
         duration: 2000
       });
@@ -602,8 +632,8 @@ Page({
     return true;
   },
 
-  // 发布问题
-  publishQuestion() {
+  // 发布文档
+  publishDocument() {
     if (!this.validateForm()) {
       return;
     }
@@ -622,34 +652,45 @@ Page({
     
     // 模拟发布请求
     setTimeout(() => {
-      const questionData = {
-        title: this.data.title,
-        content: this.data.content,
+      const documentData = {
+        title: this.data.docTitle,
+        content: this.data.markdownContent,
         category: this.data.selectedCategory,
+        categoryName: this.data.categoryName,
         images: this.data.images,
-        createTime: new Date().toISOString()
+        previewFullContent: this.data.previewFullContent,
+        createTime: new Date().toISOString(),
+        wordCount: this.data.wordCount
       };
       
-      console.log('发布问题数据:', questionData);
+      console.log('发布文档数据:', documentData);
       
       // 清空草稿
-      wx.removeStorageSync('question_draft');
+      wx.removeStorageSync('markdown_draft');
       
       wx.showToast({
-        title: '问题发布成功！',
+        title: '文档发布成功！',
         icon: 'success',
         duration: 2000
       });
       
-      this.resetForm();
-      
+      // 重置表单
       this.setData({
+        docTitle: '',
+        markdownContent: '',
+        selectedCategory: '',
+        images: [],
+        renderedContent: null,
+        contentHistory: [],
+        historyIndex: -1,
+        canUndo: false,
+        canRedo: false,
+        wordCount: 0,
+        previewFullContent: '',
+        categoryName: '',
+        lastInsertType: '',
         isPublishing: false
       });
-      
-      setTimeout(() => {
-        wx.navigateBack();
-      }, 1500);
     }, 1500);
   },
 
@@ -660,23 +701,8 @@ Page({
     });
   },
 
-  // 重置表单
-  resetForm() {
-    this.setData({
-      title: '',
-      content: '',
-      selectedCategory: '',
-      images: [],
-      parsedContent: [],
-      contentHistory: [],
-      historyIndex: -1,
-      canUndo: false,
-      canRedo: false
-    });
-  },
-
   onUnload() {
-    if (this.data.title || this.data.content) {
+    if (this.data.docTitle || this.data.markdownContent) {
       this.saveDraft();
     }
   },

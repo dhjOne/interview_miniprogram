@@ -8,6 +8,7 @@
     "t-tag": "tdesign-miniprogram/tag/tag",
     "t-dialog": "tdesign-miniprogram/dialog/dialog",
     "t-message": "tdesign-miniprogram/message/message",
-    "t-popup": "tdesign-miniprogram/popup/popup"
+    "t-popup": "tdesign-miniprogram/popup/popup",
+    "towxml": "/towxml/towxml"
   }
 }

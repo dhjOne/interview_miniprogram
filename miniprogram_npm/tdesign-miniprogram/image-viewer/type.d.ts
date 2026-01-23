@@ -19,6 +19,10 @@ export interface TdImageViewerProps {
         type: NumberConstructor;
         value?: Number;
     };
+    lazy?: {
+        type: BooleanConstructor;
+        value?: boolean;
+    };
     showIndex?: {
         type: BooleanConstructor;
         value?: boolean;

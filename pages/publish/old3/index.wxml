@@ -1,0 +1,451 @@
+<!-- pages/publish/publish.wxml -->
+<view class="publish-page">
+  <!-- 页面标题 -->
+  <view class="page-header">
+    <view class="header-title">发布问题</view>
+    <view class="header-subtitle">使用 Markdown 编辑，让内容更专业</view>
+  </view>
+
+  <!-- 标题输入 -->
+  <view class="form-section">
+    <view class="section-label">
+      <text>问题标题</text>
+      <text class="required">*</text>
+    </view>
+    <t-textarea
+      placeholder="请输入问题标题（5-50字）"
+      maxlength="50"
+      value="{{title}}"
+      bind:change="onTitleChange"
+      autosize
+    />
+  </view>
+
+  <!-- 分类选择 -->
+  <view class="form-section">
+    <view class="section-label">
+      <text>问题分类</text>
+      <text class="required">*</text>
+    </view>
+    <view class="category-tags">
+      <t-tag
+        wx:for="{{categories}}"
+        wx:key="id"
+        class="category-tag"
+        theme="{{selectedCategory === item.id ? 'primary' : 'default'}}"
+        size="large"
+        bind:click="selectCategory"
+        data-id="{{item.id}}"
+      >
+        {{item.name}}
+      </t-tag>
+    </view>
+  </view>
+
+  <!-- Markdown 编辑器区域 -->
+  <view class="form-section editor-section">
+    <view class="section-label">
+      <text>问题描述</text>
+      <text class="required">*</text>
+      <view class="word-count">
+        {{content.length}} / {{maxLength}}
+      </view>
+    </view>
+
+    <!-- 编辑器模式切换 -->
+    <t-tabs
+      value="{{activeTab}}"
+      bind:change="onTabChange"
+      class="editor-tabs"
+    >
+      <t-tab-panel label="编辑模式" value="edit">
+        <view class="editor-container">
+          <!-- 简洁的工具栏头部 -->
+          <view class="toolbar-header">
+            <!-- 编辑工具下拉按钮 -->
+            <view 
+              class="toolbar-dropdown-btn"
+              bind:tap="toggleToolbarDropdown"
+            >
+              <t-icon name="edit" size="18" />
+              <text class="dropdown-btn-text">编辑工具</text>
+              <t-icon 
+                name="{{showToolbarDropdown ? 'chevron-up' : 'chevron-down'}}" 
+                size="14" 
+                class="dropdown-arrow"
+              />
+            </view>
+
+            <!-- 右侧操作按钮 -->
+            <view class="toolbar-right-actions">
+              <view 
+                class="toolbar-action-btn"
+                bind:tap="chooseImage"
+              >
+                <t-icon name="image" size="18" />
+                <text class="action-btn-text">图片</text>
+              </view>
+              
+              <view 
+                class="toolbar-action-btn clear-btn"
+                bind:tap="showClearConfirmDialog"
+              >
+                <t-icon name="delete" size="18" />
+                <text class="action-btn-text">清除</text>
+              </view>
+            </view>
+          </view>
+
+          <!-- 编辑工具下拉菜单 -->
+          <view 
+            class="toolbar-dropdown-menu" 
+            wx:if="{{showToolbarDropdown}}"
+          >
+            <view class="dropdown-menu-content">
+              <!-- 标题和格式 -->
+              <view class="menu-section">
+                <view class="menu-section-title">
+                  <t-icon name="title" size="16" />
+                  <text>标题与格式</text>
+                </view>
+                <view class="menu-grid">
+                  <view 
+                    class="menu-item"
+                    bind:tap="insertMarkdown"
+                    data-type="h1"
+                  >
+                    <t-icon name="heading-1" size="20" />
+                    <text>一级标题</text>
+                  </view>
+                  <view 
+                    class="menu-item"
+                    bind:tap="insertMarkdown"
+                    data-type="h2"
+                  >
+                    <t-icon name="heading-2" size="20" />
+                    <text>二级标题</text>
+                  </view>
+                  <view 
+                    class="menu-item"
+                    bind:tap="insertMarkdown"
+                    data-type="h3"
+                  >
+                    <t-icon name="heading-3" size="20" />
+                    <text>三级标题</text>
+                  </view>
+                  <view 
+                    class="menu-item"
+                    bind:tap="insertMarkdown"
+                    data-type="bold"
+                  >
+                    <t-icon name="format-bold" size="20" />
+                    <text>加粗</text>
+                  </view>
+                  <view 
+                    class="menu-item"
+                    bind:tap="insertMarkdown"
+                    data-type="italic"
+                  >
+                    <t-icon name="format-italic" size="20" />
+                    <text>斜体</text>
+                  </view>
+                </view>
+              </view>
+
+              <!-- 列表和引用 -->
+              <view class="menu-section">
+                <view class="menu-section-title">
+                  <t-icon name="list" size="16" />
+                  <text>列表与引用</text>
+                </view>
+                <view class="menu-grid">
+                  <view 
+                    class="menu-item"
+                    bind:tap="insertMarkdown"
+                    data-type="list"
+                  >
+                    <t-icon name="list-ul" size="20" />
+                    <text>无序列表</text>
+                  </view>
+                  <view 
+                    class="menu-item"
+                    bind:tap="insertMarkdown"
+                    data-type="ordered-list"
+                  >
+                    <t-icon name="list-ol" size="20" />
+                    <text>有序列表</text>
+                  </view>
+                  <view 
+                    class="menu-item"
+                    bind:tap="insertMarkdown"
+                    data-type="quote"
+                  >
+                    <t-icon name="format-quote" size="20" />
+                    <text>引用</text>
+                  </view>
+                  <view 
+                    class="menu-item"
+                    bind:tap="insertMarkdown"
+                    data-type="checklist"
+                  >
+                    <t-icon name="check-circle" size="20" />
+                    <text>任务列表</text>
+                  </view>
+                </view>
+              </view>
+
+              <!-- 代码和链接 -->
+              <view class="menu-section">
+                <view class="menu-section-title">
+                  <t-icon name="code" size="16" />
+                  <text>代码与链接</text>
+                </view>
+                <view class="menu-grid">
+                  <view 
+                    class="menu-item"
+                    bind:tap="insertMarkdown"
+                    data-type="inline-code"
+                  >
+                    <t-icon name="code-inline" size="20" />
+                    <text>行内代码</text>
+                  </view>
+                  <view 
+                    class="menu-item"
+                    bind:tap="insertMarkdown"
+                    data-type="code"
+                  >
+                    <t-icon name="code-block" size="20" />
+                    <text>代码块</text>
+                  </view>
+                  <view 
+                    class="menu-item"
+                    bind:tap="insertMarkdown"
+                    data-type="link"
+                  >
+                    <t-icon name="link" size="20" />
+                    <text>链接</text>
+                  </view>
+                  <view 
+                    class="menu-item"
+                    bind:tap="insertMarkdown"
+                    data-type="table"
+                  >
+                    <t-icon name="table" size="20" />
+                    <text>表格</text>
+                  </view>
+                </view>
+              </view>
+
+              <!-- 其他元素 -->
+              <view class="menu-section">
+                <view class="menu-section-title">
+                  <t-icon name="layers" size="16" />
+                  <text>其他元素</text>
+                </view>
+                <view class="menu-grid">
+                  <view 
+                    class="menu-item"
+                    bind:tap="insertMarkdown"
+                    data-type="divider"
+                  >
+                    <t-icon name="minus" size="20" />
+                    <text>分割线</text>
+                  </view>
+                  <view 
+                    class="menu-item"
+                    bind:tap="insertTemplate"
+                    data-type="question"
+                  >
+                    <t-icon name="help-circle" size="20" />
+                    <text>问题模板</text>
+                  </view>
+                  <view 
+                    class="menu-item"
+                    bind:tap="insertTemplate"
+                    data-type="code"
+                  >
+                    <t-icon name="file-code" size="20" />
+                    <text>代码模板</text>
+                  </view>
+                  <view 
+                    class="menu-item"
+                    bind:tap="undoAction"
+                    wx:if="{{canUndo}}"
+                  >
+                    <t-icon name="undo" size="20" />
+                    <text>撤销</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <!-- 文本编辑区 -->
+          <t-textarea
+            class="md-editor"
+            placeholder="请输入问题描述，支持 Markdown 语法..."
+            value="{{content}}"
+            bind:change="onContentChange"
+            maxlength="{{maxLength}}"
+            autosize="{{true}}"
+            cursor="{{cursorPosition}}"
+            bind:focus="onEditorFocus"
+            bind:blur="onEditorBlur"
+            show-confirm-bar="{{false}}"
+          />
+
+          <!-- 字数统计 -->
+          <view class="editor-footer">
+            <view class="char-count-bottom">
+              <text class="char-count-text">{{content.length}} / {{maxLength}}</text>
+              <text class="char-count-hint" wx:if="{{content.length >= maxLength}}">字数超限</text>
+            </view>
+          </view>
+        </view>
+      </t-tab-panel>
+
+      <!-- 预览模式 -->
+      <t-tab-panel label="预览模式" value="preview">
+        <view class="preview-container">
+          <rich-text 
+            nodes="{{parsedContent}}" 
+            class="markdown-preview"
+          />
+          <view 
+            class="empty-preview" 
+            wx:if="{{!content}}"
+          >
+            <t-icon name="file" size="48" />
+            <text class="empty-text">暂无内容可预览</text>
+          </view>
+        </view>
+      </t-tab-panel>
+
+      <!-- 帮助模式 -->
+      <t-tab-panel label="帮助" value="help">
+        <view class="help-container">
+          <view class="help-section">
+            <view class="help-title">
+              <t-icon name="help-circle" size="20" />
+              <text>Markdown 语法参考</text>
+            </view>
+            <view class="help-grid">
+              <view class="help-item">
+                <text class="md-example"># 标题</text>
+                <text class="md-desc">一级标题</text>
+              </view>
+              <view class="help-item">
+                <text class="md-example">## 标题</text>
+                <text class="md-desc">二级标题</text>
+              </view>
+              <view class="help-item">
+                <text class="md-example">### 标题</text>
+                <text class="md-desc">三级标题</text>
+              </view>
+              <view class="help-item">
+                <text class="md-example">**文本**</text>
+                <text class="md-desc">加粗文本</text>
+              </view>
+              <view class="help-item">
+                <text class="md-example">*文本*</text>
+                <text class="md-desc">斜体文本</text>
+              </view>
+              <view class="help-item">
+                <text class="md-example">[链接](url)</text>
+                <text class="md-desc">超链接</text>
+              </view>
+              <view class="help-item">
+                <text class="md-example">![图片](url)</text>
+                <text class="md-desc">插入图片</text>
+              </view>
+              <view class="help-item">
+                <text class="md-example">- 项目</text>
+                <text class="md-desc">无序列表</text>
+              </view>
+              <view class="help-item">
+                <text class="md-example">> 引用</text>
+                <text class="md-desc">引用内容</text>
+              </view>
+              <view class="help-item">
+                <text class="md-example">```代码```</text>
+                <text class="md-desc">代码块</text>
+              </view>
+              <view class="help-item">
+                <text class="md-example">---</text>
+                <text class="md-desc">分割线</text>
+              </view>
+            </view>
+          </view>
+          
+          <view class="help-section">
+            <view class="help-title">
+              <t-icon name="lightning" size="20" />
+              <text>快捷键</text>
+            </view>
+            <view class="shortcut-list">
+              <view class="shortcut-item">
+                <view class="shortcut-key">Ctrl + B</view>
+                <view class="shortcut-desc">加粗</view>
+              </view>
+              <view class="shortcut-item">
+                <view class="shortcut-key">Ctrl + I</view>
+                <view class="shortcut-desc">斜体</view>
+              </view>
+              <view class="shortcut-item">
+                <view class="shortcut-key">Ctrl + K</view>
+                <view class="shortcut-desc">插入链接</view>
+              </view>
+              <view class="shortcut-item">
+                <view class="shortcut-key">Ctrl + L</view>
+                <view class="shortcut-desc">插入列表</view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </t-tab-panel>
+    </t-tabs>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="action-bar">
+    <t-button
+      theme="default"
+      size="large"
+      block
+      bind:click="saveDraft"
+    >
+      保存草稿
+    </t-button>
+    <t-button
+      theme="primary"
+      size="large"
+      block
+      bind:click="publishQuestion"
+      loading="{{isPublishing}}"
+    >
+      发布问题
+    </t-button>
+  </view>
+
+  <!-- 清除确认弹窗 -->
+  <t-dialog
+    visible="{{showClearConfirmDialog}}"
+    title="确认清除内容"
+    content="确定要清除所有内容吗？此操作无法撤销。"
+    confirm-btn="确定清除"
+    cancel-btn="取消"
+    bind:confirm="clearContent"
+    bind:cancel="hideClearConfirmDialog"
+    confirm-btn-theme="danger"
+  />
+
+  <!-- 消息组件 -->
+  <t-message id="message" />
+  
+  <!-- 下拉菜单遮罩层 -->
+  <view 
+    class="dropdown-mask" 
+    wx:if="{{showToolbarDropdown}}"
+    bind:tap="closeToolbarDropdown"
+  ></view>
+</view>

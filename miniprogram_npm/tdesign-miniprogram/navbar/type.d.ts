@@ -15,6 +15,10 @@ export interface TdNavbarProps {
         type: BooleanConstructor;
         value?: boolean;
     };
+    safeAreaInsetTop?: {
+        type: BooleanConstructor;
+        value?: boolean;
+    };
     title?: {
         type: StringConstructor;
         value?: string;

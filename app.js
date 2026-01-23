@@ -9,6 +9,9 @@ if (config.isMock) {
 }
 
 App({
+  // 引入`towxml3.0`解析方法
+	towxml:require('/towxml/index'),
+  
   onLaunch() {
 
     const updateManager = wx.getUpdateManager();
@@ -160,14 +163,19 @@ App({
   },
   // 不检查，直接跳转登陆
   navigateToLogin(options) {
+    console.log('开始跳转')
+   
     const { url, success, fail, complete } = options;
     if (!this.checkLoginStatus()) {
       // 跳转到登录页，携带来源信息
+      console.log('跳转到登录页，携带来源信息')
       wx.redirectTo({
         url: `/pages/login/login?from=token_expired${url ? '&return=' + encodeURIComponent(url) : ''}`
       })
+      return;
     }
-    return;
+    // 已登录，正常跳转
+    wx.navigateTo(options);
   },
   // 全局显示/隐藏浮动按钮
   showGlobalFloatButton() {

@@ -15,10 +15,6 @@ export interface TdBadgeProps {
         type: BooleanConstructor;
         value?: boolean;
     };
-    externalClasses?: {
-        type: ArrayConstructor;
-        value?: ['t-class', 't-class-content', 't-class-count'];
-    };
     maxCount?: {
         type: NumberConstructor;
         value?: number;

@@ -448,10 +448,14 @@ Page({
   },
 
   onReleaseTap: function() {
+    console.log('在这里调用 app.js 中的方法')
     // 在这里调用 app.js 中的方法
     // 跳转到问题详情页面
     app.navigateToLogin({
-      url: `/pages/publish/index`
+      url: `/pages/publish/index`,
+      fail: function(res) {
+        console.log('跳转失败', res)
+      }
     });
   },
 

@@ -48,7 +48,19 @@ Page({
     categoryName: '',
     
     // 最近插入的内容类型（用于反馈）
-    lastInsertType: ''
+    lastInsertType: '',
+    
+    // 编辑模式滚动相关
+    editorScrollTop: 0,
+    editorAutoScroll: false,
+    lastScrollPosition: 0,
+    isScrolling: false,
+    
+    // 编辑器行数跟踪
+    editorLineCount: 1,
+    
+    // 记录插入操作
+    insertOperations: []
   },
 
   onLoad() {
@@ -90,6 +102,9 @@ Page({
       wordCount: wordCount
     }, () => {
       this.updatePreviewContent();
+      
+      // 检查是否需要自动滚动
+      this.checkAutoScroll();
     });
     
     // 保存到历史记录
@@ -137,6 +152,10 @@ Page({
         canRedo: true
       }, () => {
         this.updatePreviewContent();
+        // 撤销后滚动到适当位置
+        setTimeout(() => {
+          this.scrollToCursor();
+        }, 100);
       });
     }
   },
@@ -157,6 +176,10 @@ Page({
         canRedo: newIndex < contentHistory.length - 1
       }, () => {
         this.updatePreviewContent();
+        // 重做后滚动到适当位置
+        setTimeout(() => {
+          this.scrollToCursor();
+        }, 100);
       });
     }
   },
@@ -181,6 +204,13 @@ Page({
     this.setData({
       activeTab: e.detail.value
     });
+    
+    // 切换到编辑模式时，滚动到底部
+    if (e.detail.value === 'edit') {
+      setTimeout(() => {
+        this.scrollToBottom();
+      }, 200);
+    }
   },
 
   // 构建完整的预览内容
@@ -267,7 +297,7 @@ Page({
     });
   },
 
-  // 插入 Markdown 语法 - 插入到文档末尾
+  // 插入 Markdown 语法 - 插入到文档末尾并自动滚动
   insertMarkdown(e) {
     this.closeToolbarDropdown();
     
@@ -350,10 +380,15 @@ Page({
     this.setData({
       markdownContent: newContent,
       lastInsertType: insertTypeName,
-      cursorPosition: newContent.length // 将光标移动到文档末尾
+      cursorPosition: markdownContent.length
     }, () => {
       this.updatePreviewContent();
       this.saveToHistory(newContent);
+      
+      // 插入后自动滚动到底部
+      setTimeout(() => {
+        this.scrollToBottom();
+      }, 100);
       
       // 显示插入成功的提示
       wx.showToast({
@@ -366,7 +401,7 @@ Page({
     });
   },
 
-  // 插入模板 - 插入到文档末尾
+  // 插入模板 - 插入到文档末尾并自动滚动
   insertTemplate(e) {
     this.closeToolbarDropdown();
     
@@ -401,10 +436,15 @@ Page({
     this.setData({
       markdownContent: newContent,
       lastInsertType: insertTypeName,
-      cursorPosition: newContent.length // 将光标移动到文档末尾
+      cursorPosition: markdownContent.length
     }, () => {
       this.updatePreviewContent();
       this.saveToHistory(newContent);
+      
+      // 插入后自动滚动到底部
+      setTimeout(() => {
+        this.scrollToBottom();
+      }, 100);
       
       // 显示插入成功的提示
       wx.showToast({
@@ -417,7 +457,7 @@ Page({
     });
   },
 
-  // 选择图片 - 插入到文档末尾
+  // 选择图片 - 插入到文档末尾并自动滚动
   chooseImage() {
     this.closeToolbarDropdown();
     
@@ -449,6 +489,11 @@ Page({
           this.updatePreviewContent();
           this.saveToHistory(newContent);
           
+          // 插入后自动滚动到底部
+          setTimeout(() => {
+            this.scrollToBottom();
+          }, 100);
+          
           wx.showToast({
             title: `已插入${newImages.length}张图片到文档末尾`,
             icon: 'success',
@@ -470,6 +515,99 @@ Page({
     this.setData({
       cursorPosition: e.detail.cursor
     });
+  },
+
+  // 编辑器行变化事件
+  onEditorLineChange(e) {
+    const lineCount = e.detail.lineCount;
+    this.setData({
+      editorLineCount: lineCount
+    });
+  },
+
+  // 编辑器确认事件
+  onEditorConfirm(e) {
+    // 回车时自动滚动
+    setTimeout(() => {
+      this.scrollToCursor();
+    }, 50);
+  },
+
+  // 编辑器滚动事件
+  onEditorScroll(e) {
+    const scrollTop = e.detail.scrollTop;
+    this.setData({
+      lastScrollPosition: scrollTop,
+      isScrolling: true
+    });
+    
+    // 如果用户主动滚动，暂时关闭自动滚动
+    if (this.autoScrollTimer) {
+      clearTimeout(this.autoScrollTimer);
+    }
+    
+    this.autoScrollTimer = setTimeout(() => {
+      this.setData({
+        isScrolling: false
+      });
+    }, 2000);
+  },
+
+  // 滚动到光标位置
+  scrollToCursor() {
+    if (this.data.isScrolling) return;
+    
+    // 计算大致的滚动位置
+    const cursorPos = this.data.cursorPosition;
+    const content = this.data.markdownContent;
+    const linesBeforeCursor = content.substring(0, cursorPos).split('\n').length;
+    
+    // 每行大约30像素，加上一些边距
+    const estimatedScrollTop = Math.max(0, linesBeforeCursor * 30 - 200);
+    
+    this.setData({
+      editorScrollTop: estimatedScrollTop,
+      editorAutoScroll: true
+    });
+    
+    // 3秒后隐藏自动滚动提示
+    setTimeout(() => {
+      this.setData({
+        editorAutoScroll: false
+      });
+    }, 3000);
+  },
+
+  // 滚动到底部
+  scrollToBottom() {
+    if (this.data.isScrolling) return;
+    
+    // 设置一个很大的值，确保滚动到底部
+    this.setData({
+      editorScrollTop: 999999,
+      editorAutoScroll: true
+    });
+    
+    // 3秒后隐藏自动滚动提示
+    setTimeout(() => {
+      this.setData({
+        editorAutoScroll: false
+      });
+    }, 3000);
+  },
+
+  // 检查是否需要自动滚动
+  checkAutoScroll() {
+    // 如果用户最近没有滚动，并且光标在文档末尾附近，自动滚动
+    const cursorPos = this.data.cursorPosition;
+    const contentLength = this.data.markdownContent.length;
+    const isNearEnd = cursorPos > contentLength * 0.8;
+    
+    if (isNearEnd && !this.data.isScrolling) {
+      setTimeout(() => {
+        this.scrollToCursor();
+      }, 100);
+    }
   },
 
   // 显示清除确认弹窗
@@ -514,7 +652,9 @@ Page({
       wordCount: 0,
       previewFullContent: '',
       categoryName: '',
-      lastInsertType: ''
+      lastInsertType: '',
+      editorScrollTop: 0,
+      editorAutoScroll: false
     });
     
     // 清除草稿
@@ -578,6 +718,11 @@ Page({
         categoryName: categoryName
       }, () => {
         this.updatePreviewContent();
+        
+        // 加载草稿后滚动到底部
+        setTimeout(() => {
+          this.scrollToBottom();
+        }, 300);
       });
     }
   },
@@ -637,7 +782,6 @@ Page({
     if (!this.validateForm()) {
       return;
     }
-    
     this.setData({
       showConfirmDialog: true
     });
@@ -689,7 +833,9 @@ Page({
         previewFullContent: '',
         categoryName: '',
         lastInsertType: '',
-        isPublishing: false
+        isPublishing: false,
+        editorScrollTop: 0,
+        editorAutoScroll: false
       });
     }, 1500);
   },

@@ -68,6 +68,13 @@ export const authApi = {
       return http.post(`/repository/questions/${questionId}/view`, null, {
         showLoading: false
       })
+    },
+
+    //发布问题
+    publishQuestion: (publish) => {
+      return http.post(`/repository/questions/publish`, publish, {
+        showLoading: false
+      })
     }
 
 

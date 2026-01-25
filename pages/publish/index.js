@@ -1,3 +1,5 @@
+import { authApi } from '~/api/request/api_question';
+import { QuestionPublishParams } from '~/api/param/param_publish';
 // 获取应用实例
 const app = getApp();
 
@@ -793,9 +795,8 @@ Page({
       showConfirmDialog: false,
       isPublishing: true
     });
-    
-    // 模拟发布请求
-    setTimeout(() => {
+
+    try {
       const documentData = {
         title: this.data.docTitle,
         content: this.data.markdownContent,
@@ -806,38 +807,51 @@ Page({
         createTime: new Date().toISOString(),
         wordCount: this.data.wordCount
       };
-      
+    
       console.log('发布文档数据:', documentData);
-      
-      // 清空草稿
-      wx.removeStorageSync('markdown_draft');
-      
-      wx.showToast({
-        title: '文档发布成功！',
-        icon: 'success',
+      const publish = new QuestionPublishParams(this.data.docTitle,this.data.selectedCategory, this.data.markdownContent,this.data.previewFullContent)
+      const response = authApi.publishQuestion(collectQuestion);
+      if (response.code === "0000") {
+        // 清空草稿
+        wx.removeStorageSync('markdown_draft');
+        
+        wx.showToast({
+          title: '文档发布成功！',
+          icon: 'success',
+          duration: 2000
+        });
+        
+        // 重置表单
+        this.setData({
+          docTitle: '',
+          markdownContent: '',
+          selectedCategory: '',
+          images: [],
+          renderedContent: null,
+          contentHistory: [],
+          historyIndex: -1,
+          canUndo: false,
+          canRedo: false,
+          wordCount: 0,
+          previewFullContent: '',
+          categoryName: '',
+          lastInsertType: '',
+          isPublishing: false,
+          editorScrollTop: 0,
+          editorAutoScroll: false
+        });
+      } else {
+        Message.error({
+          content: response.message || '操作失败',
+          duration: 2000
+        });
+      }
+    } catch (error) {
+      Message.error({
+        content: '操作失败，请重试',
         duration: 2000
       });
-      
-      // 重置表单
-      this.setData({
-        docTitle: '',
-        markdownContent: '',
-        selectedCategory: '',
-        images: [],
-        renderedContent: null,
-        contentHistory: [],
-        historyIndex: -1,
-        canUndo: false,
-        canRedo: false,
-        wordCount: 0,
-        previewFullContent: '',
-        categoryName: '',
-        lastInsertType: '',
-        isPublishing: false,
-        editorScrollTop: 0,
-        editorAutoScroll: false
-      });
-    }, 1500);
+    }
   },
 
   // 取消发布

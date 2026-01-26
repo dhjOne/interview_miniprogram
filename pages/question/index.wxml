@@ -144,3 +144,7 @@
 >
   <t-icon name="caret-up" size="32rpx" color="#fff"></t-icon>
 </view>
+
+<float-release-button 
+  bind:onTap="onReleaseTap"
+/>

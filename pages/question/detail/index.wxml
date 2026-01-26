@@ -339,5 +339,7 @@
   </view>
 </t-popup>
 
-
+<!-- <float-release-button 
+  bind:onTap="onReleaseTap"
+/> -->
 <t-message id="t-message" />

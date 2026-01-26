@@ -342,28 +342,35 @@
     </t-tabs>
   </view>
 
-  <!-- 底部操作栏 -->
-  <view class="action-bar">
-    <t-button theme="default" size="large" block bindtap="saveDraft">
-      保存草稿
-    </t-button>
-    <t-button theme="primary" size="large" block bindtap="publishDocument" loading="{{isPublishing}}"
-      disabled="{{!docTitle || !markdownContent || !selectedCategory}}">
+  <!-- 将原来的底部操作栏替换为以下代码 -->
+<!-- 底部操作栏 -->
+<view class="action-bar">
+  <view class="publish-container">
+    <t-button 
+      theme="primary" 
+      size="large" 
+      block 
+      bindtap="publishDocument" 
+      loading="{{isPublishing}}"
+      disabled="{{!docTitle || !markdownContent || !selectedCategory}}"
+      class="publish-btn"
+    >
       发布文档
     </t-button>
   </view>
+</view>
 
-  <!-- 清除确认弹窗 -->
-  <t-dialog visible="{{showClearConfirmDialog}}" title="确认清除内容" content="确定要清除所有内容吗？此操作无法撤销。" confirm-btn="确定清除"
-    cancel-btn="取消" bind:confirm="clearContent" bind:cancel="hideClearConfirmDialog" confirm-btn-theme="danger" />
+<!-- 清除确认弹窗 -->
+<t-dialog visible="{{showClearConfirmDialog}}" title="确认清除内容" content="确定要清除所有内容吗？此操作无法撤销。" confirm-btn="确定清除"
+  cancel-btn="取消" bind:confirm="clearContent" bind:cancel="hideClearConfirmDialog" confirm-btn-theme="danger" />
 
-  <!-- 发布确认弹窗 -->
-  <t-dialog visible="{{showConfirmDialog}}" title="确认发布" content="请确认文档内容无误，发布后不可修改。" confirm-btn="确认发布"
-    cancel-btn="再检查一下" bind:confirm="confirmPublish" bind:cancel="cancelPublish" />
+<!-- 发布确认弹窗 -->
+<t-dialog visible="{{showConfirmDialog}}" title="确认发布" content="请确认文档内容无误，发布后不可修改。" confirm-btn="确认发布"
+  cancel-btn="再检查一下" bind:confirm="confirmPublish" bind:cancel="cancelPublish" />
 
-  <!-- 消息组件 -->
-  <t-message id="message" />
+<!-- 消息组件 -->
+<t-message id="message" />
 
-  <!-- 下拉菜单遮罩层 -->
-  <view class="dropdown-mask" wx:if="{{showToolbarDropdown}}" bind:tap="closeToolbarDropdown"></view>
+<!-- 下拉菜单遮罩层 -->
+<view class="dropdown-mask" wx:if="{{showToolbarDropdown}}" bind:tap="closeToolbarDropdown"></view>
 </view>

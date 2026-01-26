@@ -6,6 +6,7 @@
     "t-loading": "tdesign-miniprogram/loading/loading",
     "t-button": "tdesign-miniprogram/button/button",
     "t-icon": "tdesign-miniprogram/icon/icon",
-    "t-message": "tdesign-miniprogram/message/message"
+    "t-message": "tdesign-miniprogram/message/message",
+    "float-release-button": "/components/float-release-button/index"
   }
 }

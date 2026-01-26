@@ -47,22 +47,55 @@
           </view>
 
           <!-- 作者和时间信息 -->
-          <view wx:if="{{isMarkdown && questionDetail.createName}}" class="author-info">
-            <view class="meta-row">
-              <view class="meta-item">
-                <t-icon name="user" size="24rpx" color="#999"></t-icon>
-                <text class="meta-text">{{questionDetail.createName}}</text>
+          <view wx:if="{{isMarkdown && (questionDetail.createName || questionDetail.createdAt)}}"
+            class="author-info-section">
+            <view class="author-info">
+              <!-- 作者头像和基本信息 -->
+              <view class="author-basic">
+                <view class="author-avatar">
+                  <t-icon name="user-circle" size="48rpx" color="#1890ff"></t-icon>
+                </view>
+                <view class="author-details">
+                  <text class="author-name">{{questionDetail.createName || '匿名作者'}}</text>
+                  <view class="author-meta">
+                    <text class="meta-item">{{questionDetail.createdAt}}</text>
+                    <text wx:if="{{questionDetail.wordCount}}" class="meta-divider">·</text>
+                    <text wx:if="{{questionDetail.wordCount}}" class="meta-item">{{questionDetail.wordCount}}字</text>
+                  </view>
+                </view>
               </view>
-              <view class="meta-item">
-                <t-icon name="time" size="24rpx" color="#999"></t-icon>
-                <text class="meta-text">{{questionDetail.createdAt}}</text>
-              </view>
-              <view wx:if="{{questionDetail.wordCount}}" class="meta-item">
-                <t-icon name="file" size="24rpx" color="#999"></t-icon>
-                <text class="meta-text">{{questionDetail.wordCount}}字</text>
+
+              <!-- 阅读统计（简约版） -->
+              <view wx:if="{{questionDetail.viewCount}}" class="tag-item view-tag">
+                <t-icon name="view" size="20rpx" color="#999"></t-icon>
+                <text class="view-count">{{questionDetail.viewCount || 0}} 阅读</text>
               </view>
             </view>
           </view>
+
+          <!-- 标签卡片风格 -->
+          <!-- <view class="author-tags">
+            <view class="tag-item">
+              <t-icon name="user" size="18rpx" color="#666"></t-icon>
+              <text>{{questionDetail.createName}}</text>
+            </view>
+            <view class="tag-item">
+              <t-icon name="time" size="18rpx" color="#666"></t-icon>
+              <text>{{questionDetail.createdAt}}</text>
+            </view>
+            <view wx:if="{{questionDetail.wordCount}}" class="tag-item">
+              <t-icon name="file" size="18rpx" color="#666"></t-icon>
+              <text>{{questionDetail.wordCount}}字</text>
+            </view>
+            <view class="tag-item view-tag">
+              <t-icon name="view" size="18rpx" color="#666"></t-icon>
+              <text>{{questionDetail.viewCount || 0}} 阅读</text>
+            </view>
+          </view> -->
+
+
+
+
         </view>
 
         <!-- 内容展示区域 -->

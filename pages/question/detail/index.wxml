@@ -47,15 +47,15 @@
           </view>
 
           <!-- 作者和时间信息 -->
-          <view wx:if="{{isMarkdown && questionDetail.author}}" class="author-info">
+          <view wx:if="{{isMarkdown && questionDetail.createName}}" class="author-info">
             <view class="meta-row">
               <view class="meta-item">
                 <t-icon name="user" size="24rpx" color="#999"></t-icon>
-                <text class="meta-text">{{questionDetail.author}}</text>
+                <text class="meta-text">{{questionDetail.createName}}</text>
               </view>
               <view class="meta-item">
                 <t-icon name="time" size="24rpx" color="#999"></t-icon>
-                <text class="meta-text">{{questionDetail.createTime}}</text>
+                <text class="meta-text">{{questionDetail.createdAt}}</text>
               </view>
               <view wx:if="{{questionDetail.wordCount}}" class="meta-item">
                 <t-icon name="file" size="24rpx" color="#999"></t-icon>
@@ -305,5 +305,6 @@
     </view>
   </view>
 </t-popup>
+
 
 <t-message id="t-message" />

@@ -2,11 +2,11 @@
 //问题参数
 export class QuestionPublishParams {
   constructor(title, categoryId, content, previewFullContent) {
-    super()
     this.title = title
     this.categoryId = categoryId
     this.content = content
     this.previewFullContent = previewFullContent
+    this.contentType = 'markdown'
   }
   
   // 转换为请求数据
@@ -15,7 +15,8 @@ export class QuestionPublishParams {
       title: this.title,
       categoryId: this.categoryId,
       content: this.content,
-      previewFullContent: this.previewFullContent
+      previewFullContent: this.previewFullContent,
+      contentType: 'markdown'
     }
   }
 }

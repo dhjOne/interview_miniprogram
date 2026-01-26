@@ -30,11 +30,11 @@ Page({
     
     // 分类选项
     categories: [
-      { id: 'tech', name: '技术文档' },
-      { id: 'tutorial', name: '使用教程' },
-      { id: 'api', name: 'API文档' },
-      { id: 'guide', name: '开发指南' },
-      { id: 'other', name: '其他文档' }
+      { id: 1 , name: '技术文档' },
+      { id: 2, name: '使用教程' },
+      { id: 3, name: 'API文档' },
+      { id: 4, name: '开发指南' },
+      { id: 5, name: '其他文档' }
     ],
     
     // towxml 渲染数据
@@ -809,18 +809,22 @@ Page({
       };
     
       console.log('发布文档数据:', documentData);
-      const publish = new QuestionPublishParams(this.data.docTitle,this.data.selectedCategory, this.data.markdownContent,this.data.previewFullContent)
-      const response = authApi.publishQuestion(collectQuestion);
+      const publishParams = new QuestionPublishParams(
+        this.data.docTitle,
+        this.data.selectedCategory,
+        this.data.markdownContent,
+        this.data.previewFullContent
+      );
+      const response = authApi.publishQuestion(publishParams);
       if (response.code === "0000") {
         // 清空草稿
         wx.removeStorageSync('markdown_draft');
-        
         wx.showToast({
           title: '文档发布成功！',
           icon: 'success',
           duration: 2000
         });
-        
+
         // 重置表单
         this.setData({
           docTitle: '',
@@ -840,6 +844,11 @@ Page({
           editorScrollTop: 0,
           editorAutoScroll: false
         });
+
+        // todo 跳转问题详情
+
+
+
       } else {
         Message.error({
           content: response.message || '操作失败',

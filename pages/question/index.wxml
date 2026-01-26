@@ -85,7 +85,7 @@
               <view class="question-actions">
                 <view catchtap="onCollect" data-id="{{item.id}}">
                   <t-icon
-                    name="{{item.collected ? 'star-filled' : 'star'}}"
+                    name="{{item.collected ? 'heart-filled' : 'heart'}}"
                     size="36rpx"
                     color="{{item.collected ? '#ff6b35' : '#999'}}"
                     class="collect-icon"

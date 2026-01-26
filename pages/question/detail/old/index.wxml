@@ -1,0 +1,278 @@
+<!-- pages/question/detail/index.wxml -->
+<view class="question-detail-container">
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading-state">
+    <view class="loading-content">
+      <t-loading size="60rpx" text="加载中..."></t-loading>
+    </view>
+  </view>
+
+  <!-- 错误状态 -->
+  <view wx:elif="{{error}}" class="error-state">
+    <view class="error-content">
+      <t-icon name="error-circle" size="120rpx" color="#ff4d4f"></t-icon>
+      <text class="error-text">{{errorMessage || '加载失败'}}</text>
+      <t-button theme="primary" bindtap="retryLoad" class="retry-btn">
+        重新加载
+      </t-button>
+    </view>
+  </view>
+
+  <!-- 空数据状态 -->
+  <view wx:elif="{{isEmpty}}" class="empty-state">
+    <view class="empty-content">
+      <t-icon name="file" size="120rpx" color="#ccc"></t-icon>
+      <text class="empty-text">题目不存在</text>
+      <text class="empty-desc">该题目可能已被删除或不存在</text>
+      <t-button theme="outline" bindtap="goBack" class="empty-btn">
+        返回上一页
+      </t-button>
+    </view>
+  </view>
+
+  <!-- 正常内容 -->
+  <view wx:else>
+    <!-- 内容区域 -->
+    <scroll-view class="content-scroll" scroll-y="true">
+      <!-- 题目卡片 -->
+      <view class="question-card">
+        <!-- 标题区域 -->
+        <view class="question-header">
+          <view class="question-title-section">
+            <text class="question-title">{{questionDetail.title}}</text>
+          </view>
+        </view>
+
+        <!-- 内容块渲染 -->
+        <view class="content-blocks">
+          <block wx:for="{{contentBlocks}}" wx:key="id" wx:for-index="index">
+
+            <!-- 文本块 -->
+            <view wx:if="{{item.blockType === 'text'}}" class="content-block text-block {{item.customClass}}" style="{{item.customStyle}}" data-block-id="{{item.id}}" data-block-type="text">
+              <!-- 有换行的情况 -->
+              <block wx:if="{{item.textInfo.hasLineBreaks}}">
+                <block wx:for="{{item.textInfo.lines}}" wx:key="index">
+                  <view class="text-line {{index > 0 ? 'indented-line' : ''}}">
+                    <!-- 如果有加粗文本，使用 rich-text -->
+                    <rich-text wx:if="{{item.textInfo.hasBoldText || item.contentFormat === 'markdown'}}" 
+                              nodes="{{item}}" 
+                              class="rich-text-content">
+                    </rich-text>
+                    
+                    
+                    <!-- 普通文本，没有加粗标记 -->
+                    <text wx:else class="text-content" selectable>{{item}}</text>
+                  </view>
+                </block>
+              </block>
+              <!-- 没有换行的情况 -->
+              <block wx:else>
+                <!-- 如果有加粗文本，使用 rich-text -->
+                <rich-text wx:if="{{item.textInfo.hasBoldText || item.contentFormat === 'markdown'}}" 
+                          nodes="{{item.textInfo.formattedContent}}" 
+                          class="rich-text-content">
+                </rich-text>
+                
+                <!-- 普通文本，没有加粗标记 -->
+              <text wx:else class="text-content" selectable>{{item.textInfo.formattedContent}}</text>
+              </block>
+              <!-- <view wx:if="{{item.textInfo.subtype === 'heading1'}}" class="heading">
+                {{item.content}}
+              </view>
+              <view wx:elif="{{item.textInfo.subtype === 'heading2'}}" class="heading">
+                {{item.content}}
+              </view>
+              <view wx:elif="{{item.textInfo.subtype === 'heading3'}}" class="heading">
+                {{item.content}}
+              </view> -->
+
+            </view>
+
+            <!-- 代码块 -->
+            <view wx:elif="{{item.blockType === 'code'}}" class="content-block code-block {{item.customClass}}" style="{{item.customStyle}}" data-block-id="{{item.id}}" data-block-type="code" bindtap="onBlockTap">
+
+              <view class="code-header">
+                <text class="code-language">{{item.formattedContent.language}}</text>
+                <view class="code-actions" bindtap="copyCode" data-content="{{item.content}}">
+                  <t-icon name="copy" size="24rpx"></t-icon>
+                  <text>复制</text>
+                </view>
+              </view>
+
+              <view class="code-content">
+                <text class="code-text" selectable>{{item.content}}</text>
+              </view>
+            </view>
+
+            <!-- 图片块 -->
+            <view wx:elif="{{item.blockType === 'image'}}" class="content-block image-block {{item.customClass}}" style="{{item.customStyle}}" data-block-id="{{item.id}}" data-block-type="image" bindtap="onBlockTap">
+
+              <image src="{{item.imageInfo.src}}" mode="widthFix" class="content-image" data-src="{{item.imageInfo.src}}"></image>
+
+              <view wx:if="{{item.imageInfo.caption}}" class="image-caption">
+                {{item.imageInfo.caption}}
+              </view>
+            </view>
+
+            <!-- 表格块 -->
+            <view wx:elif="{{item.blockType === 'table'}}" class="content-block table-block {{item.customClass}}" style="{{item.customStyle}}" data-block-id="{{item.id}}" data-block-type="table">
+
+              <view class="table-container">
+                <view class="table-row table-header">
+                  <block wx:for="{{item.tableData.headers}}" wx:key="*this">
+                    <view class="table-cell header-cell">{{item}}</view>
+                  </block>
+                </view>
+
+                <block wx:for="{{item.tableData.rows}}" wx:key="index">
+                  <view class="table-row">
+                    <block wx:for="{{item}}" wx:key="*this">
+                      <view class="table-cell">{{item}}</view>
+                    </block>
+                  </view>
+                </block>
+              </view>
+            </view>
+
+            <!-- 公式块 -->
+            <view wx:elif="{{item.blockType === 'formula'}}" class="content-block formula-block {{item.customClass}} {{item.formulaInfo.isInline ? 'formula-inline' : 'formula-block'}}" style="{{item.customStyle}}" data-block-id="{{item.id}}" data-block-type="formula">
+
+              <view class="formula-content">
+                {{item.content}}
+              </view>
+            </view>
+
+            <!-- 文件块 -->
+            <view wx:elif="{{item.blockType === 'file'}}" class="content-block file-block {{item.customClass}}" style="{{item.customStyle}}" data-block-id="{{item.id}}" data-block-type="file" bindtap="onBlockTap">
+
+              <view class="file-info">
+                <t-icon name="file" size="40rpx"></t-icon>
+                <view class="file-details">
+                  <text class="file-name">{{item.fileInfo.fileName}}</text>
+                  <text class="file-size">{{item.fileInfo.fileSize}}</text>
+                </view>
+                <t-icon name="download" size="32rpx"></t-icon>
+              </view>
+            </view>
+
+            <!-- 分割线块 -->
+            <view wx:elif="{{item.blockType === 'divider'}}" class="content-block divider-block {{item.customClass}}" style="{{item.customStyle}}" data-block-id="{{item.id}}" data-block-type="divider">
+            </view>
+
+            <!-- 视频块 -->
+            <view wx:elif="{{item.blockType === 'video'}}" class="content-block video-block {{item.customClass}}" style="{{item.customStyle}}" data-block-id="{{item.id}}" data-block-type="video">
+
+              <video src="{{item.videoInfo.src}}" poster="{{item.videoInfo.poster}}" controls="{{item.videoInfo.controls}}" autoplay="{{item.videoInfo.autoplay}}" class="content-video"></video>
+            </view>
+
+            <!-- 未知块类型 -->
+            <view wx:else class="content-block unknown-block">
+              <text>未知块类型: {{item.blockType}}</text>
+              <text>{{item.content}}</text>
+            </view>
+          </block>
+        </view>
+
+
+
+
+
+      </view>
+
+
+
+      <!-- 评论区 -->
+      <view class="comment-section">
+        <view class="section-header">
+          <text class="section-title">评论 ({{questionDetail.commentCount || 0}})</text>
+        </view>
+        <view class="comment-input-area">
+          <t-textarea value="{{commentText}}" placeholder="写下你的评论..." maxlength="200" bind:change="onCommentChange"></t-textarea>
+          <view class="submit-btn-wrapper">
+            <t-button theme="primary" size="small" bindtap="onSubmitComment" class="submit-btn">
+              发布评论
+            </t-button>
+          </view>
+        </view>
+        <view class="comment-list">
+          <block wx:for="{{comments}}" wx:key="id">
+            <view class="comment-item">
+              <view class="comment-header">
+                <image class="comment-avatar" src="{{item.avatar || '/images/default-avatar.png'}}"></image>
+                <view class="comment-user">
+                  <text class="user-name">{{item.userName || '匿名用户'}}</text>
+                  <text class="comment-time">{{item.createTime}}</text>
+                </view>
+              </view>
+              <view class="comment-content">{{item.content}}</view>
+              <view class="comment-actions">
+                <view class="action-item" bindtap="onLikeComment" data-id="{{item.id}}">
+                  <t-icon name="thumb-up" size="24rpx"></t-icon>
+                  <text>{{item.likeCount || 0}}</text>
+                </view>
+                <view class="action-item" bindtap="onReplyComment" data-id="{{item.id}}">
+                  <t-icon name="chat" size="24rpx"></t-icon>
+                  <text>回复</text>
+                </view>
+              </view>
+            </view>
+          </block>
+        </view>
+      </view>
+
+      <!-- 底部占位区域，防止内容被底部操作栏遮挡 -->
+      <view class="bottom-placeholder"></view>
+    </scroll-view>
+
+    <!-- 底部浮动操作栏 -->
+    <view class="floating-bottom-bar">
+      <view class="floating-actions">
+        <view class="action-item">
+          <t-icon name="chat" size="32rpx"></t-icon>
+          <text class="action-count">{{questionDetail.commentCount || 0}}</text>
+        </view>
+        <!-- 修改点赞按钮 -->
+        <view class="action-item {{questionDetail.liked ? 'like-active' : ''}}" bindtap="onLike">
+          <t-icon name="{{questionDetail.liked ? 'heart-filled' : 'heart'}}" size="32rpx" color="{{questionDetail.liked ? '#ff6b6b' : '#666'}}"></t-icon>
+          <text class="action-count">{{questionDetail.likeCount || 0}}</text>
+        </view>
+
+        <!-- 修改收藏按钮 -->
+        <view class="action-item {{questionDetail.collected ? 'collect-active' : ''}}" bindtap="onCollect">
+          <t-icon name="{{questionDetail.collected ? 'star-filled' : 'star'}}" size="32rpx" color="{{questionDetail.collected ? '#ffd93d' : '#666'}}"></t-icon>
+          <text class="action-count">{{questionDetail.collectCount || 0}}</text>
+        </view>
+
+        <view class="action-divider"></view>
+
+        <view class="share-action" bindtap="onShare">
+          <t-icon name="share" size="32rpx"></t-icon>
+          <text>分享</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
+<!-- 分享 ActionSheet -->
+<t-action-sheet id="t-action-sheet" visible="{{showShareActionSheet}}" bind:close="onShareActionSheetClose" bind:cancel="onShareActionSheetClose" bind:selected="onShareOptionSelect" theme="grid" align="center" items="{{shareOptions}}" cancel-text="取消分享" class="share-action-sheet" />
+<!-- index.wxml -->
+
+
+<!-- 分享引导 -->
+<t-popup visible="{{showCustomGuide}}" bind:visible-change="onCloseCustomGuide" placement="center" overlay-props="{{ { background: 'rgba(0, 0, 0, 0.6)' } }}">
+  <view class="custom-guide-popup">
+    <view class="guide-header">
+      <t-icon name="share" size="48rpx" color="#07c160"></t-icon>
+      <text class="guide-title">分享指引</text>
+    </view>
+    <view class="guide-content">
+      <text class="guide-text">请点击右上角"···"按钮</text>
+      <text class="guide-text">然后选择"转发"将题目分享给好友</text>
+    </view>
+    <view class="guide-actions">
+      <t-button theme="primary" bindtap="onCloseCustomGuide" size="large">知道了</t-button>
+    </view>
+  </view>
+</t-popup>
+
+<t-message id="t-message" />

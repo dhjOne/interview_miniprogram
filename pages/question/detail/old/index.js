@@ -7,8 +7,6 @@ import {
   QuestionParams
 } from '~/api/param/param_question';
 
-// 引入 towxml 解析器
-const Towxml = require('../../../towxml/index');
 Page({
   data: {
     questionId: null,
@@ -53,39 +51,15 @@ Page({
     ],
     contentBlocks: [], // 内容块数组
     blockStyles: {}, // 块样式配置
-    currentTheme: 'default', // 当前主题
-
-    // 新增：towxml 相关字段
-    isMarkdown: false, // 是否为 markdown 内容
-    towxmlData: null, // towxml 解析后的数据
-    towxmlOptions: {
-      // towxml 配置选项
-      theme: 'light', // 主题：light/dark
-      events: {
-        // 图片点击事件
-        tap: (e) => {
-          const { dataset } = e.currentTarget;
-          if (dataset.src) {
-            wx.previewImage({
-              current: dataset.src,
-              urls: [dataset.src]
-            });
-          }
-        },
-        // 链接点击事件
-        linktap: (e) => {
-          const { href } = e.currentTarget.dataset;
-          console.log('链接点击:', href);
-          // 可以在这里处理链接跳转
-        }
-      }
-    }
+    currentTheme: 'default' // 当前主题
 
   },
 
   onLoad(options) {
     console.log('题目详情页面加载', options);
-    const { id } = options;
+    const {
+      id
+    } = options;
     if (!id) {
       this.setData({
         loading: false,
@@ -94,7 +68,9 @@ Page({
       });
       return;
     }
-    const { title } = options;
+    const {
+      title
+    } = options;
     wx.setNavigationBarTitle({
       title: title || '题目详情'
     });
@@ -113,42 +89,30 @@ Page({
   async loadQuestionDetail() {
     try {
       this.setData({
-        loading: true,
-        error: false,
-        isEmpty: false,
-        isMarkdown: false,
-        towxmlData: null
+        loading: true
       });
-      
       const questionDetail = new QuestionParams(null, null, this.data.questionId)
       const response = await authApi.getQuestionDetail(questionDetail);
-      
       if (response.data) {
         const questionDetail = response.data;
-        
-        // 判断内容类型
-        const isMarkdownContent = questionDetail.contentType === 'markdown';
-        
-        // 设置基础数据
+        const contentBlocks = questionDetail.contentList || [];
+        console.log('contentBlocks::::', contentBlocks)
         this.setData({
           questionDetail,
           loading: false,
-          isMarkdown: isMarkdownContent
+          error: false,
+          isEmpty: false,
+          contentBlocks: this.processContentBlocks(contentBlocks),
         });
-        
-        // 根据内容类型选择渲染方式
-        if (isMarkdownContent) {
-          // 使用 towxml 渲染 markdown
-          this.renderMarkdownWithTowxml(questionDetail);
-        } else {
-          // 使用现有的 contentBlocks 渲染
-          this.renderWithContentBlocks(questionDetail);
-        }
-        
+        // 检查最终设置的数据
+        console.log('设置后的 contentBlocks:', this.data.contentBlocks);
+        // 应用样式
+        // this.applyBlockStyles();
         // 设置页面标题
         wx.setNavigationBarTitle({
-          title: questionDetail.title || '题目详情'
+          title: this.data.title || '题目详情'
         });
+
       } else {
         // 数据为空
         this.setData({
@@ -164,69 +128,6 @@ Page({
         error: true,
         errorMessage: '网络错误，请重试'
       });
-    }
-  },
-
-  // 使用 contentBlocks 渲染
-  renderWithContentBlocks(questionDetail) {
-    const contentBlocks = questionDetail.contentList || [];
-    console.log('contentBlocks::::', contentBlocks)
-    
-    this.setData({
-      contentBlocks: this.processContentBlocks(contentBlocks)
-    });
-    
-    // 检查最终设置的数据
-    console.log('设置后的 contentBlocks:', this.data.contentBlocks);
-  },
-
-  // 使用 towxml 渲染 markdown
-  renderMarkdownWithTowxml(questionDetail) {
-    try {
-      // 获取 markdown 内容
-      const markdownContent = questionDetail.content || questionDetail.previewFullContent || '';
-      
-      if (!markdownContent) {
-        console.warn('Markdown 内容为空');
-        this.setData({
-          contentBlocks: []
-        });
-        return;
-      }
-      
-      console.log('开始解析 markdown 内容，长度:', markdownContent.length);
-      
-      // 使用 towxml 解析 markdown
-      const towxmlData = Towxml(markdownContent, 'markdown', {
-        theme: this.data.towxmlOptions.theme,
-        events: this.data.towxmlOptions.events,
-        // 其他配置选项
-        base: 'https://example.com', // 相对路径的基础URL
-        highlight: true, // 代码高亮
-        showImageMenu: true, // 显示图片菜单
-        customizeStyle: true // 自定义样式
-      });
-      
-      console.log('towxml 解析完成:', towxmlData);
-      
-      this.setData({
-        towxmlData: towxmlData,
-        // 清空 contentBlocks，避免冲突
-        contentBlocks: []
-      });
-      
-    } catch (error) {
-      console.error('解析 markdown 失败:', error);
-      // 如果解析失败，尝试降级使用 contentList
-      if (questionDetail.contentList && questionDetail.contentList.length > 0) {
-        console.warn('Markdown 解析失败，尝试使用 contentList 渲染');
-        this.renderWithContentBlocks(questionDetail);
-      } else {
-        this.setData({
-          error: true,
-          errorMessage: '内容解析失败'
-        });
-      }
     }
   },
 
@@ -322,10 +223,7 @@ Page({
       loading: true,
       error: false,
       errorMessage: '',
-      isEmpty: false,
-      isMarkdown: false,
-      towxmlData: null,
-      contentBlocks: []
+      isEmpty: false
     });
     this.loadQuestionDetail();
   },
@@ -336,14 +234,10 @@ Page({
       loading: true,
       error: false,
       errorMessage: '',
-      isEmpty: false,
-      isMarkdown: false,
-      towxmlData: null,
-      contentBlocks: []
+      isEmpty: false
     });
     this.loadQuestionDetail();
   },
-
 
   // 返回上一页
   goBack() {
@@ -914,48 +808,6 @@ Page({
   },
   //-------------加载content--------解释------------//
 
-
-  // 在 Page 对象的方法中添加
-
-// 滚动到评论区域
-scrollToComments() {
-  wx.pageScrollTo({
-    selector: '.comment-section',
-    duration: 300
-  });
-},
-
-// 块点击事件
-onBlockTap(event) {
-  const { blockId, blockType } = event.currentTarget.dataset;
-  console.log('点击内容块:', { blockId, blockType });
-  
-  // 可以根据块类型执行不同的操作
-  switch (blockType) {
-    case 'code':
-      // 代码块点击逻辑
-      break;
-    case 'image':
-      // 图片块点击逻辑
-      break;
-    default:
-      break;
-  }
-},
-
-// 复制代码
-copyCode(event) {
-  const content = event.currentTarget.dataset.content;
-  wx.setClipboardData({
-    data: content,
-    success: () => {
-      Message.success({
-        content: '代码已复制到剪贴板',
-        duration: 2000
-      });
-    }
-  });
-},
 
 
 

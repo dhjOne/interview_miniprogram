@@ -9,7 +9,6 @@
     "t-textarea": "tdesign-miniprogram/textarea/textarea",
     "t-popup": "tdesign-miniprogram/popup/popup",
     "t-message": "tdesign-miniprogram/message/message",
-    "t-fab": "tdesign-miniprogram/fab/fab",
-    "towxml": "/towxml/towxml"
+    "t-fab": "tdesign-miniprogram/fab/fab"
   }
 }

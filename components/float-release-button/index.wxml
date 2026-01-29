@@ -8,4 +8,7 @@
   >
     {{buttonText || '发布'}}
   </t-button>
+
+ 
+
 </view>

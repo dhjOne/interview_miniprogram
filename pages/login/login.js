@@ -281,23 +281,23 @@ Page({
       });
 
       wx.hideLoading();
-      
+      this.doLoginWithCode(this.data.wxLoginCode, null);
       // 提示用户授权
-      wx.showModal({
-        title: '授权提示',
-        content: '需要获取您的头像和昵称来完善资料',
-        confirmText: '去授权',
-        cancelText: '暂不',
-        success: (res) => {
-          if (res.confirm) {
-            // 用户点击确定，触发获取用户信息
-            this.getUserProfileForLogin();
-          } else {
-            // 用户取消，直接使用 code 登录
-            this.doLoginWithCode(this.data.wxLoginCode, null);
-          }
-        }
-      });
+      // wx.showModal({
+      //   title: '授权提示',
+      //   content: '需要获取您的头像和昵称来完善资料',
+      //   confirmText: '去授权',
+      //   cancelText: '暂不',
+      //   success: (res) => {
+      //     if (res.confirm) {
+      //       // 用户点击确定，触发获取用户信息
+      //       this.getUserProfileForLogin();
+      //     } else {
+      //       // 用户取消，直接使用 code 登录
+      //       this.doLoginWithCode(this.data.wxLoginCode, null);
+      //     }
+      //   }
+      // });
     
     } catch (error) {
       console.error('准备登录失败:', error);

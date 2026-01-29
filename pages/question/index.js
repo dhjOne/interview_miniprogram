@@ -264,7 +264,7 @@ Page({
     console.log('点击问题:', questionId, questionTitle);
     
     // 跳转到问题详情页面
-    app.navigateToWithAuth({
+    app.navigateToLogin({
       url: `/pages/question/detail/index?id=${questionId}&title=${questionTitle}`
     });
   }

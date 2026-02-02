@@ -7,7 +7,8 @@
     "pages/agreement/agreement",
     "pages/question/index",
     "pages/question/detail/index",
-    "pages/release/index"
+    "pages/release/index",
+    "pages/document/index"
   ],
   "usingComponents": {
     "t-cell": "/miniprogram_npm/tdesign-miniprogram/cell/cell",
@@ -78,7 +79,9 @@
     {
       "root": "pages/publish",
       "name": "publish",
-      "pages": ["index"]
+      "pages": [
+        "index"
+      ]
     }
   ],
   "window": {

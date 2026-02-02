@@ -1,0 +1,262 @@
+.doc-manage {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  
+  --td-navbar-bg-color: transparent;
+  
+  .nav-bg {
+    width: 750rpx;
+    height: 200rpx;
+    position: fixed;
+    top: 0;
+  }
+}
+
+/* 筛选栏 */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 32rpx;
+  background: #fff;
+  border-bottom: 1rpx solid #f0f0f0;
+  
+  .sort-options {
+    display: flex;
+    gap: 48rpx;
+    
+    .sort-item {
+      display: flex;
+      align-items: center;
+      gap: 8rpx;
+      font-size: 28rpx;
+      color: #666;
+      
+      &.active {
+        color: #07C160;
+        font-weight: 500;
+      }
+    }
+  }
+  
+  .filter-btn {
+    display: flex;
+    align-items: center;
+    gap: 8rpx;
+    font-size: 28rpx;
+    color: #666;
+  }
+}
+
+/* 文档列表 */
+.doc-list {
+  flex: 1;
+  height: 0;
+  
+  .doc-list-content {
+    padding: 24rpx 32rpx 120rpx;
+  }
+}
+
+.doc-item {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
+  
+  .doc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24rpx;
+    
+    .doc-title {
+      flex: 1;
+      font-size: 32rpx;
+      font-weight: 600;
+      color: #333;
+      line-height: 1.4;
+      display: flex;
+      align-items: center;
+      gap: 16rpx;
+      
+      .status-tag {
+        flex-shrink: 0;
+      }
+    }
+    
+    .doc-more {
+      flex-shrink: 0;
+      width: 60rpx;
+      height: 60rpx;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #999;
+    }
+  }
+  
+  .doc-content {
+    margin-bottom: 24rpx;
+    
+    .doc-preview {
+      font-size: 28rpx;
+      color: #666;
+      line-height: 1.6;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+  
+  .doc-footer {
+    .doc-info {
+      display: flex;
+      align-items: center;
+      gap: 32rpx;
+      font-size: 24rpx;
+      color: #999;
+      
+      .doc-category {
+        background: #f5f5f5;
+        padding: 4rpx 16rpx;
+        border-radius: 20rpx;
+      }
+      
+      .doc-views {
+        display: flex;
+        align-items: center;
+        gap: 4rpx;
+      }
+    }
+    
+    .doc-actions {
+      margin-top: 16rpx;
+    }
+  }
+}
+
+/* 加载更多 */
+.load-more,
+.no-more {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40rpx;
+  color: #999;
+  font-size: 28rpx;
+}
+
+/* 创建按钮 */
+.create-btn-wrapper {
+  position: fixed;
+  bottom: 64rpx;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  z-index: 100;
+  
+  .create-btn {
+    width: auto;
+    padding: 0 60rpx;
+    box-shadow: 0 8rpx 32rpx rgba(7, 193, 96, 0.3);
+  }
+}
+
+/* 筛选弹窗 */
+.filter-popup {
+  background: #fff;
+  border-radius: 24rpx 24rpx 0 0;
+  padding: 40rpx 32rpx;
+  
+  .filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40rpx;
+    
+    .filter-title {
+      font-size: 32rpx;
+      font-weight: 600;
+      color: #333;
+    }
+  }
+  
+  .filter-content {
+    .filter-section {
+      margin-bottom: 48rpx;
+      
+      .filter-label {
+        display: block;
+        font-size: 28rpx;
+        color: #333;
+        font-weight: 500;
+        margin-bottom: 24rpx;
+      }
+      
+      .filter-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16rpx;
+        
+        .filter-option {
+          padding: 16rpx 32rpx;
+          background: #f5f5f5;
+          border-radius: 50rpx;
+          font-size: 26rpx;
+          color: #666;
+          
+          &.active {
+            background: #07C160;
+            color: #fff;
+          }
+        }
+      }
+    }
+  }
+  
+  .filter-footer {
+    display: flex;
+    gap: 24rpx;
+    padding-top: 32rpx;
+    border-top: 1rpx solid #f0f0f0;
+    
+    button {
+      flex: 1;
+    }
+  }
+}
+
+/* 操作菜单 */
+.actions-popup {
+  background: #fff;
+  border-radius: 24rpx 24rpx 0 0;
+  padding: 32rpx 0;
+  
+  .action-item {
+    display: flex;
+    align-items: center;
+    gap: 24rpx;
+    padding: 32rpx;
+    font-size: 30rpx;
+    color: #333;
+    
+    &:active {
+      background: #f5f5f5;
+    }
+    
+    &:not(:last-child) {
+      border-bottom: 1rpx solid #f0f0f0;
+    }
+  }
+}
+
+/* 防止滚动穿透 */
+.prevent-touchmove {
+  touch-action: none;
+}

@@ -1,0 +1,219 @@
+<view class="doc-manage">
+  <image class="nav-bg" src="/static/bg_navbar.png" />
+  <nav title-text="文档管理" />
+  
+  <!-- 顶部筛选栏 -->
+  <view class="filter-bar">
+    <view class="sort-options">
+      <view 
+        class="sort-item {{sortType === 'time' ? 'active' : ''}}" 
+        data-value="time-{{sortOrder === 'desc' ? 'asc' : 'desc'}}"
+        bindtap="onSortChange"
+      >
+        <text>时间</text>
+        <t-icon 
+          name="{{sortType === 'time' ? (sortOrder === 'desc' ? 'caret-down' : 'caret-up') : 'swap'}}" 
+          size="32rpx"
+        />
+      </view>
+      <view 
+        class="sort-item {{sortType === 'title' ? 'active' : ''}}"
+        data-value="title-{{sortOrder === 'desc' ? 'asc' : 'desc'}}"
+        bindtap="onSortChange"
+      >
+        <text>标题</text>
+      </view>
+    </view>
+    
+    <view class="filter-btn" bindtap="onFilterClick">
+      <t-icon name="filter" size="36rpx" />
+      <text>筛选</text>
+    </view>
+  </view>
+  
+  <!-- 状态Tab -->
+  <t-tabs value="{{activeTab}}" bind:tap="onTabTap"
+  bind:change="onTabChange">
+    <t-tab-panel label="全部" value="all" />
+    <t-tab-panel label="审核中" value="progress" />
+    <t-tab-panel label="已发布" value="published" />
+    <t-tab-panel label="草稿箱" value="draft" />
+  </t-tabs>
+  
+  <!-- 文档列表 -->
+  <scroll-view 
+    scroll-y 
+    class="doc-list" 
+    refresher-enabled="{{true}}"
+    bindrefresherrefresh="onPullDownRefresh"
+    bindscrolltolower="onReachBottom"
+  >
+    <!-- 空状态 -->
+    <t-empty 
+      wx:if="{{docList.length === 0 && !loading}}"
+      description="{{docType === 'all' ? '暂无文档' : 
+                    docType === 'progress' ? '暂无审核中的文档' :
+                    docType === 'published' ? '暂无已发布的文档' :
+                    '暂无草稿'}}"
+    >
+      <t-button 
+        theme="primary" 
+        size="large" 
+        bindtap="onCreateDoc"
+        style="margin-top: 40rpx;"
+      >
+        {{docType === 'draft' ? '新建草稿' : '新建文档'}}
+      </t-button>
+    </t-empty>
+    
+    <!-- 文档列表内容 -->
+    <view class="doc-list-content">
+      <block wx:for="{{docList}}" wx:key="id">
+        <view class="doc-item" data-id="{{item.id}}" bindtap="onDocClick">
+          <view class="doc-header">
+            <view class="doc-title">
+              {{item.title || '无标题'}}
+              <t-tag 
+                size="small" 
+                theme="{{getStatusTag(item.status).theme}}"
+                class="status-tag"
+              >
+                {{getStatusTag(item.status).text}}
+              </t-tag>
+            </view>
+            <view class="doc-more" data-id="{{item.id}}" bindtap="onOpenActions">
+              <t-icon name="more" size="40rpx" />
+            </view>
+          </view>
+          
+          <view class="doc-content">
+            <text class="doc-preview">{{item.content || '暂无内容'}}</text>
+          </view>
+          
+          <view class="doc-footer">
+            <view class="doc-info">
+              <text class="doc-category">{{item.category || '未分类'}}</text>
+              <text class="doc-time">{{formatTime(item.updateTime)}}</text>
+              <text class="doc-views">
+                <t-icon name="view" size="28rpx" />
+                {{item.viewCount || 0}}
+              </text>
+            </view>
+            
+            <view class="doc-actions" wx:if="{{item.status === 'rejected' && item.rejectReason}}">
+              <t-tag theme="danger" size="small">
+                驳回原因：{{item.rejectReason}}
+              </t-tag>
+            </view>
+          </view>
+        </view>
+      </block>
+      
+      <!-- 加载更多 -->
+      <view class="load-more" wx:if="{{loading}}">
+        <t-loading size="48rpx" />
+        <text>加载中...</text>
+      </view>
+      
+      <view class="no-more" wx:if="{{!hasMore && docList.length > 0}}">
+        <t-divider>没有更多了</t-divider>
+      </view>
+    </view>
+  </scroll-view>
+  
+  <!-- 新建按钮 -->
+  <view class="create-btn-wrapper">
+    <t-button 
+      theme="primary" 
+      shape="round" 
+      size="large" 
+      class="create-btn"
+      bindtap="onCreateDoc"
+    >
+      <t-icon name="add" size="40rpx" />
+      新建文档
+    </t-button>
+  </view>
+  
+  <!-- 筛选弹窗 -->
+  <td-popup
+    visible="{{filterVisible}}"
+    placement="top"
+    overlayProps="{{ { background: 'rgba(0,0,0,0.4)' } }}"
+  >
+    <view class="filter-popup">
+      <view class="filter-header">
+        <text class="filter-title">筛选条件</text>
+        <t-icon name="close" size="40rpx" bindtap="onCloseFilter" />
+      </view>
+      
+      <view class="filter-content">
+        <!-- 分类筛选 -->
+        <view class="filter-section">
+          <text class="filter-label">分类</text>
+          <view class="filter-options">
+            <block wx:for="{{categories}}" wx:key="value">
+              <view 
+                class="filter-option {{filterOptions.category === item.value ? 'active' : ''}}"
+                data-key="category"
+                data-value="{{item.value}}"
+                bindtap="onFilterChange"
+              >
+                {{item.label}}
+              </view>
+            </block>
+          </view>
+        </view>
+        
+        <!-- 时间范围筛选 -->
+        <view class="filter-section">
+          <text class="filter-label">时间范围</text>
+          <view class="filter-options">
+            <block wx:for="{{timeRanges}}" wx:key="value">
+              <view 
+                class="filter-option {{filterOptions.timeRange === item.value ? 'active' : ''}}"
+                data-key="timeRange"
+                data-value="{{item.value}}"
+                bindtap="onFilterChange"
+              >
+                {{item.label}}
+              </view>
+            </block>
+          </view>
+        </view>
+      </view>
+      
+      <view class="filter-footer">
+        <t-button theme="default" bindtap="onResetFilter">重置</t-button>
+        <t-button theme="primary" bindtap="onConfirmFilter">确定</t-button>
+      </view>
+    </view>
+  </td-popup>
+  
+  <!-- 操作菜单 -->
+  <td-popup
+    visible="{{actionsVisible}}"
+    placement="bottom"
+    overlayProps="{{ { background: 'rgba(0,0,0,0.4)' } }}"
+    bind:visible-change="onCloseActions"
+  >
+    <view class="actions-popup">
+      <view class="action-item" data-action="edit" bindtap="onDocAction">
+        <t-icon name="edit" size="40rpx" />
+        <text>编辑</text>
+      </view>
+      <view class="action-item" data-action="delete" bindtap="onDocAction">
+        <t-icon name="delete" size="40rpx" />
+        <text>删除</text>
+      </view>
+      <view class="action-item" data-action="preview" bindtap="onDocAction">
+        <t-icon name="view" size="40rpx" />
+        <text>预览</text>
+      </view>
+      <view class="action-item" data-action="share" bindtap="onDocAction">
+        <t-icon name="share" size="40rpx" />
+        <text>分享</text>
+      </view>
+    </view>
+  </td-popup>
+</view>

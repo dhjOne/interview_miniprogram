@@ -1,0 +1,19 @@
+{
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "nav": "/components/nav",
+    "t-tabs": "/miniprogram_npm/tdesign-miniprogram/tabs/tabs",
+    "t-tab-panel": "/miniprogram_npm/tdesign-miniprogram/tab-panel/tab-panel",
+    "t-cell": "/miniprogram_npm/tdesign-miniprogram/cell/cell",
+    "t-cell-group": "/miniprogram_npm/tdesign-miniprogram/cell-group/cell-group",
+    "t-icon": "/miniprogram_npm/tdesign-miniprogram/icon/icon",
+    "t-button": "/miniprogram_npm/tdesign-miniprogram/button/button",
+    "t-tag": "/miniprogram_npm/tdesign-miniprogram/tag/tag",
+    "t-empty": "/miniprogram_npm/tdesign-miniprogram/empty/empty",
+    "t-loading": "/miniprogram_npm/tdesign-miniprogram/loading/loading",
+    "t-divider": "/miniprogram_npm/tdesign-miniprogram/divider/divider",
+    "t-dropdown-menu": "/miniprogram_npm/tdesign-miniprogram/dropdown-menu/dropdown-menu",
+    "t-dropdown-item": "/miniprogram_npm/tdesign-miniprogram/dropdown-item/dropdown-item"
+  },
+  "enablePullDownRefresh": true
+}

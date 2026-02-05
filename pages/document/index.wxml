@@ -40,7 +40,7 @@
                     docType === 'published' ? '暂无已发布的文档' :
                     '暂无草稿'}}" icon="info-circle-filled">
       <t-button theme="primary" size="large" bindtap="onCreateDoc"  slot="action">
-        {{docType === 'draft' ? '新建草稿' : '新建文档'}}
+        发布文档
       </t-button>
     </t-empty>
 

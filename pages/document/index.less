@@ -152,14 +152,15 @@
 }
 
 /* 创建按钮 */
-.create-btn-wrapper {
-  position: fixed;
-  bottom: 64rpx;
+.empty {
+  position: absolute; /* 改为绝对定位 */
+  top: 30%; /* 相对于父容器垂直居中 */
   left: 0;
   right: 0;
   display: flex;
   justify-content: center;
   z-index: 100;
+  transform: translateY(-50%); /* 向上移动自身高度的一半 */
   
   .create-btn {
     width: auto;
@@ -260,3 +261,4 @@
 .prevent-touchmove {
   touch-action: none;
 }
+

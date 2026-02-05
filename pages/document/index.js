@@ -113,7 +113,8 @@ Page({
           page,
           total: 0,
           hasMore,
-          loading: false
+          loading: false,
+          showCreateBtn: docList.length > 0 // 新增一个数据字段
         });
         return;
       }
@@ -134,7 +135,8 @@ Page({
         page,
         total,
         hasMore,
-        loading: false
+        loading: false,
+        showCreateBtn: docList.length > 0 // 新增一个数据字段
       });
     } catch (error) {
       console.error('加载文档列表失败:', error);

@@ -67,7 +67,7 @@
           <view class="doc-footer">
             <view class="doc-info">
               <text class="doc-category">{{item.category || '未分类'}}</text>
-              <text class="doc-time">{{formatTime(item.updateTime)}}</text>
+              <text class="doc-time">{{formatTime(item.createdAt)}}</text>
               <text class="doc-views">
                 <t-icon name="view" size="28rpx" />
                 {{item.viewCount || 0}}

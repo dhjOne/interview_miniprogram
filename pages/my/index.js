@@ -1,6 +1,6 @@
 import request from '~/api/request';
 import useToastBehavior from '~/behaviors/useToast';
-
+const app = getApp();
 Page({
   behaviors: [useToastBehavior],
 
@@ -100,10 +100,15 @@ Page({
 
 
   onEleClick(e) {
+    console.log('调整。。。。。')
     const { url, method } = e.currentTarget.dataset.data;
     // 如果有链接，执行跳转而不是直接返回
     if (url) {
-      wx.navigateTo({ url });
+      // wx.navigateTo({ url });
+
+      app.navigateToLogin({
+        url: url
+      });
       return;
     }
     // 如果有指定方法，调用对应方法

@@ -75,6 +75,13 @@ export const authApi = {
       return http.post(`/repository/questions/publish`, publish, {
         showLoading: false
       })
+    },
+
+    //获得自己发布页面
+    getPublishList: (questionParams) => {
+      return http.get('/repository/publish/doc/list', questionParams, {
+        showLoading: false
+      })
     }
 
 

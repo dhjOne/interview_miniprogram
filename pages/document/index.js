@@ -1,4 +1,6 @@
 import request from '~/api/request';
+import { authApi } from '~/api/request/api_question';
+import { QuestionParams } from '~/api/param/param_question';
 
 Page({
   data: {
@@ -91,16 +93,16 @@ Page({
     try {
       const params = {
         type: this.data.docType,
-        sort: this.data.sortType,
+        sortField: this.data.sortType,
         order: this.data.sortOrder,
         page,
-        pageSize: this.data.pageSize,
+        limit: this.data.pageSize,
         ...this.data.filterOptions
       };
       
       console.log('加载文档列表参数:', params);
-      
-      const res = await request('/api/getDocList', params);
+
+      const res = await authApi.getPublishList(params);
       
       // 添加数据为空或格式错误的处理
       if (!res || !res.data) {
@@ -118,13 +120,13 @@ Page({
         });
         return;
       }
-      
+      console.log('获取到shuj表:', res);
       // 确保数据结构正确
-      const responseData = res.data.data || {};
-      const list = responseData.list || [];
+      const responseData = res.data || {};
+      const list = responseData.rows || [];
       const total = responseData.total || 0;
       
-      console.log('获取到的文档列表:', list);
+      console.log('获取到的文档列表:', responseData);
       console.log('总数:', total);
       
       const docList = refresh ? list : [...this.data.docList, ...list];
@@ -326,6 +328,7 @@ onTabChange(e) {
 
   // 获取状态标签
   getStatusTag(status) {
+    console.log('zhaodadadadasd',status)
     const statusMap = {
       'draft': { text: '草稿', theme: 'default' },
       'progress': { text: '审核中', theme: 'warning' },

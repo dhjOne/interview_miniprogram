@@ -1,12 +1,12 @@
 import request from '~/api/request';
 import { authApi } from '~/api/request/api_question';
-import { QuestionParams } from '~/api/param/param_question';
+import { DocumentParams } from '~/api/param/param_document';
 
 Page({
   data: {
     activeTab: 'all', // 当前激活的tab
     docType: 'all', // 文档类型：all, progress, published, draft
-    sortType: 'time', // 排序方式：time, title, update
+    sortType: 'created_at', // 排序方式：time, title, update
     sortOrder: 'desc', // 排序顺序：asc, desc
     
     // 文档列表
@@ -42,10 +42,10 @@ Page({
   onLoad(options) {
     const { type = 'all' } = options;
     const tabMap = {
-      'all': 0,
-      'progress': 1,
-      'published': 2,
-      'draft': 3
+      'all': 'all',
+      'progress': 'progress',
+      'published': 'published',
+      'draft': 'draft'
     };
     
     this.setData({
@@ -92,17 +92,18 @@ Page({
     
     try {
       const params = {
-        type: this.data.docType,
+        docType: this.data.docType,
         sortField: this.data.sortType,
         order: this.data.sortOrder,
         page,
         limit: this.data.pageSize,
         ...this.data.filterOptions
       };
-      
-      console.log('加载文档列表参数:', params);
+      const document = new DocumentParams();
+      Object.assign(document, params);
+      console.log('加载文档列表参数:', document);
 
-      const res = await authApi.getPublishList(params);
+      const res = await authApi.getPublishList(document);
       
       // 添加数据为空或格式错误的处理
       if (!res || !res.data) {

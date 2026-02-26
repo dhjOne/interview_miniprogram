@@ -95,9 +95,9 @@ Page({
       return;
     }
     const { title } = options;
-    wx.setNavigationBarTitle({
-      title: title || '题目详情'
-    });
+    // wx.setNavigationBarTitle({
+    //   title: title || '题目详情'
+    // });
 
     this.setData({
       questionId: id
@@ -146,9 +146,9 @@ Page({
         }
         
         // 设置页面标题
-        wx.setNavigationBarTitle({
-          title: questionDetail.title || '题目详情'
-        });
+        // wx.setNavigationBarTitle({
+        //   title: questionDetail.title || '题目详情'
+        // });
       } else {
         // 数据为空
         this.setData({

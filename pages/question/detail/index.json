@@ -1,4 +1,5 @@
 {
+  "navigationBarTitleText": "详情",
   "usingComponents": {
     "t-action-sheet": "tdesign-miniprogram/action-sheet/action-sheet",
     "t-loading": "tdesign-miniprogram/loading/loading",

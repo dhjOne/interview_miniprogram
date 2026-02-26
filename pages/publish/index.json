@@ -1,4 +1,5 @@
 {
+  "navigationBarTitleText": "发布",
   "usingComponents": {
     "t-textarea": "tdesign-miniprogram/textarea/textarea",
     "t-button": "tdesign-miniprogram/button/button",

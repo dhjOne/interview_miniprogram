@@ -50,7 +50,8 @@ Page({
     
     this.setData({
       docType: type,
-      activeTab: tabMap[type] || 0
+      // t-tabs 的 t-tab-panel value 为字符串，需与 WXML 中 value 一致
+      activeTab: tabMap[type] || 'all'
     });
     
     // 获取分类列表
@@ -92,7 +93,7 @@ Page({
     
     try {
       const params = {
-        docType: this.data.docType,
+        docType: this.data.docType || 'all',
         sortField: this.data.sortType,
         order: this.data.sortOrder,
         page,
@@ -169,15 +170,18 @@ onTabTap(e) {
 onTabChange(e) {
   console.log('tab change:', e);
   console.log('detail:', e.detail);
-  
-  // 有些版本的 TDesign 使用 e.detail.index 而不是 e.detail.value
-  const value = e.detail?.value ?? e.detail?.index ?? 0;
-  
+
+  const raw = e.detail?.value ?? e.detail?.index ?? 'all';
   const typeMap = ['all', 'progress', 'published', 'draft'];
-  
+  // WXML 里 t-tab-panel 的 value 是字符串；用 typeMap[raw] 会把 raw 当下标，typeMap['all'] 为 undefined
+  const docType =
+    typeof raw === 'string' && typeMap.includes(raw)
+      ? raw
+      : typeMap[Number(raw)] || 'all';
+
   this.setData({
-    activeTab: value,
-    docType: typeMap[value]
+    activeTab: docType,
+    docType
   }, () => {
     this.loadDocList(true);
   });

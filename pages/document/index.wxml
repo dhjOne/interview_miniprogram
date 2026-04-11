@@ -1,7 +1,5 @@
-<view class="doc-manage">
-  <!-- <image class="nav-bg" src="/static/bg_navbar.png" />
-  <nav title-text="发布管理" /> -->
-
+<view class="question-list-container doc-manage">
+  <view class="question-list-sticky">
   <!-- 顶部筛选栏 -->
   <view class="filter-bar">
     <view class="sort-options">
@@ -29,71 +27,96 @@
     <t-tab-panel label="审核中" value="progress" />
     <t-tab-panel label="已发布" value="published" />
     <t-tab-panel label="草稿箱" value="draft" />
+    <t-tab-panel label="已下架" value="offline" />
   </t-tabs>
 
-  <!-- 文档列表 -->
-  <scroll-view scroll-y class="doc-list" refresher-enabled="{{true}}" bindrefresherrefresh="onPullDownRefresh"
-    bindscrolltolower="onReachBottom">
-    <!-- 空状态 -->
-    <t-empty class="empty" wx:if="{{docList.length === 0 && !loading}}" description="{{docType === 'all' ? '暂无文档' : 
-                    docType === 'progress' ? '暂无审核中的文档' :
-                    docType === 'published' ? '暂无已发布的文档' :
-                    '暂无草稿'}}" icon="info-circle-filled">
-      <t-button theme="primary" size="large" bindtap="onCreateDoc"  slot="action">
-        发布文档
-      </t-button>
-    </t-empty>
+  <view class="list-subbar" wx:if="{{!loading || docList.length > 0}}">
+    <text class="list-subbar-text">共 {{total}} 条</text>
+  </view>
+  </view>
 
-    <!-- 文档列表内容 -->
-    <view class="doc-list-content">
-      <block wx:for="{{docList}}" wx:key="id">
-        <view class="doc-item" data-id="{{item.id}}" bindtap="onDocClick">
-          <view class="doc-header">
-            <view class="doc-title">
-              {{item.title || '无标题'}}
-              <t-tag size="small" theme="{{getStatusTag(item.status).theme}}" class="status-tag">
-                {{getStatusTag(item.status).text}}
-              </t-tag>
-            </view>
-            <view class="doc-more" data-id="{{item.id}}" bindtap="onOpenActions">
-              <t-icon name="more" size="40rpx" />
+  <view class="questions-section">
+    <scroll-view
+      class="questions-scroll"
+      scroll-y
+      enhanced
+      show-scrollbar="{{false}}"
+      refresher-enabled="{{true}}"
+      bindrefresherrefresh="onPullDownRefresh"
+      bindscrolltolower="onReachBottom"
+      lower-threshold="120">
+      <view id="list-top" class="list-top-anchor" />
+      <view class="question-list">
+        <block wx:for="{{docList}}" wx:key="id" wx:for-index="idx">
+          <view class="question-item {{item.docCardTone}}" data-id="{{item.id}}" bindtap="onDocClick">
+            <view class="question-header">
+              <view class="question-index">
+                <text class="index-number">{{(page - 1) * pageSize + idx + 1}}</text>
+              </view>
+              <view class="question-main">
+                <view class="question-title-row">
+                  <text class="question-title">{{item.title || '无标题'}}</text>
+                  <t-tag
+                    wx:if="{{item.statusTag}}"
+                    size="small"
+                    theme="{{item.statusTag.theme}}"
+                    class="question-diff-tag">
+                    {{item.statusTag.text}}
+                  </t-tag>
+                </view>
+                <view class="question-meta">
+                  <text class="meta-item">
+                    <t-icon name="time" size="24rpx" />
+                    {{item.displayDate}}
+                  </text>
+                  <text class="meta-item">
+                    <t-icon name="browse" size="24rpx" />
+                    {{item.viewCount}} 浏览
+                  </text>
+                  <text class="meta-item">
+                    <t-icon name="app" size="24rpx" />
+                    {{item.commentCount}} 评论
+                  </text>
+                  <text class="meta-item">
+                    <t-icon name="thumb-up" size="24rpx" />
+                    {{item.likeCount}} 点赞
+                  </text>
+                </view>
+              </view>
+              <view class="question-actions" catchtap="onOpenActions" data-id="{{item.id}}">
+                <t-icon name="more" size="40rpx" color="#bbb" class="collect-icon" />
+              </view>
             </view>
           </view>
+        </block>
+      </view>
 
-          <view class="doc-content">
-            <text class="doc-preview">{{item.content || '暂无内容'}}</text>
-          </view>
-
-          <view class="doc-footer">
-            <view class="doc-info">
-              <text class="doc-category">{{item.category || '未分类'}}</text>
-              <text class="doc-time">{{formatTime(item.createdAt)}}</text>
-              <text class="doc-views">
-                <t-icon name="view" size="28rpx" />
-                {{item.viewCount || 0}}
-              </text>
-            </view>
-
-            <view class="doc-actions" wx:if="{{item.status === 'rejected' && item.rejectReason}}">
-              <t-tag theme="danger" size="small">
-                驳回原因：{{item.rejectReason}}
-              </t-tag>
-            </view>
-          </view>
+      <view class="list-footer" wx:if="{{docList.length > 0}}">
+        <view class="list-footer-inner" wx:if="{{loading}}">
+          <t-loading size="36rpx" text="加载中…" />
         </view>
-      </block>
-
-      <!-- 加载更多 -->
-      <view class="load-more" wx:if="{{loading}}">
-        <t-loading size="48rpx" />
-        <text>加载中...</text>
+        <t-divider wx:elif="{{!hasMore}}" align="center" content="没有更多了" />
       </view>
 
-      <view class="no-more" wx:if="{{!hasMore && docList.length > 0}}">
-        <t-divider>没有更多了</t-divider>
+      <view wx:if="{{docList.length === 0 && !loading}}" class="empty-state">
+        <t-icon name="info-circle-filled" size="120rpx" color="#ddd" />
+        <text class="empty-text" wx:if="{{docType === 'all'}}">暂无文档</text>
+        <text class="empty-text" wx:elif="{{docType === 'progress'}}">暂无审核中的文档</text>
+        <text class="empty-text" wx:elif="{{docType === 'published'}}">暂无已发布的文档</text>
+        <text class="empty-text" wx:elif="{{docType === 'draft'}}">暂无草稿</text>
+        <text class="empty-text" wx:elif="{{docType === 'offline'}}">暂无已下架文档</text>
+        <text class="empty-text" wx:else>暂无文档</text>
+        <text class="empty-desc">调整筛选或发布一篇文档</text>
+        <t-button theme="primary" size="large" bindtap="onCreateDoc" class="empty-btn">
+          发布文档
+        </t-button>
       </view>
-    </view>
-  </scroll-view>
+
+      <view wx:if="{{docList.length === 0 && loading}}" class="list-loading-center">
+        <t-loading size="48rpx" text="加载中…" />
+      </view>
+    </scroll-view>
+  </view>
 
 
 
@@ -106,16 +129,27 @@
       </view>
 
       <view class="filter-content">
-        <!-- 分类筛选 -->
-        <view class="filter-section">
+        <!-- 分类：筛选项内下拉，风格与时间筛选一致 -->
+        <view class="filter-section filter-section--category">
           <text class="filter-label">分类</text>
-          <view class="filter-options">
-            <block wx:for="{{categories}}" wx:key="value">
-              <view class="filter-option {{filterOptions.category === item.value ? 'active' : ''}}" data-key="category"
-                data-value="{{item.value}}" bindtap="onFilterChange">
-                {{item.label}}
-              </view>
-            </block>
+          <view class="filter-select {{categoryDropdownOpen ? 'filter-select--open' : ''}}">
+            <view class="filter-select-trigger" bindtap="toggleCategoryDropdown">
+              <text class="filter-select-text">{{categoryBarTitle}}</text>
+              <t-icon name="{{categoryDropdownOpen ? 'chevron-up' : 'chevron-down'}}" size="40rpx"
+                class="filter-select-chevron" />
+            </view>
+            <view class="filter-select-panel" wx:if="{{categoryDropdownOpen}}">
+              <scroll-view scroll-y class="filter-select-scroll" show-scrollbar="{{true}}">
+                <view
+                  wx:for="{{categoryDropdownOptions}}"
+                  wx:key="index"
+                  class="filter-select-item {{filterOptions.categoryId == item.value ? 'active' : ''}}"
+                  data-index="{{index}}"
+                  bindtap="onCategoryOptionTap">
+                  {{item.label}}
+                </view>
+              </scroll-view>
+            </view>
           </view>
         </view>
 
@@ -141,24 +175,40 @@
   </td-popup>
 
   <!-- 操作菜单 -->
-  <td-popup visible="{{actionsVisible}}" placement="bottom" overlayProps="{{ { background: 'rgba(0,0,0,0.4)' } }}"
+  <td-popup visible="{{actionsVisible}}" placement="bottom" overlayProps="{{ { background: 'rgba(0,0,0,0.45)' } }}"
     bind:visible-change="onCloseActions">
     <view class="actions-popup">
-      <view class="action-item" data-action="edit" bindtap="onDocAction">
-        <t-icon name="edit" size="40rpx" />
-        <text>编辑</text>
+      <view class="actions-popup__handle" />
+      <text class="actions-popup__title">文档操作</text>
+      <view class="actions-popup__sheet">
+        <view class="action-item" hover-class="action-item--hover" data-action="edit" bindtap="onDocAction">
+          <view class="action-item__icon action-item__icon--edit">
+            <t-icon name="edit" size="40rpx" color="#07c160" />
+          </view>
+          <text class="action-item__label">编辑</text>
+        </view>
+        <view class="action-item" hover-class="action-item--hover" data-action="preview" bindtap="onDocAction">
+          <view class="action-item__icon action-item__icon--preview">
+            <t-icon name="browse" size="40rpx" color="#0052d9" />
+          </view>
+          <text class="action-item__label">预览</text>
+        </view>
+        <view class="action-item" hover-class="action-item--hover" data-action="share" bindtap="onDocAction">
+          <view class="action-item__icon action-item__icon--share">
+            <t-icon name="share" size="40rpx" color="#ed7b2f" />
+          </view>
+          <text class="action-item__label">分享</text>
+        </view>
+        <view class="action-item action-item--danger" hover-class="action-item--hover-danger" data-action="delete"
+          bindtap="onDocAction">
+          <view class="action-item__icon action-item__icon--delete">
+            <t-icon name="delete" size="40rpx" color="#d54941" />
+          </view>
+          <text class="action-item__label">删除</text>
+        </view>
       </view>
-      <view class="action-item" data-action="delete" bindtap="onDocAction">
-        <t-icon name="delete" size="40rpx" />
-        <text>删除</text>
-      </view>
-      <view class="action-item" data-action="preview" bindtap="onDocAction">
-        <t-icon name="view" size="40rpx" />
-        <text>预览</text>
-      </view>
-      <view class="action-item" data-action="share" bindtap="onDocAction">
-        <t-icon name="share" size="40rpx" />
-        <text>分享</text>
+      <view class="actions-popup__cancel" hover-class="actions-popup__cancel--hover" bindtap="onCloseActions">
+        取消
       </view>
     </view>
   </td-popup>

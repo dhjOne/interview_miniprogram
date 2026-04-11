@@ -2,10 +2,10 @@
   "usingComponents": {
     "t-search": "tdesign-miniprogram/search/search",
     "t-tag": "tdesign-miniprogram/tag/tag",
-    "t-radio-group": "tdesign-miniprogram/radio-group/radio-group",
     "t-loading": "tdesign-miniprogram/loading/loading",
     "t-button": "tdesign-miniprogram/button/button",
     "t-icon": "tdesign-miniprogram/icon/icon",
+    "t-divider": "tdesign-miniprogram/divider/divider",
     "t-message": "tdesign-miniprogram/message/message",
     "float-release-button": "/components/float-release-button/index"
   }

@@ -82,6 +82,13 @@ export const authApi = {
       return http.get('/repository/publish/doc/list', questionParams, {
         showLoading: false
       })
+    },
+
+    /** 发布管理-文档分类（树形：id / name / parentId） */
+    getPublishDocCategories: () => {
+      return http.get('/repository/publish/doc/categories', null, {
+        showLoading: false
+      })
     }
 
 

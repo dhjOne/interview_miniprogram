@@ -1,100 +1,96 @@
-<!-- <nav nav-type="title" title="{{categoryName || '题库列表'}}" /> -->
-
 <view class="question-list-container">
-  <!-- 搜索区域 -->
-  <view class="search-section">
-    <t-search
-      value="{{searchValue}}"
-      placeholder="搜索题目..."
-      bind:change="onSearchChange"
-      bind:search="onSearch"
-      bind:clear="onSearchClear"
-      shape="round"
-    ></t-search>
-  </view>
+  <view class="question-list-sticky">
+    <view class="search-section">
+      <t-search
+        value="{{searchValue}}"
+        placeholder="搜索题目标题…"
+        bind:change="onSearchChange"
+        bind:search="onSearch"
+        bind:clear="onSearchClear"
+        shape="round"
+      />
+    </view>
 
-  <!-- 筛选条件 -->
-  <view class="filter-section">
-    <scroll-view class="filter-tags-scroll" scroll-x="true" show-scrollbar="{{false}}">
-      <view class="filter-tags">
-        <t-tag
-          wx:for="{{filterTags}}"
-          wx:key="value"
-          theme="{{activeFilter === item.value ? 'primary' : 'outline'}}"
-          bind:click="onFilterChange"
-          data-value="{{item.value}}"
-          size="medium"
-        >
-          {{item.label}}
-        </t-tag>
+    <!-- 排序：与整站绿色风格一致，替代原横向标签 + 底部单选重复 -->
+    <view class="sort-chip-bar">
+      <view
+        wx:for="{{sortChips}}"
+        wx:key="value"
+        class="sort-chip {{sortType === item.value ? 'sort-chip--active' : ''}}"
+        data-sort="{{item.value}}"
+        bindtap="onSortTap">
+        {{item.label}}
       </view>
-    </scroll-view>
-  </view>
+    </view>
 
-  <!-- 题目统计 -->
-  <view class="questions-stats" wx:if="{{questionList.length > 0}}">
-    <text class="stats-text">共 {{totalCount}} 道题目</text>
-    <view class="sort-options">
-      <t-radio-group value="{{sortType}}" bind:change="onSortChange">
-        <t-radio value="default">默认</t-radio>
-        <t-radio value="latest">最新</t-radio>
-        <t-radio value="hot">热门</t-radio>
-      </t-radio-group>
+    <view class="list-subbar" wx:if="{{listHeaderReady}}">
+      <text class="list-subbar-text">共 {{totalCount}} 道题目</text>
     </view>
   </view>
 
-  <!-- 题目列表 -->
   <view class="questions-section">
-    <scroll-view 
-      class="questions-scroll" 
-      scroll-y="true" 
+    <scroll-view
+      class="questions-scroll"
+      scroll-y
+      enhanced
+      show-scrollbar="{{false}}"
+      scroll-into-view="{{scrollIntoView}}"
+      scroll-with-animation
       bindscroll="onPageScroll"
       bindscrolltolower="loadMore"
-    >
+      lower-threshold="120">
+      <view id="list-top" class="list-top-anchor" />
       <view class="question-list">
         <block wx:for="{{questionList}}" wx:key="id" wx:for-index="idx">
-          <view 
-            class="question-item {{item.isCollected ? 'collected' : ''}}"
+          <view
+            class="question-item {{item.isCollected ? 'question-item--collected' : ''}}"
             bindtap="onQuestionClick"
             data-id="{{item.id}}"
-            data-title="{{item.title}}"
-          >
+            data-title="{{item.title}}">
             <view class="question-header">
               <view class="question-index">
                 <text class="index-number">{{(page - 1) * pageSize + idx + 1}}</text>
               </view>
               <view class="question-main">
-                <view class="question-title-section">
+                <view class="question-title-row">
                   <text class="question-title">{{item.title || '无标题'}}</text>
+                  <t-tag
+                    wx:if="{{item.difficultyTag}}"
+                    size="small"
+                    theme="{{item.difficultyTag.theme}}"
+                    class="question-diff-tag">
+                    {{item.difficultyTag.text}}
+                  </t-tag>
                 </view>
                 <view class="question-meta">
                   <text class="meta-item">
-                    <t-icon name="time" size="24rpx"></t-icon>
-                    {{item.createAt || '未知时间'}}
+                    <t-icon name="time" size="24rpx" />
+                    {{item.displayDate}}
                   </text>
                   <text class="meta-item">
-                    <t-icon name="view" size="24rpx"></t-icon>
-                    {{item.viewCount || 0}} 浏览
+                    <t-icon name="view" size="24rpx" />
+                    {{item.viewCount}} 浏览
                   </text>
                   <text class="meta-item">
-                    <t-icon name="app" size="24rpx"></t-icon>
-                    {{item.commentCount || 0}} 评论
+                    <t-icon name="app" size="24rpx" />
+                    {{item.commentCount}} 评论
+                  </text>
+                  <text class="meta-item">
+                    <t-icon name="thumb-up" size="24rpx" />
+                    {{item.likeCount}} 点赞
                   </text>
                 </view>
               </view>
-              <view class="question-actions">
-                <view catchtap="onCollect" data-id="{{item.id}}">
-                  <t-icon
-                    name="{{item.collected ? 'heart-filled' : 'heart'}}"
-                    size="36rpx"
-                    color="{{item.collected ? '#ff6b35' : '#999'}}"
-                    class="collect-icon"
-                  ></t-icon>
-                </view>
+              <view class="question-actions" catchtap="onCollect" data-id="{{item.id}}">
+                <t-icon
+                  name="{{item.isCollected ? 'heart-filled' : 'heart'}}"
+                  size="40rpx"
+                  color="{{item.isCollected ? '#07C160' : '#bbb'}}"
+                  class="collect-icon"
+                />
               </view>
             </view>
-            
-            <!-- 题目描述 -->
+
             <view wx:if="{{item.description}}" class="question-description">
               <text class="description-text">{{item.description}}</text>
             </view>
@@ -102,49 +98,33 @@
         </block>
       </view>
 
-      <!-- 加载状态 -->
-      <!-- <view class="load-more">
-        <t-loading 
-          wx:if="{{loading}}" 
-          size="32rpx" 
-          text="{{page === 1 ? '加载中...' : '加载更多...'}}" 
-        />
-        <t-button
-          wx:elif="{{hasMore && !loading}}"
-          theme="outline"
-          size="small"
-          bindtap="loadMore"
-        >
-          加载更多
-        </t-button>
-        <view wx:elif="{{!hasMore && questionList.length > 0}}" class="no-more">
-          <text class="no-more-text">— 没有更多题目了 —</text>
+      <view class="list-footer" wx:if="{{questionList.length > 0}}">
+        <view class="list-footer-inner" wx:if="{{loading}}">
+          <t-loading size="36rpx" text="加载中…" />
         </view>
-      </view> -->
+        <t-divider wx:elif="{{!hasMore}}" align="center" content="没有更多了" />
+      </view>
 
-      <!-- 空状态 -->
       <view wx:if="{{questionList.length === 0 && !loading}}" class="empty-state">
-        <t-icon name="file" size="120rpx" color="#ccc"></t-icon>
+        <t-icon name="info-circle-filled" size="120rpx" color="#ddd" />
         <text class="empty-text">暂无题目</text>
-        <text class="empty-desc">当前分类下还没有题目</text>
-        <t-button theme="primary" bindtap="goRelease" class="empty-btn">
+        <text class="empty-desc">换个关键词试试，或发布一道题</text>
+        <t-button theme="primary" size="large" bindtap="goRelease" class="empty-btn">
           发布题目
         </t-button>
+      </view>
+
+      <view wx:if="{{questionList.length === 0 && loading}}" class="list-loading-center">
+        <t-loading size="48rpx" text="加载中…" />
       </view>
     </scroll-view>
   </view>
 </view>
 
-<!-- 回到顶部 -->
-<view 
-  wx:if="{{showBackTop}}" 
-  class="back-top" 
-  bindtap="scrollToTop"
-  hover-class="back-top-hover"
->
-  <t-icon name="caret-up" size="32rpx" color="#fff"></t-icon>
+<view wx:if="{{showBackTop}}" class="back-top" bindtap="scrollToTop" hover-class="back-top-hover">
+  <t-icon name="caret-up" size="32rpx" color="#fff" />
 </view>
 
-<float-release-button 
-  bind:onTap="onReleaseTap"
-/>
+<float-release-button bind:onTap="onReleaseTap" />
+
+<t-message id="t-message" />

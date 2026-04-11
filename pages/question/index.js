@@ -1,142 +1,176 @@
-// pages/question/list/index.js
+// pages/question/index.js
 import Message from 'tdesign-miniprogram/message/index';
 import { authApi } from '~/api/request/api_question';
 import { QuestionParams } from '~/api/param/param_question';
-// 在页面中使用
+
 const app = getApp();
+
+/** 列表卡片日期：仅展示 YYYY-MM-DD */
+function formatDateYMD(value) {
+  if (value === undefined || value === null || value === '') return '—';
+  const s = String(value).trim();
+  const m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (m) {
+    const mo = `${m[2]}`.padStart(2, '0');
+    const d = `${m[3]}`.padStart(2, '0');
+    return `${m[1]}-${mo}-${d}`;
+  }
+  const d = new Date(s.replace(/-/g, '/'));
+  if (Number.isNaN(d.getTime())) return s.slice(0, 10) || '—';
+  const y = d.getFullYear();
+  const mo = `${d.getMonth() + 1}`.padStart(2, '0');
+  const day = `${d.getDate()}`.padStart(2, '0');
+  return `${y}-${mo}-${day}`;
+}
+
+function normalizeQuestionRow(row) {
+  const isCollected = !!(row.isCollected ?? row.collected);
+  const difficulty = row.difficulty ?? row.difficultyLevel;
+  let difficultyTag = null;
+  const n = Number(difficulty);
+  if (n === 1) difficultyTag = { text: '简单', theme: 'success' };
+  else if (n === 2) difficultyTag = { text: '中等', theme: 'warning' };
+  else if (n === 3) difficultyTag = { text: '困难', theme: 'danger' };
+  const rawTime =
+    row.updatedAt ?? row.updated_at ?? row.createdAt ?? row.created_at ?? row.createAt;
+  const displayDate = formatDateYMD(rawTime);
+  const viewCount = row.viewCount ?? row.view_count ?? 0;
+  const commentCount = row.commentCount ?? row.comment_count ?? 0;
+  const likeCount = row.likeCount ?? row.like_count ?? 0;
+  return {
+    ...row,
+    isCollected,
+    difficultyTag,
+    displayDate,
+    viewCount,
+    commentCount,
+    likeCount
+  };
+}
 
 Page({
   data: {
     searchValue: '',
-    activeFilter: 'all',
     sortType: 'default',
+    sortChips: [
+      { label: '综合', value: 'default' },
+      { label: '最新', value: 'latest' },
+      { label: '最热', value: 'hot' }
+    ],
     questionList: [],
     totalCount: 0,
     loading: false,
     hasMore: true,
     page: 1,
-    pageSize: 100,
+    pageSize: 20,
     showBackTop: false,
-    categoryId: null, // 新增：分类ID
-    categoryName: '', // 新增：分类名称
-    
-    filterTags: [
-      { label: '全部', value: 'all' },
-      { label: '已收藏', value: 'collected' },
-      { label: '未收藏', value: 'uncollected' },
-      { label: '简单', value: 'easy' },
-      { label: '中等', value: 'medium' },
-      { label: '困难', value: 'hard' }
-    ]
+    categoryId: null,
+    categoryName: '',
+    scrollIntoView: '',
+    listHeaderReady: false
   },
 
   onLoad(options) {
-    console.log('题库列表页面加载', options);
-    
     const { categoryId, categoryName, secondaryCategoryId, secondaryCategoryName } = options;
-    
     const finalCategoryId = categoryId || secondaryCategoryId;
     const finalCategoryName = categoryName || secondaryCategoryName;
-    
+
     this.setData({
       categoryId: finalCategoryId,
       categoryName: finalCategoryName
     });
-    
-    // 动态设置导航栏标题
+
     wx.setNavigationBarTitle({
       title: finalCategoryName || '题库列表'
     });
-    
+
     this.loadQuestions(true);
   },
-  
+
   onReady() {
-    // 组件渲染完成后再次确保标题正确
     if (this.data.categoryName) {
       wx.setNavigationBarTitle({
         title: this.data.categoryName
       });
     }
   },
-  onShow() {
-    // 页面显示时刷新收藏状态
-    this.refreshCollectStatus();
-  },
 
   onPageScroll(e) {
-    // 显示回到顶部按钮
+    const top = (e.detail && e.detail.scrollTop) || 0;
     this.setData({
-      showBackTop: e.scrollTop > 400
+      showBackTop: top > 400
     });
   },
 
-  // 加载题目列表
+  _sortParams() {
+    const map = {
+      default: ['sort_order', 'asc'],
+      latest: ['created_at', 'desc'],
+      hot: ['view_count', 'desc']
+    };
+    return map[this.data.sortType] || map.default;
+  },
+
   async loadQuestions(refresh = false) {
     if (this.data.loading) return;
 
-    const page = refresh ? 1 : this.data.page;
-    
+    const requestPage = refresh ? 1 : this.data.page + 1;
+
     this.setData({ loading: true });
 
-    
     try {
-      const params = {
-        page,
-        pageSize: this.data.pageSize,
-        keyword: this.data.searchValue,
-        filter: this.data.activeFilter,
-        sort: this.data.sortType,
-        categoryId: this.data.categoryId // 添加分类ID参数
-      };
+      const title = this.data.searchValue && this.data.searchValue.trim()
+        ? this.data.searchValue.trim()
+        : null;
+      const questionParams = new QuestionParams(title, this.data.categoryId, null);
+      const [sortField, order] = this._sortParams();
+      questionParams.sortField = sortField;
+      questionParams.order = order;
+      questionParams.page = requestPage;
+      questionParams.limit = this.data.pageSize;
 
-      // 过滤空参数
-      const filteredParams = Object.keys(params).reduce((acc, key) => {
-        if (params[key] !== null && params[key] !== undefined && params[key] !== '') {
-          acc[key] = params[key];
-        }
-        return acc;
-      }, {});
-
-      console.log('请求参数:', filteredParams);
-      const questionParams = new QuestionParams(null, this.data.categoryId, null)
-      questionParams.sortField = 'sort_order'
-      questionParams.order = 'asc'
-      questionParams.page = 1
-      questionParams.limit = 100
       const response = await authApi.getQuestionList(questionParams);
-      
-      if (response.code === "0000") {
-        const newList = response.data.rows || [];
+
+      if (response.code == '0000') {
+        const rawList = response.data.rows || [];
         const total = response.data.total || 0;
-        
+        const newList = rawList.map(normalizeQuestionRow);
+
         if (refresh) {
           this.setData({
             questionList: newList,
             totalCount: total,
             page: 1,
-            hasMore: newList.length >= this.data.pageSize
+            hasMore: newList.length < total
           });
         } else {
+          const merged = [...this.data.questionList, ...newList];
           this.setData({
-            questionList: [...this.data.questionList, ...newList],
+            questionList: merged,
             totalCount: total,
-            page: page + 1,
-            hasMore: newList.length >= this.data.pageSize
+            page: requestPage,
+            hasMore: merged.length < total
           });
         }
       } else {
-        Message.error(response.message || '加载失败');
+        Message.error({
+          context: this,
+          offset: [20, 32],
+          content: response.message || '加载失败'
+        });
       }
     } catch (error) {
       console.error('加载题目列表失败:', error);
-      Message.error('网络错误，请重试');
+      Message.error({
+        context: this,
+        offset: [20, 32],
+        content: '网络错误，请重试'
+      });
     } finally {
-      this.setData({ loading: false });
+      this.setData({ loading: false, listHeaderReady: true });
     }
   },
 
-  // 搜索相关
   onSearchChange(e) {
     this.setData({
       searchValue: e.detail.value
@@ -147,125 +181,92 @@ Page({
     this.loadQuestions(true);
   },
 
-  // 筛选条件改变
-  onFilterChange(e) {
-    const value = e.currentTarget.dataset.value;
-    this.setData({
-      activeFilter: value
-    }, () => {
+  onSearchClear() {
+    this.setData({ searchValue: '' }, () => {
       this.loadQuestions(true);
     });
   },
 
-  // 排序改变
-  onSortChange(e) {
-    this.setData({
-      sortType: e.detail.value
-    }, () => {
+  onSortTap(e) {
+    const { sort } = e.currentTarget.dataset;
+    if (!sort || sort === this.data.sortType) return;
+    this.setData({ sortType: sort }, () => {
       this.loadQuestions(true);
     });
   },
 
-  // 收藏/取消收藏
   async onCollect(e) {
     const questionId = e.currentTarget.dataset.id;
-    const question = this.data.questionList.find(item => item.id === questionId);
-    
+    const question = this.data.questionList.find((item) => item.id === questionId);
     if (!question) return;
 
     try {
       const response = await authApi.toggleCollect({
-        questionId: questionId,
+        questionId,
         collect: !question.isCollected
       });
 
-      if (response.code === "0000") {
-        // 更新本地收藏状态
-        const updatedList = this.data.questionList.map(item => {
+      if (response.code == '0000') {
+        const updatedList = this.data.questionList.map((item) => {
           if (item.id === questionId) {
-            return {
-              ...item,
-              isCollected: !item.isCollected
-            };
+            return { ...item, isCollected: !item.isCollected };
           }
           return item;
         });
-
-        this.setData({
-          questionList: updatedList
+        this.setData({ questionList: updatedList });
+        Message.success({
+          context: this,
+          offset: [20, 32],
+          duration: 2000,
+          content: question.isCollected ? '已取消收藏' : '收藏成功'
         });
-
-        Message.success(question.isCollected ? '已取消收藏' : '收藏成功');
       } else {
-        Message.error(response.message || '操作失败');
+        Message.error({
+          context: this,
+          offset: [20, 32],
+          content: response.message || '操作失败'
+        });
       }
     } catch (error) {
       console.error('收藏操作失败:', error);
-      Message.error('操作失败，请重试');
+      Message.error({
+        context: this,
+        offset: [20, 32],
+        content: '操作失败，请重试'
+      });
     }
   },
 
-  // 刷新收藏状态
-  async refreshCollectStatus() {
-    // 可以调用接口获取最新的收藏状态
-    // 这里简单实现：重新加载第一页数据
-    if (this.data.questionList.length > 0) {
-      this.loadQuestions(true);
-    }
-  },
-
-  // 加载更多
   loadMore() {
     if (!this.data.loading && this.data.hasMore) {
       this.loadQuestions(false);
     }
   },
 
-  // 滚动到顶部
   scrollToTop() {
-    wx.pageScrollTo({
-      scrollTop: 0,
-      duration: 300
-    });
+    this.setData({ scrollIntoView: 'list-top' });
+    setTimeout(() => {
+      this.setData({ scrollIntoView: '' });
+    }, 200);
   },
 
-  // 获取难度主题色
-  getDifficultyTheme(difficulty) {
-    const themes = {
-      1: 'success',
-      2: 'warning',
-      3: 'danger'
-    };
-    return themes[difficulty] || 'outline';
-  },
-
-  // 获取难度文本
-  getDifficultyText(difficulty) {
-    const texts = {
-      1: '简单',
-      2: '中等',
-      3: '困难'
-    };
-    return texts[difficulty] || '未知';
-  },
-
-  // 发布题目
   goRelease() {
+    const id = this.data.categoryId;
+    const q = id !== null && id !== undefined && id !== '' ? `?categoryId=${id}` : '';
     wx.navigateTo({
-      url: `/pages/release/question/index?categoryId=${this.data.categoryId}`
+      url: `/pages/publish/index${q}`
     });
   },
 
-   // 点击问题项跳转到详情
-   onQuestionClick(e) {
+  onReleaseTap() {
+    this.goRelease();
+  },
+
+  onQuestionClick(e) {
     const questionId = e.currentTarget.dataset.id;
-    const questionTitle = e.currentTarget.dataset.title;
-    
-    console.log('点击问题:', questionId, questionTitle);
-    
-    // 跳转到问题详情页面
+    const questionTitle = e.currentTarget.dataset.title || '';
     app.navigateToLogin({
-      url: `/pages/question/detail/index?id=${questionId}&title=${questionTitle}`
+      url: `/pages/question/detail/index?id=${questionId}&title=${encodeURIComponent(questionTitle)}`
     });
   }
 });

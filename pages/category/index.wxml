@@ -1,116 +1,113 @@
 <nav nav-type="search" />
 <view class="home-container">
   <view class="home-content">
-    <!-- 添加加载状态 -->
     <view wx:if="{{loading}}" class="loading-container">
       <t-loading size="48rpx" text="加载中..." />
     </view>
-    
-    <t-tabs wx:else value="{{currentPrimary}}" bind:change="onTabChange">
-      <block wx:for="{{primaryCategories}}" wx:key="id">
-        <t-tab-panel label="{{item.name}}" value="{{item.id}}">
-          <!-- 使用 scroll-view 替代 t-pull-down-refresh，以支持滚动监听 -->
-          <scroll-view 
-            scroll-y 
-            style="height: 100%;"
-            bindscrolltolower="onScrollToLower"
-            bindscroll="onPageScroll"
-            scroll-top="{{scrollTop}}"
-            refresher-enabled
-            refresher-triggered="{{enable}}"
-            bindrefresherrefresh="onRefresh"
-          >
-            <view class="tab-content">
-              <!-- 主体内容区域 -->
-              <view class="main-content">
-                <!-- 侧边二级导航 -->
-                <view wx:if="{{showSecondarySidebar}}" class="sidebar {{isSidebarCollapsed ? 'collapsed' : ''}}">
-                  <view class="sidebar-header">
-                    <t-icon 
-                      name="{{isSidebarCollapsed ? 'chevron-right' : 'chevron-left'}}" 
-                      bindtap="toggleSidebar"
-                      class="collapse-icon"
-                    ></t-icon>
-                    <text class="sidebar-title" wx:if="{{!isSidebarCollapsed}}">分类</text>
-                  </view>
-                  
-                  <view class="sidebar-content" wx:if="{{!isSidebarCollapsed}}">
-                    <block wx:for="{{secondaryCategories}}" wx:key="id">
-                      <view 
-                        class="secondary-item {{currentSecondary === item.id ? 'active' : ''}}"
-                        bindtap="switchSecondaryCategory"
+
+    <view wx:else class="home-category-body">
+      <view wx:if="{{categories.length}}" class="category-page-layout">
+        <!-- 左侧分类：固定栏，不随右侧列表滚动 -->
+        <view class="category-rail">
+          <block wx:for="{{categories}}" wx:key="id">
+            <view
+              class="category-rail-item {{currentCategoryId == item.id ? 'is-active' : ''}}"
+              bindtap="switchCategory"
+              data-id="{{item.id}}"
+              hover-class="category-rail-item--hover"
+            >
+              <text class="category-rail-text">{{item.name}}</text>
+            </view>
+          </block>
+        </view>
+
+        <!-- 右侧：独立滚动区（下拉刷新、触底加载更多） -->
+        <scroll-view
+          class="category-main-scroll"
+          scroll-y
+          enable-flex="{{true}}"
+          bindscrolltolower="onScrollToLower"
+          refresher-enabled
+          refresher-triggered="{{enable}}"
+          bindrefresherrefresh="onRefresh"
+          lower-threshold="120"
+          show-scrollbar="{{false}}"
+        >
+          <view class="category-main">
+            <view class="category-hero">
+              <block wx:for="{{categories}}" wx:key="id">
+                <view wx:if="{{item.id == currentCategoryId}}" class="category-hero-inner">
+                  <text class="hero-name">{{item.name}}</text>
+                  <text class="hero-count accent-coral">{{total > 0 ? total : item.count}}</text>
+                  <text class="hero-suffix"> 道精选面试题</text>
+                </view>
+              </block>
+            </view>
+
+            <view wx:if="{{currentCategoryId}}" class="questions-section">
+              <view wx:if="{{currentQuestions.length > 0}}" class="questions-list-wrap">
+                <view wx:if="{{total > 0}}" class="list-subbar">
+                  <text class="list-subbar-text">本分类共 {{total}} 题</text>
+                </view>
+                <view class="questions-list">
+                  <block wx:for="{{currentQuestions}}" wx:key="id">
+                    <view class="question-item">
+                      <t-cell
+                        title="{{item.name}}"
+                        description="{{item.description}}"
+                        hover
+                        arrow
+                        bindtap="onQuestionClick"
                         data-id="{{item.id}}"
                       >
-                        <t-icon name="{{item.icon}}" class="item-icon"></t-icon>
-                        <text class="item-name">{{item.name}}</text>
-                        <text class="item-count">{{item.count}}</text>
-                      </view>
-                    </block>
-                    
-                    <!-- 二级分类为空时的提示 -->
-                    <view wx:if="{{secondaryCategories.length === 0}}" class="empty-categories">
-                      <text class="empty-text">暂无分类数据</text>
-                    </view>
-                  </view>
-                </view>
+                        <t-icon
+                          slot="left-icon"
+                          name="{{item.listIconName}}"
+                          size="32rpx"
+                          color="{{item.listIconColor}}"
+                          class="avatar"
+                        ></t-icon>
 
-                <!-- 内容展示区域 -->
-                <view class="content-area {{!showSecondarySidebar || isSidebarCollapsed ? 'full-width' : ''}}">
-                  <!-- 问题列表区域 -->
-                  <view wx:if="{{currentQuestions.length > 0}}" class="questions-list">
-                    <block wx:for="{{currentQuestions}}" wx:key="id">
-                      <view class="question-item">
-                        <t-cell 
-                          title="{{item.name}}" 
-                          description="{{item.description}}" 
-                          hover
-                          arrow
-                          bindtap="onQuestionClick"
-                          data-id="{{item.id}}"
-                        >
-                          <t-icon 
-                            slot="left-icon" 
-                            name="file" 
-                            size="32rpx" 
-                            color="var(--td-brand-color)"
-                            class="avatar"
-                          ></t-icon>
-                          
-                          <view slot="right-icon" class="question-meta">
-                            <text class="question-difficulty {{item.difficulty}}">
-                              {{item.difficulty === 'easy' ? '简单' : item.difficulty === 'medium' ? '中等' : '困难'}}
-                            </text>
-                          </view>
-                        </t-cell>
-                      </view>
-                    </block>
-                    
-                    <!-- 加载更多提示 -->
-                    <view wx:if="{{isLoadingMore}}" class="loading-more">
-                      <t-loading size="32rpx" text="正在加载更多..." />
+                        <view slot="right-icon" class="question-meta">
+                          <text class="question-difficulty {{item.difficulty}}">
+                            {{item.difficulty === 'easy' ? '简单' : item.difficulty === 'medium' ? '中等' : '困难'}}
+                          </text>
+                        </view>
+                      </t-cell>
                     </view>
-                    
-                    <view wx:if="{{!hasMore && currentQuestions.length > 0}}" class="no-more">
-                      <text>没有更多数据了</text>
-                    </view>
+                  </block>
+
+                  <view wx:if="{{isLoadingMore}}" class="loading-more">
+                    <t-loading size="32rpx" text="正在加载更多..." />
                   </view>
-                  
-                  <!-- 问题为空时的提示 -->
-                  <view wx:else class="empty-content">
-                    <t-icon name="image" size="120rpx" color="#ccc"></t-icon>
-                    <text class="empty-text">暂无内容</text>
+
+                  <view wx:if="{{!hasMore && currentQuestions.length > 0}}" class="no-more">
+                    <text>没有更多数据了</text>
                   </view>
                 </view>
               </view>
+
+              <view wx:else class="empty-content">
+                <t-icon name="info-circle-filled" size="120rpx" color="#e2e8f0" />
+                <text class="empty-title">暂无题目</text>
+                <text class="empty-text">该分类下还没有题目</text>
+              </view>
             </view>
-          </scroll-view>
-        </t-tab-panel>
-      </block>
-    </t-tabs>
+          </view>
+        </scroll-view>
+      </view>
+
+      <view wx:else class="category-page-layout category-page-layout--empty">
+        <view class="category-main category-main--only-empty">
+          <view class="empty-inline empty-inline--block">
+            <text class="empty-inline-title">暂无分类</text>
+            <text class="empty-inline-desc">请稍后再试</text>
+          </view>
+        </view>
+      </view>
+    </view>
   </view>
 </view>
 
-<float-release-button 
-  bind:onTap="onReleaseTap"
-/>
+<float-release-button bind:onTap="onReleaseTap" />
 <t-message id="t-message" />

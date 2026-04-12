@@ -2,28 +2,84 @@ import Message from 'tdesign-miniprogram/message';
 import { authApi } from '~/api/request/api_category';
 import { CategoryParams } from '~/api/param/param_category';
 import { QuestionParams } from '~/api/param/param_category';
-import { BusinessError } from '~/api/api_request';
 
 const app = getApp();
 
+/** 与 TDesign 图标名一致；可按后端 type 字段扩展 */
+const QUESTION_TYPE_ICON_MAP = {
+  coding: 'code',
+  code: 'code',
+  algorithm: 'chart-bubble',
+  network: 'wifi',
+  database: 'server',
+  system: 'system-sum',
+  frontend: 'logo-miniprogram',
+  backend: 'server',
+  devops: 'layers',
+  mobile: 'mobile',
+  interview: 'chat',
+  behavioral: 'user',
+  theory: 'book'
+};
+
+const DEFAULT_LIST_ICON_COLOR = 'var(--td-brand-color)';
+
+function normalizeDifficulty(d) {
+  if (d === 'easy' || d === 'EASY' || Number(d) === 1) return 'easy';
+  if (d === 'medium' || d === 'MEDIUM' || Number(d) === 2) return 'medium';
+  if (d === 'hard' || d === 'HARD' || Number(d) === 3) return 'hard';
+  return null;
+}
+
+/**
+ * 列表左侧图标：icon 字段 > type / questionType 映射 > 难度 > 默认 file
+ * @param {Record<string, any>} row
+ * @returns {{ name: string, color: string }}
+ */
+function resolveQuestionListIcon(row) {
+  const custom = (row.icon || '').toString().trim();
+  if (custom && /^[a-z0-9-]+$/i.test(custom)) {
+    return { name: custom, color: DEFAULT_LIST_ICON_COLOR };
+  }
+  const typeKey = (row.type || row.questionType || '')
+    .toString()
+    .trim()
+    .toLowerCase();
+  if (typeKey && QUESTION_TYPE_ICON_MAP[typeKey]) {
+    return { name: QUESTION_TYPE_ICON_MAP[typeKey], color: DEFAULT_LIST_ICON_COLOR };
+  }
+  const diff = normalizeDifficulty(row.difficulty ?? row.difficultyLevel);
+  if (diff === 'easy') {
+    return { name: 'check-circle-filled', color: '#05945c' };
+  }
+  if (diff === 'medium') {
+    return { name: 'chart-bubble', color: '#c65f16' };
+  }
+  if (diff === 'hard') {
+    return { name: 'error-circle-filled', color: '#c9362e' };
+  }
+  return { name: 'file', color: DEFAULT_LIST_ICON_COLOR };
+}
+
+function decorateQuestionRows(rows) {
+  return (rows || []).map((q) => {
+    const { name, color } = resolveQuestionListIcon(q);
+    return { ...q, listIconName: name, listIconColor: color };
+  });
+}
+
 Page({
   data: {
-    isSidebarCollapsed: false,
-    currentPrimary: null,
-    currentSecondary: null,
-    scrollLeft: 0,
-    primaryCategories: [],
-    secondaryCategories: [],
+    categories: [],
+    currentCategoryId: null,
     currentQuestions: [],
     navBarHeight: 90,
     enable: false,
     loading: false,
     lastRefreshTime: 0,
     needRefresh: false,
-    showSecondarySidebar: true,
     messageOffset: 100,
-    
-    // 分页相关数据
+
     page: 1,
     pageSize: 10,
     hasMore: true,
@@ -36,7 +92,7 @@ Page({
   onLoad() {
     console.log('页面加载开始');
     this.calculateNavBarHeight();
-    this.loadPrimaryCategories();
+    this.loadCategories();
 
     app.on('refreshQuestionBank', this.handleRefresh.bind(this));
   },
@@ -48,8 +104,8 @@ Page({
   handleRefresh() {
     console.log('收到刷新指令');
     this.setData({ needRefresh: true });
-    
-    if (this.data.currentPrimary) {
+
+    if (this.data.currentCategoryId) {
       this.refreshCurrentData();
     }
   },
@@ -57,36 +113,33 @@ Page({
   onShow() {
     console.log('页面显示');
     const now = Date.now();
-    const shouldRefresh = this.data.needRefresh || 
-                        (now - this.data.lastRefreshTime > 5 * 60 * 1000) ||
-                        !this.data.primaryCategories.length;
-    
-    if (shouldRefresh && this.data.currentPrimary) {
+    const shouldRefresh =
+      this.data.needRefresh ||
+      now - this.data.lastRefreshTime > 5 * 60 * 1000 ||
+      !this.data.categories.length;
+
+    if (shouldRefresh && this.data.currentCategoryId) {
       this.refreshCurrentData();
       this.setData({ needRefresh: false });
     }
   },
-  
+
   onHide() {
     console.log('页面隐藏');
     this.setData({
       lastRefreshTime: Date.now()
     });
   },
-  
+
   async refreshCurrentData() {
     console.log('刷新当前页面数据');
-    
+
     try {
       this.setData({ loading: true });
-      await this.loadSecondaryCategories();
-      
-      if (this.data.currentSecondary) {
-        // 刷新时重置分页
-        this.resetPagination();
-        await this.loadQuestions();
+      const ok = await this.loadCategories({ preserveSelection: true });
+      if (ok) {
+        this.showSuccessMessage('数据已更新');
       }
-      this.showSuccessMessage('数据已更新');
     } catch (error) {
       console.error('刷新数据失败:', error);
       this.showErrorMessage('刷新失败');
@@ -95,7 +148,6 @@ Page({
     }
   },
 
-  // 重置分页参数
   resetPagination() {
     this.setData({
       page: 1,
@@ -106,130 +158,119 @@ Page({
     });
   },
 
-  // 加载一级分类
-  async loadPrimaryCategories() {
-    try {
-      this.setData({ loading: true });
-      console.log('开始加载数据')
-      const categoryParams = new CategoryParams(null, 0)
-      categoryParams.sortField = 'sort_order'
-      categoryParams.order = 'asc'
-      const response = await authApi.getCategories(categoryParams);
-      console.log('一级分类：：', response);
-      const primaryCategories = response.data.rows;
-      this.setData({
-        primaryCategories: primaryCategories,
-        currentPrimary: primaryCategories[0]?.id || null
-      });
-      if (this.data.currentPrimary) {
-        await this.loadSecondaryCategories();
-      }
-    } catch (error) {
-      console.error('加载一级分类失败:', error);
-      this.showErrorMessage('网络错误，请重试');
-    } finally {
-      this.setData({ loading: false });
-    }
-  },
+  /**
+   * 加载单层分类（parentId = 0）
+   * @param {{ preserveSelection?: boolean }} [opts]
+   * @returns {Promise<boolean>}
+   */
+  async loadCategories(opts = {}) {
+    const preserveSelection = !!opts.preserveSelection;
 
-  // 加载二级分类
-  async loadSecondaryCategories() {
-    // 重置数据
-    this.setData({
-      secondaryCategories: [],
-      currentSecondary: null,
-      currentQuestions: [],
-      showSecondarySidebar: false
-    });
-    
-    if (!this.data.currentPrimary) return;
-    
     try {
-      const categoryParams = new CategoryParams(null, this.data.currentPrimary)
-      categoryParams.sortField = 'sort_order'
-      categoryParams.order = 'asc'
+      if (!preserveSelection) {
+        this.setData({ loading: true });
+      }
+
+      const categoryParams = new CategoryParams(null, 0);
+      categoryParams.sortField = 'sort_order';
+      categoryParams.order = 'asc';
       const response = await authApi.getCategories(categoryParams);
-      console.log('二级分类：：', response);
-      
-      if (response.code === "0000" && response.data) {
-        const secondaryCategories = response.data.rows;
-        const hasSecondaryCategories = secondaryCategories && secondaryCategories.length > 0;
-        
-        this.setData({
-          secondaryCategories: secondaryCategories,
-          currentSecondary: hasSecondaryCategories ? secondaryCategories[0]?.id : null,
-          showSecondarySidebar: hasSecondaryCategories
-        });
-        
-        // 重置分页
-        this.resetPagination();
-        
-        // 如果有二级分类，加载对应的问题
-        if (this.data.currentSecondary) {
-          await this.loadQuestions();
+      console.log('分类列表：', response);
+
+      const categories = response.data?.rows || [];
+      let currentCategoryId = this.data.currentCategoryId;
+
+      if (preserveSelection && currentCategoryId != null) {
+        const stillExists = categories.some((c) => c.id == currentCategoryId);
+        if (!stillExists) {
+          currentCategoryId = categories[0]?.id ?? null;
         }
       } else {
+        currentCategoryId = categories[0]?.id ?? null;
+      }
+
+      this.setData({
+        categories,
+        currentCategoryId
+      });
+
+      this.resetPagination();
+
+      if (currentCategoryId) {
+        await this.loadQuestions();
+      } else {
         this.setData({
-          secondaryCategories: [],
-          currentSecondary: null,
           currentQuestions: [],
-          showSecondarySidebar: false
+          total: 0,
+          hasMore: false
         });
       }
+
+      return true;
     } catch (error) {
-      console.error('加载二级分类失败:', error);
-      this.showErrorMessage('加载分类失败');
+      console.error('加载分类失败:', error);
+      this.showErrorMessage('网络错误，请重试');
       this.setData({
-        secondaryCategories: [],
-        currentSecondary: null,
+        categories: [],
+        currentCategoryId: null,
         currentQuestions: [],
-        showSecondarySidebar: false
+        total: 0,
+        hasMore: false
       });
+      return false;
+    } finally {
+      if (!preserveSelection) {
+        this.setData({ loading: false });
+      }
     }
   },
 
-  // 加载问题数据 - 支持分页
   async loadQuestions() {
-    if (!this.data.currentSecondary) {
+    if (!this.data.currentCategoryId) {
       this.setData({ currentQuestions: [] });
       return;
     }
-    
-    // 如果没有更多数据，直接返回
+
     if (!this.data.hasMore && this.data.page > 1) {
       return;
     }
-    
-    try {
-      const questionParams = new QuestionParams(null, this.data.currentSecondary, null)
-      questionParams.sortField = 'id'
-      questionParams.order = 'asc'
-      questionParams.page = this.data.page
-      questionParams.limit = this.data.pageSize
-      
-      const response = await authApi.getQuestions(questionParams);
-      console.log('问题列表：：', response);
 
-      if (response.code === "0000" && response.data) {
-        const newQuestions = response.data.rows || [];
+    try {
+      const questionParams = new QuestionParams(
+        null,
+        this.data.currentCategoryId,
+        null
+      );
+      questionParams.sortField = 'id';
+      questionParams.order = 'asc';
+      questionParams.page = this.data.page;
+      questionParams.limit = this.data.pageSize;
+
+      const response = await authApi.getQuestions(questionParams);
+      console.log('问题列表：', response);
+
+      if (response.code === '0000' && response.data) {
+        const rawRows = response.data.rows || [];
+        const newChunk = decorateQuestionRows(rawRows);
         const total = response.data.total || 0;
-        
-        // 如果是第一页，直接替换数据；否则追加数据
-        const currentQuestions = this.data.page === 1 
-          ? newQuestions 
-          : [...this.data.currentQuestions, ...newQuestions];
-        
-        // 计算是否还有更多数据
+
+        const currentQuestions =
+          this.data.page === 1
+            ? newChunk
+            : [...this.data.currentQuestions, ...newChunk];
+
         const hasMore = currentQuestions.length < total;
-        
+
         this.setData({
-          currentQuestions: currentQuestions,
-          total: total,
-          hasMore: hasMore,
+          currentQuestions,
+          total,
+          hasMore,
           isLoadingMore: false
         });
-        
-        console.log(`第${this.data.page}页加载完成，共${currentQuestions.length}条，总计${total}条，还有更多: ${hasMore}`);
+
+        console.log(
+          `第${this.data.page}页加载完成，共${currentQuestions.length}条，总计${total}条，还有更多: ${hasMore}`
+        );
       } else {
         this.setData({
           isLoadingMore: false
@@ -244,62 +285,43 @@ Page({
     }
   },
 
-  // 加载更多数据
   async loadMoreQuestions() {
     if (this.data.isLoadingMore || !this.data.hasMore) {
       return;
     }
-    
+
     this.setData({
       isLoadingMore: true
     });
-    
-    // 页码加1
+
     const nextPage = this.data.page + 1;
-    
+
     this.setData({
       page: nextPage
     });
-    
+
     await this.loadQuestions();
   },
 
-  // Tabs 切换事件
-  async onTabChange(e) {
-    const categoryId = parseInt(e.detail.value);
-    
-    // 重置数据
-    this.setData({
-      currentPrimary: categoryId,
-      secondaryCategories: [],
-      currentSecondary: null,
-      currentQuestions: [],
-      showSecondarySidebar: false
-    });
-    
-    await this.loadSecondaryCategories();
-    this.autoScrollToCurrent();
-  },
-
-  // 计算导航栏高度
   calculateNavBarHeight() {
     const systemInfo = wx.getSystemInfoSync();
     const menuButtonInfo = wx.getMenuButtonBoundingClientRect();
-    
-    const navBarHeight = (menuButtonInfo.top - systemInfo.statusBarHeight) * 2 + menuButtonInfo.height;
-    
+
+    const navBarHeight =
+      (menuButtonInfo.top - systemInfo.statusBarHeight) * 2 +
+      menuButtonInfo.height;
+
     const messageOffset = navBarHeight + 60;
     console.log('messageOffset:', messageOffset);
     this.setData({
       navBarHeight: navBarHeight,
       messageOffset: messageOffset
     });
-    
+
     wx.setStorageSync('navBarHeight', navBarHeight + 'rpx');
     wx.setStorageSync('statusBarHeight', systemInfo.statusBarHeight + 'px');
   },
 
-  // 显示错误消息的统一方法
   showErrorMessage(content) {
     Message.error({
       content: content,
@@ -308,7 +330,6 @@ Page({
     });
   },
 
-  // 显示成功消息的统一方法
   showSuccessMessage(content) {
     Message.success({
       content: content,
@@ -317,81 +338,34 @@ Page({
     });
   },
 
-  // 切换一级分类
-  async switchPrimaryCategory(e) {
-    const categoryId = e.currentTarget.dataset.id;
-    
-    // 重置数据
+  async switchCategory(e) {
+    const raw = e.currentTarget.dataset.id;
+    const categoryId =
+      typeof raw === 'number' ? raw : parseInt(String(raw), 10);
+    if (Number.isNaN(categoryId) || categoryId == this.data.currentCategoryId) {
+      return;
+    }
+
     this.setData({
-      currentPrimary: categoryId,
-      secondaryCategories: [],
-      currentSecondary: null,
-      currentQuestions: [],
-      showSecondarySidebar: false
+      currentCategoryId: categoryId
     });
-    
-    await this.loadSecondaryCategories();
-    this.autoScrollToCurrent();
-  },
 
-  // 自动滚动到当前选中的分类
-  autoScrollToCurrent() {
-    this.setData({ scrollLeft: 0 });
-    
-    setTimeout(() => {
-      const query = wx.createSelectorQuery();
-      query.select('.category-item.active').boundingClientRect();
-      query.select('.categories-scroll').boundingClientRect();
-      query.exec((res) => {
-        if (res[0] && res[1]) {
-          const activeItem = res[0];
-          const scrollView = res[1];
-          const scrollLeft = activeItem.left - scrollView.left + (activeItem.width - scrollView.width) / 2;
-          
-          this.setData({
-            scrollLeft: Math.max(0, scrollLeft)
-          });
-        }
-      });
-    }, 100);
-  },
-
-  // 切换二级分类
-  async switchSecondaryCategory(e) {
-    const categoryId = e.currentTarget.dataset.id;
-    
-    // 重置分页
     this.resetPagination();
-    
-    this.setData({
-      currentSecondary: categoryId
-    });
-    
     await this.loadQuestions();
   },
 
-  // 切换侧边栏收起状态
-  toggleSidebar() {
-    this.setData({
-      isSidebarCollapsed: !this.data.isSidebarCollapsed
-    });
-  },
-
-  // 图片预览
   previewImage(e) {
     const url = e.currentTarget.dataset.url;
-    const images = this.data.currentQuestions.map(item => item.url);
-    
+    const images = this.data.currentQuestions.map((item) => item.url);
+
     wx.previewImage({
       urls: images,
       current: url
     });
   },
 
-  // 下拉刷新
   async onRefresh() {
     try {
-      // 重置分页
       this.resetPagination();
       await this.loadQuestions();
       this.showSuccessMessage('刷新成功');
@@ -402,19 +376,17 @@ Page({
     }
   },
 
-  // 页面滚动事件 - 实现滚动到底部加载更多
   onPageScroll(e) {
     this.setData({
-      scrollTop: e.scrollTop
+      scrollTop: e.detail.scrollTop
     });
-    
-    // 防抖处理，避免频繁触发
+
     if (this.data.isScrolling) return;
-    
+
     this.setData({
       isScrolling: true
     });
-    
+
     setTimeout(() => {
       this.setData({
         isScrolling: false
@@ -422,44 +394,40 @@ Page({
     }, 300);
   },
 
-  // 监听页面滚动到底部
   onReachBottom() {
     console.log('滚动到底部，触发加载更多');
     this.loadMoreQuestions();
   },
 
-  // 发布
   goRelease() {
     wx.navigateTo({
       url: '/pages/release/release'
     });
   },
 
-  // 点击问题
   onQuestionClick(e) {
-    const categoryId = e.currentTarget.dataset.id;
-    const category = this.data.currentQuestions.find(item => item.id === categoryId);
-    
-    console.log('点击问题:', category);
-    
+    const qid = e.currentTarget.dataset.id;
+    const row = this.data.currentQuestions.find((item) => item.id == qid);
+    if (!row) {
+      return;
+    }
+
+    console.log('点击问题:', row);
+
     wx.navigateTo({
-      url: `/pages/question/index?categoryId=${categoryId}&categoryName=${category.name}`
+      url: `/pages/question/index?categoryId=${qid}&categoryName=${row.name}`
     });
   },
 
-  onReleaseTap: function() {
-    console.log('在这里调用 app.js 中的方法')
-    // 在这里调用 app.js 中的方法
-    // 跳转到问题详情页面
+  onReleaseTap: function () {
     app.navigateToLogin({
       url: `/pages/publish/index`,
-      fail: function(res) {
-        console.log('跳转失败', res)
+      fail: function (res) {
+        console.log('跳转失败', res);
       }
     });
   },
 
-  // 监听页面滚动到底部（备选方案）
   onScrollToLower() {
     console.log('滚动到底部');
     this.loadMoreQuestions();

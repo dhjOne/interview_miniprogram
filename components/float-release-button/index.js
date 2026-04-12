@@ -1,51 +1,57 @@
+const STORAGE_KEY = 'float_release_fab_fixed_v1';
+
+function getWindowMetrics() {
+  if (wx.getWindowInfo) {
+    return wx.getWindowInfo();
+  }
+  const s = wx.getSystemInfoSync();
+  return {
+    windowWidth: s.windowWidth,
+    windowHeight: s.windowHeight
+  };
+}
+
 Component({
   properties: {
-    // 自定义样式类
     customClass: {
       type: String,
       value: ''
     },
-    // 自定义样式
     customStyle: {
       type: String,
       value: ''
     },
-    // 按钮主题
     buttonTheme: {
       type: String,
       value: 'primary'
     },
-    // 按钮大小
     buttonSize: {
       type: String,
       value: 'large'
     },
-    // 按钮图标
     buttonIcon: {
       type: String,
       value: 'add'
     },
-    // 按钮形状
     buttonShape: {
       type: String,
       value: 'round'
     },
-    // 按钮文字
     buttonText: {
       type: String,
       value: '发布'
     },
-    // 是否显示
     showButton: {
       type: Boolean,
-      value: true
+      value: true,
+      observer(newVal) {
+        this.setData({ innerShow: newVal !== false });
+      }
     },
-    // 页面路径（可选，用于跳转）
     pagePath: {
       type: String,
       value: ''
     },
-    // 跳转类型（navigateTo, redirectTo, switchTab, reLaunch）
     navigateType: {
       type: String,
       value: 'navigateTo'
@@ -53,57 +59,196 @@ Component({
   },
 
   data: {
-    // 这里可以放内部数据
+    innerShow: true,
+    fabReady: false,
+    winW: 375,
+    winH: 667,
+    fabLeft: 0,
+    fabTop: 0,
+    viewW: 130,
+    viewH: 48
+  },
+
+  lifetimes: {
+    attached() {
+      this.setData({ innerShow: this.properties.showButton !== false });
+      this._dragSession = null;
+      this._dragMoved = false;
+      wx.nextTick(() => {
+        this._initLayout();
+      });
+    }
+  },
+
+  pageLifetimes: {
+    show() {
+      if (!this.data.fabReady) {
+        wx.nextTick(() => {
+          this._initLayout();
+        });
+      }
+    }
   },
 
   methods: {
-    // 按钮点击事件
-    handleTap() {
-      const { pagePath, navigateType } = this.properties;
-      
-      // 触发自定义事件，让父组件处理
+    _rpxToPx(rpx, windowWidth) {
+      return (rpx * windowWidth) / 750;
+    },
+
+    _clamp(n, min, max) {
+      return Math.max(min, Math.min(max, n));
+    },
+
+    _initLayout() {
+      const win = getWindowMetrics();
+      let w = Number(win.windowWidth) || 0;
+      let h = Number(win.windowHeight) || 0;
+
+      if (w < 50 || h < 50) {
+        const s = wx.getSystemInfoSync();
+        w = Number(s.windowWidth) || 375;
+        h = Number(s.windowHeight) || 667;
+      }
+
+      const rpx = (n) => this._rpxToPx(n, w);
+
+      const viewW = Math.max(120, Math.ceil(rpx(204)));
+      const viewH = Math.max(48, Math.ceil(rpx(88)));
+      const marginR = Math.ceil(rpx(24));
+      const marginB = Math.ceil(rpx(200));
+
+      let fabLeft = Math.round(w - viewW - marginR);
+      let fabTop = Math.round(h - viewH - marginB);
+
+      try {
+        const saved = wx.getStorageSync(STORAGE_KEY);
+        if (
+          saved &&
+          typeof saved.left === 'number' &&
+          typeof saved.top === 'number' &&
+          typeof saved.w === 'number' &&
+          typeof saved.h === 'number'
+        ) {
+          const sameSize =
+            Math.abs(saved.w - viewW) < 12 && Math.abs(saved.h - viewH) < 12;
+          if (sameSize) {
+            fabLeft = this._clamp(
+              Math.round(saved.left),
+              0,
+              Math.max(0, w - viewW)
+            );
+            fabTop = this._clamp(
+              Math.round(saved.top),
+              0,
+              Math.max(0, h - viewH)
+            );
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      this.setData({
+        fabReady: true,
+        winW: w,
+        winH: h,
+        viewW,
+        viewH,
+        fabLeft,
+        fabTop
+      });
+    },
+
+    onDragStart(e) {
+      const t = e.touches && e.touches[0];
+      if (!t) return;
+      this._dragMoved = false;
+      this._dragSession = {
+        startX: t.clientX,
+        startY: t.clientY,
+        originLeft: this.data.fabLeft,
+        originTop: this.data.fabTop
+      };
+    },
+
+    onDragMove(e) {
+      if (!this._dragSession) return;
+      const t = e.touches && e.touches[0];
+      if (!t) return;
+      const dx = t.clientX - this._dragSession.startX;
+      const dy = t.clientY - this._dragSession.startY;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+        this._dragMoved = true;
+      }
+      const { winW, winH, viewW, viewH } = this.data;
+      const left = this._clamp(
+        Math.round(this._dragSession.originLeft + dx),
+        0,
+        Math.max(0, winW - viewW)
+      );
+      const top = this._clamp(
+        Math.round(this._dragSession.originTop + dy),
+        0,
+        Math.max(0, winH - viewH)
+      );
+      this.setData({ fabLeft: left, fabTop: top });
+    },
+
+    onDragEnd() {
+      const session = this._dragSession;
+      this._dragSession = null;
+      if (!session) return;
+
+      if (this._dragMoved) {
+        try {
+          wx.setStorageSync(STORAGE_KEY, {
+            left: this.data.fabLeft,
+            top: this.data.fabTop,
+            w: this.data.viewW,
+            h: this.data.viewH
+          });
+        } catch (err) {
+          // ignore
+        }
+        return;
+      }
+
+      this._emitTap();
+    },
+
+    _emitTap() {
       this.triggerEvent('onTap');
-      
-      // 如果有页面路径，则自动跳转
+      const { pagePath } = this.properties;
       if (pagePath) {
         this.navigateToPage();
       }
     },
-    
-    // 页面跳转方法
+
     navigateToPage() {
       const { pagePath, navigateType } = this.properties;
-      
       if (!pagePath) return;
-      
-      // 根据跳转类型执行不同的跳转
       const navigatorMap = {
         navigateTo: wx.navigateTo,
         redirectTo: wx.redirectTo,
         switchTab: wx.switchTab,
         reLaunch: wx.reLaunch
       };
-      
       const navigate = navigatorMap[navigateType] || wx.navigateTo;
-      
       navigate({
         url: pagePath,
         fail: (err) => {
           console.error('跳转失败:', err);
-          // 跳转失败时也触发事件
           this.triggerEvent('onError', { error: err });
         }
       });
     },
-    
-    // 外部可以调用的方法：显示按钮
+
     show() {
-      this.setData({ showButton: true });
+      this.setData({ innerShow: true });
     },
-    
-    // 外部可以调用的方法：隐藏按钮
+
     hide() {
-      this.setData({ showButton: false });
+      this.setData({ innerShow: false });
     }
   }
 });

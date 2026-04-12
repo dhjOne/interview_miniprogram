@@ -2,8 +2,6 @@
   "navigationStyle": "custom",
   "onReachBottomDistance": 50,
   "usingComponents": {
-    "t-tabs": "tdesign-miniprogram/tabs/tabs",
-    "t-tab-panel": "tdesign-miniprogram/tab-panel/tab-panel",
     "t-swiper": "tdesign-miniprogram/swiper/swiper",
     "t-swiper-nav": "tdesign-miniprogram/swiper-nav/swiper-nav",
     "t-pull-down-refresh": "tdesign-miniprogram/pull-down-refresh/pull-down-refresh",

@@ -1,25 +1,32 @@
 @import '/variable.less';
 
-@home-tab-item-height: 96rpx;
-
 .home-container {
   height: calc(100vh - @tab-bar-height);
 
   .home-content {
     height: calc(100% - @nav-bar-height);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    box-sizing: border-box;
   }
 
-  .t-tabs {
-    --td-tab-item-tag-height: @home-tab-item-height;
-    --td-tab-font-size: @font-size-small;
-    width: 100%;
+  .loading-container {
+    flex: 1;
+    min-height: 0;
     height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-    &__content {
-      height: calc(100% - @home-tab-item-height);
-      overflow: auto;
-      background-color: @bg-color;
-    }
+  .home-category-body {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
   }
 
   .home-card-list {
@@ -262,8 +269,11 @@
 }
 
 .tab-content {
-  height: 100%;
-  
+  /* 在 scroll-view 内不能用 height:100% 锁死高度，否则内容无法超过一屏、无法滚动 */
+  height: auto;
+  min-height: 100%;
+  box-sizing: border-box;
+
   .primary-categories {
     background: white;
     border-bottom: 1rpx solid #eee;
@@ -271,10 +281,11 @@
     top: 0;
     z-index: 999;
   }
-  
+
   .main-content {
     display: flex;
-    height: 100%;
+    height: auto;
+    min-height: 100%;
   }
 }
 
@@ -426,11 +437,438 @@ scroll-view {
   -webkit-overflow-scrolling: touch;
 }
 
-// 确保内容区域高度正确
-.tab-content {
+/* ========= 仅视觉优化：与整站绿色统一，不改 WXML/JS 与滚动逻辑 ========= */
+@cat-brand: #07c160;
+
+.home-container {
+  background: linear-gradient(165deg, #f0f3f8 0%, #e8edf4 48%, #eef1f6 100%);
+  --td-brand-color: @cat-brand;
+}
+
+.sidebar {
+  border-radius: 16rpx;
+  border-right: none;
+  margin: 12rpx 0 12rpx 12rpx;
+  box-shadow: 0 2rpx 16rpx rgba(15, 23, 42, 0.06);
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+}
+
+.sidebar-header {
+  border-bottom-color: #f0f2f5;
+}
+
+.collapse-icon {
+  color: @cat-brand;
+}
+
+.sidebar-title {
+  color: #0f172a;
+}
+
+.secondary-item {
+  margin: 0 10rpx 8rpx;
+  border-radius: 12rpx;
+}
+
+.secondary-item.active {
+  background: rgba(7, 193, 96, 0.1);
+  border-right: 4rpx solid @cat-brand;
+}
+
+.secondary-item.active .item-name,
+.secondary-item.active .item-icon {
+  color: #047857;
+}
+
+.secondary-item.active .item-count {
+  background: @cat-brand;
+  color: #fff;
+}
+
+.content-area {
+  padding: 20rpx 20rpx 24rpx 12rpx;
+}
+
+.content-area.full-width {
+  padding: 20rpx 24rpx;
+}
+
+.questions-list {
+  border-radius: 20rpx;
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 4rpx 18rpx rgba(15, 23, 42, 0.06);
+}
+
+.question-item .t-cell__title {
+  color: #0f172a;
+}
+
+.question-item .t-cell__description {
+  color: #64748b;
+}
+
+.question-difficulty.easy {
+  background: rgba(7, 193, 96, 0.12);
+  color: #05945c;
+}
+
+.question-difficulty.medium {
+  background: rgba(237, 123, 47, 0.14);
+  color: #c65f16;
+}
+
+.question-difficulty.hard {
+  background: rgba(213, 73, 65, 0.12);
+  color: #c9362e;
+}
+
+.empty-content {
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
+}
+
+.loading-more,
+.no-more {
+  color: #94a3b8;
+}
+
+/* ========= 布局与样式继续优化（列表区结构见 WXML） ========= */
+
+.questions-list-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.list-subbar {
+  display: flex;
+  align-items: center;
+}
+
+.list-subbar-text {
+  font-size: 22rpx;
+  color: #64748b;
+  padding: 8rpx 20rpx;
+  background: #fff;
+  border-radius: 999rpx;
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 2rpx 8rpx rgba(15, 23, 42, 0.04);
+}
+
+/* 每条题目独立卡片，列表容器不再用大白底框死 */
+.questions-list-wrap .questions-list {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  overflow: visible;
+}
+
+.questions-list-wrap .question-item {
+  margin-bottom: 0;
+  border-bottom: none;
+  border-radius: 20rpx;
+  overflow: hidden;
+  background: #fff;
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 4rpx 16rpx rgba(15, 23, 42, 0.05);
+}
+
+.questions-list-wrap .question-item .t-cell {
+  padding: 28rpx 24rpx;
+}
+
+.questions-list-wrap .question-item .t-cell__title {
+  font-size: 30rpx;
+  line-height: 1.4;
+}
+
+.questions-list-wrap .question-item .avatar {
+  padding: 12rpx;
+  background: #f1f5f9;
+  border-radius: 14rpx;
+}
+
+.empty-content .t-icon {
+  margin-bottom: 12rpx;
+}
+
+.empty-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #475569;
+  margin-top: 0;
+}
+
+.empty-content .empty-text {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #94a3b8;
+}
+
+.loading-container {
+  min-height: 45vh;
+}
+
+.no-more {
+  border-top: none;
+  padding-top: 24rpx;
+  padding-bottom: 48rpx;
+}
+
+.loading-more {
+  padding-top: 24rpx;
+  padding-bottom: 32rpx;
+}
+
+/* ========= 分类页：左栏 + 右栏滚动（视觉精修） ========= */
+@coral-accent: #ef4444;
+@category-page-bg: transparent;
+@rail-muted: #64748b;
+
+.category-page-layout {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
   height: 100%;
-  
-  .main-content {
-    min-height: calc(100vh - 200rpx); // 确保有足够高度触发滚动
-  }
+  background: @category-page-bg;
+}
+
+.category-page-layout--empty {
+  align-items: stretch;
+}
+
+.category-rail {
+  width: 176rpx;
+  flex-shrink: 0;
+  height: 100%;
+  align-self: stretch;
+  padding: 20rpx 10rpx 24rpx 14rpx;
+  box-sizing: border-box;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(241, 245, 249, 0.85) 100%);
+  border-right: 1rpx solid rgba(15, 23, 42, 0.06);
+}
+
+.category-main-scroll {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  box-sizing: border-box;
+  background: rgba(247, 249, 252, 0.45);
+}
+
+.category-main--only-empty {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24rpx;
+  box-sizing: border-box;
+}
+
+.category-rail-item {
+  padding: 20rpx 12rpx;
+  margin: 0 0 10rpx;
+  border-radius: 16rpx;
+  text-align: center;
+  box-sizing: border-box;
+  border: 1rpx solid transparent;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.category-rail-item--hover {
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.category-rail-text {
+  font-size: 26rpx;
+  color: @rail-muted;
+  line-height: 1.45;
+  letter-spacing: 0.02em;
+}
+
+.category-rail-item.is-active {
+  background: #fff;
+  border-color: rgba(7, 193, 96, 0.28);
+  box-shadow:
+    inset 5rpx 0 0 0 @cat-brand,
+    0 4rpx 18rpx rgba(15, 23, 42, 0.07),
+    0 0 0 1rpx rgba(255, 255, 255, 0.9) inset;
+}
+
+.category-rail-item.is-active .category-rail-text {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.category-page-layout .category-main:only-child {
+  flex: 1;
+  width: 100%;
+}
+
+.category-main {
+  flex: 1;
+  min-width: 0;
+  padding: 16rpx 22rpx 0 18rpx;
+  padding-bottom: calc(32rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.category-hero {
+  margin-bottom: 24rpx;
+  padding: 26rpx 24rpx 28rpx;
+  background: linear-gradient(135deg, #ffffff 0%, #fafbfc 55%, #f4fcf8 100%);
+  border-radius: 24rpx;
+  border: 1rpx solid rgba(15, 23, 42, 0.05);
+  box-shadow: 0 8rpx 32rpx rgba(15, 23, 42, 0.06), 0 1rpx 0 rgba(255, 255, 255, 0.9) inset;
+  box-sizing: border-box;
+}
+
+.category-hero-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  line-height: 1.5;
+  gap: 4rpx 8rpx;
+}
+
+.hero-name {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.hero-count {
+  font-size: 34rpx;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.hero-suffix {
+  font-size: 26rpx;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.accent-coral {
+  color: @coral-accent;
+}
+
+.questions-section {
+  margin-top: 2rpx;
+}
+
+.empty-inline {
+  padding: 40rpx 24rpx;
+  text-align: center;
+}
+
+.empty-inline--block {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 24rpx;
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 6rpx 28rpx rgba(15, 23, 42, 0.06);
+  padding: 48rpx 32rpx;
+  box-sizing: border-box;
+}
+
+.empty-inline-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #334155;
+  letter-spacing: -0.02em;
+}
+
+.empty-inline-desc {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.empty-inline-text {
+  font-size: 26rpx;
+  color: #94a3b8;
+}
+
+/* 列表区：间距与卡片层次 */
+.questions-list-wrap {
+  gap: 20rpx;
+}
+
+.list-subbar-text {
+  font-size: 24rpx;
+  color: #64748b;
+  padding: 10rpx 22rpx;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 999rpx;
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 2rpx 12rpx rgba(15, 23, 42, 0.04);
+}
+
+.questions-list-wrap .question-item {
+  border-radius: 22rpx;
+  border: 1rpx solid rgba(15, 23, 42, 0.05);
+  box-shadow: 0 4rpx 22rpx rgba(15, 23, 42, 0.055), 0 1rpx 0 rgba(255, 255, 255, 0.85) inset;
+}
+
+.questions-list-wrap .question-item .t-cell {
+  padding: 30rpx 26rpx;
+}
+
+.questions-list-wrap .question-item .t-cell__title {
+  font-size: 30rpx;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.questions-list-wrap .question-item .avatar {
+  padding: 14rpx;
+  border-radius: 16rpx;
+  background: linear-gradient(145deg, #f1f5f9 0%, #e8f0f6 100%);
+}
+
+.questions-list-wrap .question-difficulty {
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  padding: 6rpx 18rpx;
+  font-weight: 600;
+}
+
+.questions-section .empty-content {
+  height: auto;
+  min-height: 320rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 6rpx 28rpx rgba(15, 23, 42, 0.05);
+  padding: 48rpx 32rpx;
+  box-sizing: border-box;
+}
+
+.questions-section .empty-content .t-icon {
+  margin-bottom: 16rpx;
+  opacity: 0.9;
+}
+
+.loading-more {
+  padding-top: 28rpx;
+  padding-bottom: 40rpx;
+}
+
+.no-more {
+  padding-top: 28rpx;
+  padding-bottom: 56rpx;
+  font-size: 24rpx;
+  color: #94a3b8;
 }

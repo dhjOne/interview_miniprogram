@@ -1,14 +1,17 @@
-<view class="float-release-button {{customClass}}" style="{{customStyle}}">
-  <t-button 
-    theme="{{buttonTheme || 'primary'}}" 
-    size="{{buttonSize || 'large'}}" 
-    icon="{{buttonIcon || 'add'}}" 
-    shape="{{buttonShape || 'round'}}" 
-    bindtap="handleTap"
-  >
-    {{buttonText || '发布'}}
-  </t-button>
-
- 
-
+<view
+  wx:if="{{innerShow && fabReady}}"
+  class="fab-root {{customClass}}"
+  style="left: {{fabLeft}}px; top: {{fabTop}}px; width: {{viewW}}px; height: {{viewH}}px; {{customStyle}}"
+  bindtouchstart="onDragStart"
+  catchtouchmove="onDragMove"
+  bindtouchend="onDragEnd"
+  bindtouchcancel="onDragEnd"
+>
+  <view class="fab-inner">
+    <view class="fab-icon-slot">
+      <text class="fab-icon-char">+</text>
+    </view>
+    <view class="fab-divider" aria-hidden="true" />
+    <text class="fab-text">{{buttonText || '发布'}}</text>
+  </view>
 </view>

@@ -24,6 +24,8 @@ class Request {
     this.baseUrl = config.baseUrl
     this.apiPrefix = config.apiPrefix || '/api'
     this.successCode = config.successCode || '0000' // 成功的业务码
+    /** 避免并发 401 多次触发跳转登录 */
+    this._unauthorizedRedirecting = false
   }
   /**
    * 发送请求
@@ -246,51 +248,82 @@ class Request {
 
   // 处理未授权（token过期）
   _handleUnauthorized() {
+    if (this._unauthorizedRedirecting) return
+    this._unauthorizedRedirecting = true
     console.log("处理未授权（token过期）")
-    // 清除token
     try {
       wx.removeStorageSync('access_token')
       wx.removeStorageSync('refresh_token')
+      wx.removeStorageSync('user_info')
     } catch (error) {
-      console.error('清除token失败:', error)
+      console.error('清除登录态失败:', error)
     }
-    
-    // 获取当前页面信息用于返回
+
+    try {
+      const app = getApp()
+      if (app && app.globalData) {
+        app.globalData.userInfo = null
+        app.globalData.token = null
+      }
+    } catch (e) {
+      // ignore
+    }
+
     const pages = getCurrentPages()
     const currentPage = pages[pages.length - 1]
     let returnUrl = ''
-    
+
     if (currentPage) {
       const route = currentPage.route
-      const options = currentPage.options
-      const params = Object.keys(options).map(key => `${key}=${options[key]}`).join('&')
+      const options = currentPage.options || {}
+      const params = Object.keys(options)
+        .map((key) => `${key}=${options[key]}`)
+        .join('&')
       returnUrl = `/${route}${params ? '?' + params : ''}`
-      
-      // 存储返回URL
+
       try {
         wx.setStorageSync('return_url', returnUrl)
       } catch (error) {
         console.error('存储返回URL失败:', error)
       }
     }
-    
-    // 延迟显示弹窗，确保存储操作完成
-    setTimeout(() => {
-      wx.showModal({
-        title: '提示',
-        content: '登录已过期，请重新登录',
-        showCancel: false,
-        confirmText: '去登录',
-        success: (res) => {
-          if (res.confirm) {
-            // 跳转到登录页，携带来源信息
-            wx.redirectTo({
-              url: `/pages/login/login?from=token_expired${returnUrl ? '&return=' + encodeURIComponent(returnUrl) : ''}`
-            })
-          }
+
+    let referrerQ = ''
+    try {
+      const app = getApp()
+      const ref =
+        app && typeof app.getCurrentPagePath === 'function'
+          ? app.getCurrentPagePath()
+          : returnUrl
+      if (ref) {
+        referrerQ = '&referrer=' + encodeURIComponent(ref)
+        try {
+          wx.setStorageSync('login_referrer', ref)
+        } catch (err) {
+          // ignore
         }
-      })
-    }, 300)
+      }
+    } catch (e) {
+      if (returnUrl) {
+        referrerQ = '&referrer=' + encodeURIComponent(returnUrl)
+        try {
+          wx.setStorageSync('login_referrer', returnUrl)
+        } catch (err) {
+          // ignore
+        }
+      }
+    }
+
+    const loginUrl = `/pages/login/login?from=token_expired${referrerQ}${
+      returnUrl ? '&return=' + encodeURIComponent(returnUrl) : ''
+    }`
+    wx.redirectTo({
+      url: loginUrl,
+      fail: () => {
+        this._unauthorizedRedirecting = false
+        wx.reLaunch({ url: loginUrl })
+      }
+    })
   }
 
 

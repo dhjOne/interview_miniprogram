@@ -24,17 +24,7 @@ Component({
   },
   lifetimes: {
     ready() {
-      const pages = getCurrentPages();
-      const curPage = pages[pages.length - 1];
-      if (curPage) {
-        const nameRe = /pages\/(\w+)\/index/.exec(curPage.route);
-        if (nameRe === null) return;
-        if (nameRe[1] && nameRe) {
-          this.setData({
-            value: nameRe[1],
-          });
-        }
-      }
+      this.syncValueFromRoute();
 
       // 同步全局未读消息数量
       this.setUnreadNum(app.globalData.unreadNum);
@@ -43,7 +33,28 @@ Component({
       });
     },
   },
+
+  /** 宿主 Tab 页每次显示时同步高亮，避免从登录等页 reLaunch/switchTab 后仍停在「题库」态 */
+  pageLifetimes: {
+    show() {
+      this.syncValueFromRoute();
+    },
+  },
   methods: {
+    syncValueFromRoute() {
+      const pages = getCurrentPages();
+      const curPage = pages[pages.length - 1];
+      if (!curPage || !curPage.route) return;
+      const nameRe = /pages\/(\w+)\/index/.exec(curPage.route);
+      if (!nameRe || !nameRe[1]) return;
+      const name = nameRe[1];
+      const allowed = ['category', 'release', 'my', 'home', 'message'];
+      if (!allowed.includes(name)) return;
+      if (name !== this.data.value) {
+        this.setData({ value: name });
+      }
+    },
+
     handleChange(e) {
       const { value } = e.detail;
       wx.switchTab({ url: `/pages/${value}/index` });

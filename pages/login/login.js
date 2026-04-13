@@ -2,6 +2,15 @@ import { authApi } from '~/api/request/api_login';
 import { LoginParams } from '~/api/param/param_login'
 import { WxLoginParams } from '~/api/param/param_login'
 
+/** 与 app.json tabBar 一致，用于 switchTab / 非 Tab 用 reLaunch */
+const LOGIN_TAB_ROOTS = [
+  '/pages/home/index',
+  '/pages/category/index',
+  '/pages/message/index',
+  '/pages/my/index',
+  '/pages/release/index'
+];
+
 Page({
   data: {
     phoneNumber: '',
@@ -22,45 +31,59 @@ Page({
     wxLoginCode: '', // 存储 wx.login 的 code
     isGettingUserInfo: false, // 是否正在获取用户信息
     from: '', // 来源页面标识
-    returnUrl: '' // 返回页面路径
+    returnUrl: '', // 登录成功后要去的页面（目标）
+    referrerUrl: '' // 进入登录前所在页，用于左上角「返回」
   },
 
   onLoad(options) {
-    console.log('登录页面参数:', options);
-    
-    // 绑定方法上下文，确保this始终指向页面实例
-    // this.wxLogin = this.wxLogin.bind(this);
-    
-    // 设置页面数据
+    let referrerUrl = options.referrer || '';
+    if (referrerUrl && referrerUrl.includes('%')) {
+      try {
+        referrerUrl = decodeURIComponent(referrerUrl);
+      } catch (e) {
+        // 保持原值
+      }
+    }
+    if (referrerUrl) {
+      try {
+        wx.removeStorageSync('login_referrer');
+      } catch (e) {
+        // ignore
+      }
+    } else {
+      try {
+        const storedRef = wx.getStorageSync('login_referrer');
+        if (storedRef) {
+          referrerUrl = storedRef;
+          wx.removeStorageSync('login_referrer');
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
     this.setData({
       from: options.from || '',
-      returnUrl: options.return || ''
+      returnUrl: options.return || '',
+      referrerUrl
     });
-    
-    // 如果没有通过参数传递returnUrl，尝试从storage获取
+
     if (!this.data.returnUrl) {
       try {
         const storedReturnUrl = wx.getStorageSync('return_url');
         if (storedReturnUrl) {
           this.setData({ returnUrl: storedReturnUrl });
-          console.log('从storage获取返回URL:', storedReturnUrl);
         }
       } catch (error) {
         console.error('获取存储的返回URL失败:', error);
       }
     }
-    
-    // 检查微信getUserProfile能力
+
     if (wx.getUserProfile) {
       this.setData({
         canIUseGetUserProfile: true
       });
     }
-    
-    console.log('登录页面初始化完成:', {
-      from: this.data.from,
-      returnUrl: this.data.returnUrl
-    });
   },
 
   /* 自定义功能函数 */
@@ -156,45 +179,52 @@ Page({
   // 处理登录成功后的跳转
   async handleLoginSuccess(result) {
     try {
-      console.log(" this.data", this.data)
       const { from, returnUrl } = this.data;
-      console.log(" from, returnUrl", from, returnUrl)
-      // 清除存储的返回URL
-      // try {
-      //   wx.removeStorageSync('return_url');
-      // } catch (error) {
-      //   console.error('清除返回URL失败:', error);
-      // }
-      
-      // 设置用户信息到全局
+      try {
+        wx.removeStorageSync('login_referrer');
+      } catch (e) {
+        // ignore
+      }
+
       const app = getApp();
       if (result.data.userInfo) {
         app.setUserInfo(result.data.userInfo);
       }
-      const token = wx.getStorageSync('access_token')
-     console.log('login22:::::', token)
-      
+
       wx.showToast({
         title: '登录成功',
         icon: 'success',
         duration: 1500
       });
-      
-      // 延迟跳转，确保Toast显示完整
+
       setTimeout(() => {
         if (returnUrl && (from === 'token_expired' || from === 'unauthorized')) {
-          console.log('🔙 登录成功，返回原页面:', returnUrl);
-          
-          // 使用 redirectTo 返回原页面
-          const decodedUrl = decodeURIComponent(returnUrl);
-          console.log('解码后的URL:', decodedUrl);
-          wx.redirectTo({
-            url: decodedUrl
-          });
+          let decodedUrl = returnUrl;
+          if (decodedUrl.includes('%')) {
+            try {
+              decodedUrl = decodeURIComponent(decodedUrl);
+            } catch (e) {
+              // 保持原值
+            }
+          }
+          const base = decodedUrl.split('?')[0];
+          if (LOGIN_TAB_ROOTS.includes(base)) {
+            wx.reLaunch({
+              url: base,
+              fail: () => wx.switchTab({ url: base })
+            });
+          } else {
+            wx.reLaunch({
+              url: decodedUrl,
+              fail: () => {
+                wx.redirectTo({ url: decodedUrl });
+              }
+            });
+          }
         } else {
-          // 默认跳转到我的页面
-          wx.switchTab({
-            url: '/pages/my/index'
+          wx.reLaunch({
+            url: '/pages/my/index',
+            fail: () => wx.switchTab({ url: '/pages/my/index' })
           });
         }
       }, 300);
@@ -383,20 +413,74 @@ Page({
     }
   },
 
-  // 返回上一页（可选功能）
+  // 返回：优先 referrer（进入登录前所在页）；非 Tab 用 reLaunch，避免 redirectTo 先露出栈里下一层页面
   goBack() {
-    const { from, returnUrl } = this.data;
-    
-    if (returnUrl && (from === 'token_expired' || from === 'unauthorized')) {
-      // 如果有返回URL，跳转回去
-      wx.redirectTo({
-        url: returnUrl
-      });
-    } else {
-      // 否则返回上一页或首页
-      wx.navigateBack({
-        delta: 1
-      });
+    const { referrerUrl, from, returnUrl: rawReturn } = this.data;
+    let returnUrl = rawReturn || '';
+    if (returnUrl && returnUrl.includes('%')) {
+      try {
+        returnUrl = decodeURIComponent(returnUrl);
+      } catch (e) {
+        // 保持原值
+      }
     }
+
+    const openPath = (path) => {
+      if (!path || !String(path).trim()) return false;
+      const clean = String(path).trim();
+      const base = clean.split('?')[0];
+      console.log('base:', base)
+      if (LOGIN_TAB_ROOTS.includes(base)) {
+        // 从分包登录页 switchTab 时，运行时可能先经过 app.json 里 pages 靠前的 Tab，易闪「题库」；优先 reLaunch 直达目标 Tab
+        wx.reLaunch({
+          url: base,
+          fail: () => {
+            wx.switchTab({
+              url: base,
+              fail: () => this._loginGoBackLastResort()
+            });
+          }
+        });
+        return true;
+      }
+      wx.reLaunch({
+        url: clean,
+        fail: () => {
+          wx.redirectTo({
+            url: clean,
+            fail: () => {
+              wx.navigateTo({
+                url: clean,
+                fail: () => this._loginGoBackLastResort()
+              });
+            }
+          });
+        }
+      });
+      return true;
+    };
+
+    if (referrerUrl) {
+      console.log('执行这个： ',referrerUrl)
+      openPath(referrerUrl);
+      return;
+    }
+
+    wx.navigateBack({
+      delta: 1,
+      fail: () => {
+        if (returnUrl && (from === 'token_expired' || from === 'unauthorized')) {
+          openPath(returnUrl);
+        } else {
+          this._loginGoBackLastResort();
+        }
+      }
+    });
+  },
+
+  _loginGoBackLastResort() {
+    wx.switchTab({
+      url: '/pages/home/index'
+    });
   }
 });

@@ -126,6 +126,33 @@ App({
     return !!(token && userInfo);
   },
 
+  /** 当前页完整路径（含 query），用于登录页「返回」回到进入登录前的页面，与 return（登录后要去的目标）区分 */
+  getCurrentPagePath() {
+    const pages = getCurrentPages();
+    const cur = pages[pages.length - 1];
+    if (!cur) return '';
+    const route = cur.route || '';
+    const opts = cur.options || {};
+    const q = Object.keys(opts)
+      .map((k) => `${k}=${opts[k]}`)
+      .join('&');
+    const path = route.startsWith('/') ? route : `/${route}`;
+    return `${path}${q ? '?' + q : ''}`;
+  },
+
+  _loginUrlWithReferrer(extraQuery) {
+    const ref = this.getCurrentPagePath();
+    if (ref) {
+      try {
+        wx.setStorageSync('login_referrer', ref);
+      } catch (e) {
+        // ignore
+      }
+    }
+    const refQ = ref ? `&referrer=${encodeURIComponent(ref)}` : '';
+    return `/pages/login/login?from=token_expired${refQ}${extraQuery || ''}`;
+  },
+
    // 统一跳转方法
    navigateToWithAuth(options) {
     const { url, success, fail, complete } = options;
@@ -140,9 +167,9 @@ App({
         confirmText: '去登录',
         success: (res) => {
           if (res.confirm) {
-            // 跳转到登录页，携带来源信息
+            const retQ = url ? `&return=${encodeURIComponent(url)}` : '';
             wx.redirectTo({
-              url: `/pages/login/login?from=token_expired${url ? '&return=' + encodeURIComponent(url) : ''}`
+              url: this._loginUrlWithReferrer(retQ)
             })
           }
         }
@@ -163,14 +190,11 @@ App({
   },
   // 不检查，直接跳转登陆
   navigateToLogin(options) {
-    console.log('开始跳转')
-   
     const { url, success, fail, complete } = options;
     if (!this.checkLoginStatus()) {
-      // 跳转到登录页，携带来源信息
-      console.log('跳转到登录页，携带来源信息')
+      const retQ = url ? `&return=${encodeURIComponent(url)}` : '';
       wx.redirectTo({
-        url: `/pages/login/login?from=token_expired${url ? '&return=' + encodeURIComponent(url) : ''}`
+        url: this._loginUrlWithReferrer(retQ)
       })
       return;
     }

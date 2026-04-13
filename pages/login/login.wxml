@@ -1,9 +1,13 @@
-<t-navbar left-arrow />
+<t-navbar fixed="{{true}}">
+  <view slot="left" class="login-nav-back" catchtap="goBack" aria-role="button" aria-label="返回">
+    <t-icon name="chevron-left" size="44rpx" />
+  </view>
+</t-navbar>
 <view class="page login">
    <!-- 新增 header 容器，实现文字+logo 水平排列 -->
    <view class="login__header">
     <view class="login__logo">
-      <image src="/static/login/login.jpg" mode="widthFix" class="logo-img"></image>
+      <image src="/static/login/login.jpg" mode="widthFix" class="logo-img" />
     </view>
   </view>
   <view class="login__content">

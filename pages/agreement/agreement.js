@@ -16,7 +16,7 @@ Page({
     })
   },
 
-  // 复选框状态改变
+  // 复选框 / 整行点击切换
   onCheckboxChange() {
     this.setData({
       isAgreed: !this.data.isAgreed
@@ -41,27 +41,33 @@ Page({
     wx.setStorageSync('agreementAgreedTime', new Date().getTime())
 
     wx.showToast({
-      title: '协议已同意',
+      title: '已同意',
       icon: 'success',
-      duration: 1500,
+      duration: 900,
       success: () => {
         setTimeout(() => {
           const pages = getCurrentPages()
           const prevPage = pages[pages.length - 2]
-          if (prevPage && prevPage.updateAgreementStatus) {
+          if (this.data.fromPage === 'login') {
+            try {
+              wx.setStorageSync('login_sync_agreement', '1')
+            } catch (e) {
+              // ignore
+            }
+          }
+          if (prevPage && typeof prevPage.updateAgreementStatus === 'function') {
             prevPage.updateAgreementStatus('agree')
           }
-          // 返回上一页或跳转到首页
           if (this.data.fromPage === 'login') {
             wx.navigateBack()
           } else {
             wx.switchTab({
-              url: '/pages/index/index'
+              url: '/pages/home/index'
             })
           }
-        }, 1500)
+        }, 500)
       }
-    })                    
+    })
   },
 
   // 不同意协议

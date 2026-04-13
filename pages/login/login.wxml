@@ -1,16 +1,24 @@
-<t-navbar fixed="{{true}}">
+<t-navbar fixed="{{true}}" t-class="login-navbar" t-class-left="login-navbar-left">
   <view slot="left" class="login-nav-back" catchtap="goBack" aria-role="button" aria-label="返回">
-    <t-icon name="chevron-left" size="44rpx" />
+    <t-icon name="chevron-left" size="40rpx" color="rgba(0,0,0,0.78)" />
   </view>
 </t-navbar>
+
 <view class="page login">
-   <!-- 新增 header 容器，实现文字+logo 水平排列 -->
-   <view class="login__header">
-    <view class="login__logo">
-      <image src="/static/login/login.jpg" mode="widthFix" class="logo-img" />
+  <view class="login__hero">
+    <view class="login__brand-mark" aria-hidden="true">
+      <view class="login__brand-pill" />
+    </view>
+    <view class="login__brand-block">
+      <text class="login__brand-name">面试胶囊</text>
+      <text class="login__brand-welcome">欢迎登录</text>
+      <text class="login__brand-desc">用手机号验证，安全进入你的学习与面试记录</text>
     </view>
   </view>
-  <view class="login__content">
+
+  <view class="login__sheet">
+    <view class="login__sheet-title">{{ isPasswordLogin ? '账号密码' : '手机号登录' }}</view>
+
     <view class="login__input">
       <view class="login__password" wx:if="{{isPasswordLogin}}">
         <t-input
@@ -18,7 +26,7 @@
           placeholder="请输入手机号/邮箱"
           value="{{passwordInfo.username}}"
           bindchange="onAccountChange"
-        ></t-input>
+        />
         <t-input
           label="密码"
           placeholder="请输入密码"
@@ -29,56 +37,60 @@
         />
       </view>
 
-      <t-input wx:else value="{{phoneNumber}}" placeholder="请输入手机号" type="number" bindchange="onPhoneInput">
-        <view slot="label" class="input-label">
-          <text>+86</text>
-          <t-icon name="caret-down-small" size="40rpx" class="input-iconl"></t-icon>
-        </view>
-      </t-input>
+      <view wx:else class="login__phone-wrap">
+        <t-input
+          value="{{phoneNumber}}"
+          placeholder="请输入手机号"
+          type="number"
+          maxlength="11"
+          bindchange="onPhoneInput"
+        >
+          <view slot="label" class="input-label">
+            <text class="input-label__cc">+86</text>
+            <t-icon name="caret-down-small" size="36rpx" class="input-iconl" />
+          </view>
+        </t-input>
+      </view>
     </view>
 
     <view class="login__tips">未注册的手机号验证通过后将自动注册</view>
 
-    <view class="agreement-section">
-      <view class="agreement-wrapper">
-        <t-radio-group allow-uncheck borderless value="{{radioValue}}" bind:change="onCheckChange">
-          <t-radio label="同意" value="agree" t-class="radio-class" t-class-icon="radio-class-icon" t-class-label="radio-class-label" />
+    <view class="login__agree">
+      <view class="login__agree-row">
+        <t-radio-group
+          allow-uncheck
+          borderless
+          value="{{radioValue}}"
+          bind:change="onCheckChange"
+          t-class="login-agree-radio-group"
+        >
+          <t-radio
+            value="agree"
+            label="阅读并同意"
+            t-class="login-agree-radio"
+            t-class-icon="login-agree-radio-icon"
+            t-class-label="login-agree-radio-label"
+          />
         </t-radio-group>
-        <text class="agreement-link-text" bindtap="viewUserAgreement">《协议条款》</text>
+        <text class="login__agree-doc" catchtap="viewUserAgreement">《协议条款》</text>
       </view>
     </view>
 
-
-
     <view class="login__button">
-      <t-button theme="primary" size="large" block disabled="{{!isSubmit}}" bindtap="prepareWxLogin">
+      <t-button theme="primary" size="large" block disabled="{{!isSubmit}}" bindtap="login">
         {{ isPasswordLogin ? '登录' : '一键登录' }}
       </t-button>
     </view>
 
     <view class="login__password--forget" wx:if="{{isPasswordLogin}}">
-      <text>忘记密码？</text>
+      <text class="login__forget-txt">忘记密码？</text>
       <t-link theme="primary" size="small">找回密码</t-link>
     </view>
-  </view>
 
-  <!-- <view class="login__others">
-    <text class="login__others-label">其他方式</text>
-    <view class="login__others-buttons">
-      <t-button class="button" variant="outline" theme="default" size="medium" shape="round" bindtap="changeLogin">
-        {{isPasswordLogin ? '验证码登录' : '密码登录' }}
-      </t-button>
-      <t-button
-        class="button"
-        variant="outline"
-        theme="default"
-        size="medium"
-        icon="logo-wechat-stroke"
-        shape="circle"
-        bindtap="wxLogin"
-      ></t-button>
- 
+    <view class="login__mode-switch">
+      <text class="login__mode-link" bindtap="changeLogin">
+        {{ isPasswordLogin ? '使用手机号一键登录' : '使用账号密码登录' }}
+      </text>
     </view>
-  </view> -->
-
+  </view>
 </view>

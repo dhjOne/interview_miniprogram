@@ -1,43 +1,136 @@
+@login-brand: #2047c9;
+@login-brand-dark: #183899;
+@login-page-bg: #f3f5f9;
+@login-text: rgba(0, 0, 0, 0.88);
+@login-muted: rgba(0, 0, 0, 0.45);
+
+.page.login {
+  min-height: 100vh;
+  box-sizing: border-box;
+  background: @login-page-bg;
+  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
+}
+
+.login-navbar {
+  --td-navbar-bg-color: transparent;
+}
+
+/* 导航左侧区域：与状态栏/胶囊按钮对齐，避免贴边、贴顶 */
+.login-navbar-left {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  padding-left: 12rpx !important;
+  box-sizing: border-box;
+}
+
 .login {
-  // 新增：header 容器（水平排列标题和 logo）
-  &__header {
+  &__hero {
+    /* 整体下移：原 24rpx 顶距过紧，与导航区拉开 */
+    padding: 72rpx 40rpx 44rpx;
+    margin-top: 12rpx;
     display: flex;
-    align-items: center; // 文字和 logo 垂直居中对齐
-    justify-content: flex-start; // 从左到右排列
-    padding: 46rpx 32rpx 40rpx; // 复用原有标题的上下内边距，保持页面间距一致
-  }
-
-  // 原有 title 样式修改：去掉右侧内边距，添加与 logo 的间距
-  &__title {
-    color: rgba(0, 0, 0, 0.9);
-    font-size: 56rpx;
-    font-weight: 600;
-    line-height: 72rpx;
-    padding: 0; // 去掉原有上下左右内边距（移到 header 上）
-    margin-right: 24rpx; // 标题与 logo 之间的间距，可按需调整
-  }
-
-  // 新增：logo 容器（控制 logo 位置）
-  &__logo {
-    display: flex;
+    flex-direction: row;
     align-items: center;
+    gap: 28rpx;
+  }
+
+  /* 首版品牌化：纯 CSS 竖向胶囊条（无图片） */
+  &__brand-mark {
+    flex-shrink: 0;
+    padding-top: 0;
+    align-self: center;
+  }
+
+  &__brand-pill {
+    width: 88rpx;
+    height: 112rpx;
+    border-radius: 44rpx;
+    background: linear-gradient(165deg, #4a7df0 0%, @login-brand 48%, @login-brand-dark 100%);
+    box-shadow: 0 10rpx 28rpx rgba(32, 71, 201, 0.28);
+    position: relative;
+    overflow: hidden;
+  }
+
+  &__brand-pill::after {
+    content: '';
+    position: absolute;
+    left: 18%;
+    right: 18%;
+    top: 22%;
+    bottom: 38%;
+    border-radius: 20rpx;
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  &__brand-block {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12rpx;
+    padding-top: 0;
     justify-content: center;
   }
 
-  // 原有 logo-img 样式调整（放大 logo，保持比例）
-  .logo-img {
-    width: 700rpx; // 比原来放大40rpx，按需调整（越大越醒目）
-    height: auto;
-    object-fit: contain; // 强制保持 logo 宽高比，不拉伸变形
+  &__brand-name {
+    font-size: 52rpx;
+    font-weight: 700;
+    color: @login-text;
+    letter-spacing: 2rpx;
+    line-height: 1.2;
   }
 
-  // 以下是你原有样式，保持不变...
+  &__brand-welcome {
+    font-size: 30rpx;
+    font-weight: 500;
+    color: @login-muted;
+    line-height: 1.4;
+  }
+
+  &__brand-desc {
+    font-size: 24rpx;
+    color: rgba(0, 0, 0, 0.38);
+    line-height: 38rpx;
+  }
+
+  &__sheet {
+    margin: 20rpx 28rpx 0;
+    padding: 36rpx 28rpx 40rpx;
+    background: #fff;
+    border-radius: 24rpx;
+    box-shadow: 0 4rpx 32rpx rgba(0, 0, 0, 0.06);
+    border: 1rpx solid rgba(0, 0, 0, 0.04);
+  }
+
+  &__sheet-title {
+    font-size: 30rpx;
+    font-weight: 600;
+    color: @login-text;
+    margin-bottom: 28rpx;
+    padding-bottom: 20rpx;
+    border-bottom: 1rpx solid #eef0f4;
+  }
+
   &__input {
     .input-label {
       display: flex;
-      padding-right: 32rpx;
+      align-items: center;
+      padding-right: 24rpx;
       box-sizing: border-box;
-      border-right: 1rpx solid #e7e7e7;
+      border-right: 1rpx solid #e8eaed;
+    }
+
+    .input-label__cc {
+      font-size: 30rpx;
+      font-weight: 500;
+      color: @login-text;
+    }
+
+    .input-iconl {
+      margin-left: 4rpx;
+      color: rgba(0, 0, 0, 0.35);
     }
 
     .input-icon {
@@ -45,25 +138,62 @@
     }
   }
 
+  &__phone-wrap {
+    border-radius: 12rpx;
+    overflow: hidden;
+    background: #f7f8fa;
+  }
+
   &__tips {
     color: rgba(0, 0, 0, 0.4);
     font-size: 24rpx;
-    font-style: normal;
-    font-weight: 400;
-    line-height: 40rpx;
-    margin: 24rpx 32rpx 32rpx;
+    line-height: 38rpx;
+    margin-top: 20rpx;
+    margin-bottom: 8rpx;
   }
 
   &__button {
-    margin: 0 32rpx;
+    margin-top: 28rpx;
   }
 
   &__password--forget {
     display: flex;
-    font-size: 24rpx;
     align-items: center;
-    margin: 32rpx;
+    justify-content: center;
+    margin-top: 24rpx;
+    font-size: 24rpx;
     line-height: 40rpx;
+    gap: 8rpx;
+  }
+
+  &__forget-txt {
+    color: rgba(0, 0, 0, 0.4);
+  }
+
+  &__mode-switch {
+    margin-top: 32rpx;
+    padding-top: 24rpx;
+    border-top: 1rpx solid #f0f2f6;
+    text-align: center;
+  }
+
+  &__mode-link {
+    font-size: 26rpx;
+    color: @login-brand;
+    font-weight: 500;
+  }
+
+  &__mode-link:active {
+    opacity: 0.65;
+  }
+
+  &__title {
+    color: @login-text;
+    font-size: 56rpx;
+    font-weight: 600;
+    line-height: 72rpx;
+    padding: 0;
+    margin-right: 24rpx;
   }
 
   &__others {
@@ -96,55 +226,77 @@
     }
   }
 
-  // 覆盖组件样式
-  .radio-class {
-    --td-radio-icon-size: 32rpx;
-    --td-radio-label-line-height: 40rpx;
-
-    align-items: center;
+  /* 协议区：与白色表单区一体，顶部分割线 + 行内排版，不再使用灰底块 */
+  &__agree {
+    margin-top: 28rpx;
+    padding-top: 28rpx;
+    border-top: 1rpx solid #eef0f4;
   }
 
-  .radio-class-icon {
-    margin-top: 0 !important;
-  }
-
-  .radio-class-label {
-    margin-left: 8rpx !important;
-    font-size: 24rpx !important;
-    line-height: 40rpx !important;
-  }
-
-  .agreement-section {
-    margin: 0 0 20rpx 0;
-    padding: 0rpx;
-    background-color: #ffffff;
-    border-radius: 16rpx;
-  }
-  
-  .agreement-wrapper {
+  &__agree-row {
     display: flex;
+    flex-direction: row;
     align-items: center;
-    font-size: 28rpx;
+    flex-wrap: wrap;
+    gap: 0 8rpx;
   }
 
-  .agreement-link-text {
-    color: #2047c9;
-    text-decoration: underline;
+  &__agree-doc {
+    font-size: 26rpx;
+    line-height: 40rpx;
+    color: @login-brand;
+    font-weight: 500;
+    padding: 8rpx 4rpx;
+    margin-left: 2rpx;
   }
-  
-  .agreement-link-text:active {
-    opacity: 0.7;
+
+  &__agree-doc:active {
+    opacity: 0.65;
   }
 }
 
-/* 自定义导航栏返回区（slot），与内容区 .login 同级 */
+/* TDesign 单选：与表单区风格统一 */
+.login-agree-radio-group {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.login-agree-radio {
+  --td-radio-icon-size: 36rpx;
+  --td-radio-label-line-height: 40rpx;
+  align-items: center;
+}
+
+.login-agree-radio-icon {
+  margin-top: 0 !important;
+}
+
+.login-agree-radio-label {
+  margin-left: 10rpx !important;
+  font-size: 26rpx !important;
+  line-height: 40rpx !important;
+  color: rgba(0, 0, 0, 0.62) !important;
+  font-weight: 400 !important;
+}
+
 .login-nav-back {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 88rpx;
-  min-height: 64rpx;
-  padding: 0 16rpx;
-  margin-left: 8rpx;
+  width: 76rpx;
+  height: 76rpx;
+  min-width: 76rpx;
+  min-height: 76rpx;
+  padding: 0;
+  margin: 0;
   box-sizing: border-box;
+  border-radius: 38rpx;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1rpx solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
+}
+
+.login-nav-back:active {
+  opacity: 0.82;
 }

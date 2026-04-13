@@ -168,8 +168,12 @@ App({
         success: (res) => {
           if (res.confirm) {
             const retQ = url ? `&return=${encodeURIComponent(url)}` : '';
-            wx.redirectTo({
-              url: this._loginUrlWithReferrer(retQ)
+            const loginUrl = this._loginUrlWithReferrer(retQ)
+            wx.navigateTo({
+              url: loginUrl,
+              fail: () => {
+                wx.redirectTo({ url: loginUrl })
+              }
             })
           }
         }
@@ -193,8 +197,12 @@ App({
     const { url, success, fail, complete } = options;
     if (!this.checkLoginStatus()) {
       const retQ = url ? `&return=${encodeURIComponent(url)}` : '';
-      wx.redirectTo({
-        url: this._loginUrlWithReferrer(retQ)
+      const loginUrl = this._loginUrlWithReferrer(retQ)
+      wx.navigateTo({
+        url: loginUrl,
+        fail: () => {
+          wx.redirectTo({ url: loginUrl })
+        }
       })
       return;
     }

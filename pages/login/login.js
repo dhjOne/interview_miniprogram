@@ -86,6 +86,17 @@ Page({
     }
   },
 
+  onShow() {
+    try {
+      if (wx.getStorageSync('login_sync_agreement')) {
+        wx.removeStorageSync('login_sync_agreement');
+        this.updateAgreementStatus('agree');
+      }
+    } catch (e) {
+      // ignore
+    }
+  },
+
   /* 自定义功能函数 */
   changeSubmit() {
     if (this.data.isPasswordLogin) {
@@ -133,7 +144,10 @@ Page({
 
   // 切换登录方式
   changeLogin() {
-    this.setData({ isPasswordLogin: !this.data.isPasswordLogin, isSubmit: false });
+    this.setData(
+      { isPasswordLogin: !this.data.isPasswordLogin, isSubmit: false },
+      () => this.changeSubmit()
+    );
   },
 
   async login() {
@@ -207,24 +221,39 @@ Page({
               // 保持原值
             }
           }
-          const base = decodedUrl.split('?')[0];
+          let openUrl = decodedUrl.trim();
+          if (!openUrl.startsWith('/')) {
+            openUrl = `/${openUrl}`;
+          }
+          const base = openUrl.split('?')[0];
           if (LOGIN_TAB_ROOTS.includes(base)) {
-            wx.reLaunch({
-              url: base,
-              fail: () => wx.switchTab({ url: base })
-            });
+            wx.switchTab({ url: base });
           } else {
-            wx.reLaunch({
-              url: decodedUrl,
+            // 先关掉登录页再 navigateTo 目标页，栈为「来源页 → 发布管理」，原生导航为返回，不会出现「小房子」
+            wx.navigateBack({
+              delta: 1,
+              success: () => {
+                wx.navigateTo({
+                  url: openUrl,
+                  fail: () => {
+                    wx.redirectTo({
+                      url: openUrl,
+                      fail: () => wx.reLaunch({ url: openUrl })
+                    });
+                  }
+                });
+              },
               fail: () => {
-                wx.redirectTo({ url: decodedUrl });
+                wx.redirectTo({
+                  url: openUrl,
+                  fail: () => wx.reLaunch({ url: openUrl })
+                });
               }
             });
           }
         } else {
-          wx.reLaunch({
-            url: '/pages/my/index',
-            fail: () => wx.switchTab({ url: '/pages/my/index' })
+          wx.switchTab({
+            url: '/pages/my/index'
           });
         }
       }, 300);
@@ -260,10 +289,16 @@ Page({
     });
   },
 
+  /** 协议页同意后回调：需同步 radio + isCheck，否则返回登录页仍显示未勾选且无法提交 */
   updateAgreementStatus(value) {
-    this.setData({
-      radioValue: value
-    });
+    const agreed = value === 'agree';
+    this.setData(
+      {
+        radioValue: agreed ? 'agree' : '',
+        isCheck: agreed
+      },
+      () => this.changeSubmit()
+    );
   },
 
   // 准备微信登录：获取 code

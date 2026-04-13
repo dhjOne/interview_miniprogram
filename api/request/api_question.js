@@ -89,7 +89,20 @@ export const authApi = {
       return http.get('/repository/publish/doc/categories', null, {
         showLoading: false
       })
+    },
+
+    /** 发布管理-文档详情（编辑 / 预览） */
+    getPublishDocDetail: (id) => {
+      return http.get(`/repository/publish/doc/${encodeURIComponent(id)}`, null, {
+        showLoading: false
+      })
+    },
+
+    /** 发布管理-删除文档 */
+    deletePublishDoc: (id) => {
+      return http.delete(`/repository/publish/doc/${encodeURIComponent(id)}`, null, {
+        showLoading: true,
+        loadingText: '删除中…'
+      })
     }
-
-
 }

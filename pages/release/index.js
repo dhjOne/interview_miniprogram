@@ -28,14 +28,8 @@ Page({
     canUndo: false,
     canRedo: false,
     
-    // 分类选项
-    categories: [
-      { id: 1 , name: '技术文档' },
-      { id: 2, name: '使用教程' },
-      { id: 3, name: 'API文档' },
-      { id: 4, name: '开发指南' },
-      { id: 5, name: '其他文档' }
-    ],
+    // 分类选项（接口 getPublishDocCategories）
+    categories: [],
     
     // towxml 渲染数据
     renderedContent: null,
@@ -62,15 +56,176 @@ Page({
     editorLineCount: 1,
     
     // 记录插入操作
-    insertOperations: []
+    insertOperations: [],
+
+    /** 从发布管理「编辑」进入时携带的文档 id（tab 页用本地 storage 传递） */
+    editDocId: null
   },
 
-  onLoad() {
+  async onLoad() {
+    await this.loadCategoriesFromApi();
+    const sid = wx.getStorageSync('release_edit_doc_id');
+    if (sid) {
+      wx.removeStorageSync('release_edit_doc_id');
+      this.setData({ editDocId: String(sid) });
+      await this.loadDocForEdit(String(sid));
+      return;
+    }
     this.initEditor();
+  },
+
+  onShow() {
+    const sid = wx.getStorageSync('release_edit_doc_id');
+    if (!sid) return;
+    wx.removeStorageSync('release_edit_doc_id');
+    this.loadCategoriesFromApi().then(async () => {
+      this.setData({ editDocId: String(sid) });
+      await this.loadDocForEdit(String(sid));
+    });
+  },
+
+  _unwrapPublishDetail(res) {
+    if (!res || typeof res !== 'object') return {};
+    const d = res.data !== undefined ? res.data : res;
+    if (d && typeof d === 'object' && d.data !== undefined && d.title === undefined && d.content === undefined) {
+      return d.data || {};
+    }
+    return d;
+  },
+
+  _normalizeCategoryList(res) {
+    if (Array.isArray(res)) return res;
+    const d = res && typeof res === 'object' ? res.data : undefined;
+    if (Array.isArray(d)) return d;
+    if (Array.isArray(d?.data)) return d.data;
+    if (Array.isArray(d?.list)) return d.list;
+    if (Array.isArray(d?.rows)) return d.rows;
+    if (Array.isArray(d?.records)) return d.records;
+    if (Array.isArray(d?.items)) return d.items;
+    if (Array.isArray(d?.categories)) return d.categories;
+    if (Array.isArray(res?.list)) return res.list;
+    return [];
+  },
+
+  _buildCategoryTreeNodes(list) {
+    if (!list || !list.length) return [];
+    const nodes = {};
+    list.forEach((raw) => {
+      const id = raw.id;
+      if (id === undefined || id === null) return;
+      nodes[id] = {
+        id,
+        name: raw.name || '未命名',
+        parentId: raw.parentId,
+        children: []
+      };
+    });
+    const isRootParentId = (pid) => {
+      if (pid === undefined || pid === null || pid === '') return true;
+      const s = String(pid).trim().toLowerCase();
+      return s === '0' || s === '-1' || s === 'null';
+    };
+    const roots = [];
+    list.forEach((raw) => {
+      const id = raw.id;
+      if (id === undefined || id === null) return;
+      const node = nodes[id];
+      const pid = raw.parentId;
+      const hasParent = !isRootParentId(pid) && nodes[pid];
+      const parent = hasParent ? nodes[pid] : null;
+      if (parent) parent.children.push(node);
+      else roots.push(node);
+    });
+    const sortName = (a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'zh-Hans-CN');
+    const sortDeep = (arr) => {
+      arr.sort(sortName);
+      arr.forEach((n) => {
+        if (n.children.length) sortDeep(n.children);
+      });
+    };
+    sortDeep(roots);
+    return roots;
+  },
+
+  _buildCategoryOptionsForTags(list) {
+    const opts = [];
+    if (!list || !list.length) return opts;
+    const roots = this._buildCategoryTreeNodes(list);
+    const walk = (nodes, pathPrefix) => {
+      nodes.forEach((n) => {
+        const label = pathPrefix ? `${pathPrefix} / ${n.name}` : n.name;
+        opts.push({ id: n.id, name: label });
+        if (n.children && n.children.length) {
+          walk(n.children, pathPrefix ? `${pathPrefix} / ${n.name}` : n.name);
+        }
+      });
+    };
+    walk(roots, '');
+    return opts;
+  },
+
+  async loadCategoriesFromApi() {
+    try {
+      const res = await authApi.getPublishDocCategories();
+      const list = this._normalizeCategoryList(res);
+      const categories = this._buildCategoryOptionsForTags(list);
+      if (categories.length) {
+        this.setData({ categories });
+      }
+    } catch (e) {
+      console.error('loadCategoriesFromApi', e);
+    }
+  },
+
+  async loadDocForEdit(id) {
+    wx.showLoading({ title: '加载文档…', mask: true });
+    try {
+      const res = await authApi.getPublishDocDetail(id);
+      const row = this._unwrapPublishDetail(res);
+      const title = row.title || '';
+      const content = row.content || row.markdownContent || '';
+      const categoryId = row.categoryId ?? row.category_id ?? '';
+      let categoryName = row.categoryName || row.category_name || '';
+      const previewFullContent =
+        row.previewFullContent || row.preview_full_content || '';
+
+      const categories = this.data.categories || [];
+      if (!categoryName && categoryId && categories.length) {
+        const c = categories.find((x) => String(x.id) === String(categoryId));
+        categoryName = c ? c.name : '';
+      }
+
+      this.setData(
+        {
+          docTitle: title,
+          markdownContent: content,
+          selectedCategory: categoryId,
+          previewFullContent,
+          categoryName,
+          wordCount: (content || '').length,
+          contentHistory: [content],
+          historyIndex: 0,
+          canUndo: false,
+          canRedo: false,
+          lastInsertType: ''
+        },
+        () => {
+          this.updatePreviewContent();
+        }
+      );
+      wx.setNavigationBarTitle({ title: '编辑文档' });
+    } catch (e) {
+      console.error(e);
+      wx.showToast({ title: e?.message || '加载失败', icon: 'none' });
+      this.setData({ editDocId: null });
+    } finally {
+      wx.hideLoading();
+    }
   },
 
   // 初始化编辑器
   initEditor() {
+    wx.setNavigationBarTitle({ title: '发布文档' });
     // 尝试从草稿中恢复
     this.loadDraft();
     
@@ -190,7 +345,9 @@ Page({
   selectCategory(e) {
     const categoryId = e.currentTarget.dataset.id;
     const categories = this.data.categories;
-    const selectedCategory = categories.find(item => item.id === categoryId);
+    const selectedCategory = categories.find(
+      (item) => String(item.id) === String(categoryId)
+    );
     const categoryName = selectedCategory ? selectedCategory.name : '';
     
     this.setData({
@@ -707,7 +864,9 @@ Page({
       // 获取分类名称
       let categoryName = '';
       if (draft.selectedCategory) {
-        const selectedCat = this.data.categories.find(item => item.id === draft.selectedCategory);
+        const selectedCat = this.data.categories.find(
+          (item) => String(item.id) === String(draft.selectedCategory)
+        );
         categoryName = selectedCat ? selectedCat.name : '';
       }
       
@@ -789,43 +948,43 @@ Page({
     });
   },
 
-  // 确认发布
-  confirmPublish() {
+  // 确认发布 / 保存编辑
+  async confirmPublish() {
     this.setData({
       showConfirmDialog: false,
       isPublishing: true
     });
 
+    wx.showLoading({
+      title: this.data.editDocId ? '保存中…' : '发布中…',
+      mask: true
+    });
+
     try {
-      const documentData = {
-        title: this.data.docTitle,
-        content: this.data.markdownContent,
-        category: this.data.selectedCategory,
-        categoryName: this.data.categoryName,
-        images: this.data.images,
-        previewFullContent: this.data.previewFullContent,
-        createTime: new Date().toISOString(),
-        wordCount: this.data.wordCount
-      };
-    
-      console.log('发布文档数据:', documentData);
+      const previewFullContent = this.buildFullPreviewContent();
+      this.setData({ previewFullContent });
       const publishParams = new QuestionPublishParams(
         this.data.docTitle,
         this.data.selectedCategory,
         this.data.markdownContent,
-        this.data.previewFullContent
+        previewFullContent,
+        this.data.editDocId
       );
-      const response = authApi.publishQuestion(publishParams);
-      if (response.code === "0000") {
-        // 清空草稿
+      const response = await authApi.publishQuestion(publishParams);
+      if (response && response.code === '0000') {
         wx.removeStorageSync('markdown_draft');
         wx.showToast({
-          title: '文档发布成功！',
+          title: this.data.editDocId ? '保存成功' : '发布成功',
           icon: 'success',
-          duration: 2000
+          duration: 1800
         });
 
-        // 重置表单
+        if (this.data.editDocId) {
+          this.setData({ isPublishing: false, editDocId: null });
+          wx.redirectTo({ url: '/pages/document/index' });
+          return;
+        }
+
         this.setData({
           docTitle: '',
           markdownContent: '',
@@ -844,22 +1003,22 @@ Page({
           editorScrollTop: 0,
           editorAutoScroll: false
         });
-
-        // todo 跳转问题详情
-
-
-
       } else {
-        Message.error({
-          content: response.message || '操作失败',
+        wx.showToast({
+          title: (response && response.message) || '操作失败',
+          icon: 'none',
           duration: 2000
         });
       }
     } catch (error) {
-      Message.error({
-        content: '操作失败，请重试',
+      wx.showToast({
+        title: error?.message || '操作失败，请重试',
+        icon: 'none',
         duration: 2000
       });
+    } finally {
+      wx.hideLoading();
+      this.setData({ isPublishing: false });
     }
   },
 

@@ -1,4 +1,3 @@
-import request from '~/api/request';
 import { authApi } from '~/api/request/api_question';
 import { DocumentParams } from '~/api/param/param_document';
 // 在页面中使用
@@ -476,6 +475,12 @@ onTabChange(e) {
     });
   },
 
+  onActionsPopupVisibleChange(e) {
+    if (e.detail && e.detail.visible === false) {
+      this.onCloseActions();
+    }
+  },
+
   // 文档操作
   onDocAction(e) {
     const { action } = e.currentTarget.dataset;
@@ -499,57 +504,62 @@ onTabChange(e) {
     this.onCloseActions();
   },
 
-  // 编辑文档
+  // 编辑文档（发布 tab 无法用 query，用本地 storage 传 id）
   editDoc(id) {
-    wx.navigateTo({
-      url: `/pages/doc/edit/index?id=${id}`
-    });
+    if (id === undefined || id === null || id === '') return;
+    wx.setStorageSync('release_edit_doc_id', String(id));
+    wx.switchTab({ url: '/pages/release/index' });
   },
 
   // 删除文档
   async deleteDoc(id) {
+    if (id === undefined || id === null || id === '') return;
     wx.showModal({
       title: '确认删除',
       content: '删除后无法恢复，确定要删除吗？',
       success: async (res) => {
-        if (res.confirm) {
-          try {
-            await request('/api/deleteDoc', { id });
-            wx.showToast({
-              title: '删除成功',
-              icon: 'success'
-            });
-            this.loadDocList(true);
-          } catch (error) {
-            wx.showToast({
-              title: '删除失败',
-              icon: 'none'
-            });
-          }
+        if (!res.confirm) return;
+        try {
+          await authApi.deletePublishDoc(id);
+          wx.showToast({
+            title: '已删除',
+            icon: 'success'
+          });
+          this.loadDocList(true);
+        } catch (error) {
+          wx.showToast({
+            title: error?.message || '删除失败',
+            icon: 'none'
+          });
         }
       }
     });
   },
 
-  // 预览文档
+  // 预览文档（与发布页预览一致的 towxml 渲染）
   previewDoc(id) {
+    if (id === undefined || id === null || id === '') return;
     wx.navigateTo({
-      url: `/pages/doc/detail/index?id=${id}`
+      url: `/pages/document/preview/index?id=${encodeURIComponent(id)}`
     });
   },
 
-  // 分享文档
+  // 分享：进入预览页，使用「分享给好友」按钮触发转发
   shareDoc(id) {
-    wx.showShareMenu({
-      withShareTicket: true
+    if (id === undefined || id === null || id === '') return;
+    wx.navigateTo({
+      url: `/pages/document/preview/index?id=${encodeURIComponent(id)}&share=1`
     });
   },
 
   // 新建文档
   onCreateDoc() {
-    wx.navigateTo({
-      url: '/pages/doc/edit/index'
-    });
+    try {
+      wx.removeStorageSync('release_edit_doc_id');
+    } catch (e) {
+      // ignore
+    }
+    wx.switchTab({ url: '/pages/release/index' });
   },
 
   // 跳转到文档详情

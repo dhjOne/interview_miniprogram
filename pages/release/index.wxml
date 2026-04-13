@@ -22,7 +22,7 @@
     </view>
     <view class="category-tags">
       <t-tag wx:for="{{categories}}" wx:key="id" class="category-tag"
-        theme="{{selectedCategory === item.id ? 'primary' : 'default'}}" size="large" bind:click="selectCategory"
+        theme="{{selectedCategory == item.id ? 'primary' : 'default'}}" size="large" bind:click="selectCategory"
         data-id="{{item.id}}">
         {{item.name}}
       </t-tag>
@@ -355,7 +355,7 @@
       disabled="{{!docTitle || !markdownContent || !selectedCategory}}"
       class="publish-btn"
     >
-      发布文档
+      {{ editDocId ? '保存修改' : '发布文档' }}
     </t-button>
   </view>
 </view>
@@ -365,8 +365,10 @@
   cancel-btn="取消" bind:confirm="clearContent" bind:cancel="hideClearConfirmDialog" confirm-btn-theme="danger" />
 
 <!-- 发布确认弹窗 -->
-<t-dialog visible="{{showConfirmDialog}}" title="确认发布" content="请确认文档内容无误，发布后不可修改。" confirm-btn="确认发布"
-  cancel-btn="再检查一下" bind:confirm="confirmPublish" bind:cancel="cancelPublish" />
+<t-dialog visible="{{showConfirmDialog}}" title="{{ editDocId ? '确认保存' : '确认发布' }}"
+  content="{{ editDocId ? '将用当前内容更新该文档。' : '请确认文档内容无误后再发布。' }}"
+  confirm-btn="{{ editDocId ? '保存' : '确认发布' }}" cancel-btn="再检查一下" bind:confirm="confirmPublish"
+  bind:cancel="cancelPublish" />
 
 <!-- 消息组件 -->
 <t-message id="message" />

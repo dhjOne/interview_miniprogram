@@ -176,7 +176,7 @@
 
   <!-- 操作菜单 -->
   <td-popup visible="{{actionsVisible}}" placement="bottom" overlayProps="{{ { background: 'rgba(0,0,0,0.45)' } }}"
-    bind:visible-change="onCloseActions">
+    bind:visible-change="onActionsPopupVisibleChange">
     <view class="actions-popup">
       <view class="actions-popup__handle" />
       <text class="actions-popup__title">文档操作</text>

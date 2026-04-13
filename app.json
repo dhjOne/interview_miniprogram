@@ -8,7 +8,8 @@
     "pages/question/index",
     "pages/question/detail/index",
     "pages/release/index",
-    "pages/document/index"
+    "pages/document/index",
+    "pages/document/preview/index"
   ],
   "usingComponents": {
     "t-cell": "/miniprogram_npm/tdesign-miniprogram/cell/cell",

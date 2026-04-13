@@ -1,0 +1,23 @@
+<view class="doc-preview-page">
+  <view wx:if="{{loading}}" class="doc-preview-loading">
+    <t-loading size="48rpx" text="加载中…" />
+  </view>
+
+  <block wx:else>
+    <scroll-view scroll-y class="doc-preview-scroll" enable-back-to-top="{{true}}">
+      <towxml wx:if="{{renderedContent}}" nodes="{{renderedContent}}" type="markdown" class="doc-preview-render" />
+      <view wx:else class="doc-preview-empty">
+        <text>暂无内容</text>
+      </view>
+    </scroll-view>
+
+    <view class="doc-preview-footer">
+      <t-button theme="primary" size="large" block bindtap="onGoEdit" wx:if="{{docId}}">
+        编辑
+      </t-button>
+      <button class="doc-preview-share-btn" open-type="share">
+        分享给好友
+      </button>
+    </view>
+  </block>
+</view>

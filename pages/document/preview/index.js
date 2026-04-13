@@ -1,5 +1,5 @@
 import { authApi } from '~/api/request/api_question';
-
+import { QuestionParams } from '~/api/param/param_question';
 const app = getApp();
 
 function unwrapDetail(res) {
@@ -54,7 +54,10 @@ Page({
   async _load(id) {
     this.setData({ loading: true });
     try {
-      const res = await authApi.getPublishDocDetail(id);
+      const questionDetail = new QuestionParams(null, null, id)
+
+      const res = await authApi.getQuestionDetail(questionDetail);
+    
       const row = unwrapDetail(res);
       const docTitle = row.title || '';
       const markdownContent = row.content || row.markdownContent || '';

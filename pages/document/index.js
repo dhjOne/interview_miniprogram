@@ -140,7 +140,9 @@ Page({
     
     // 操作菜单
     actionsVisible: false,
-    currentDocId: null
+    currentDocId: null,
+    shareTitle: '',
+    currentDocStatus: ''
   },
 
   onLoad(options) {
@@ -461,9 +463,14 @@ onTabChange(e) {
   // 打开操作菜单
   onOpenActions(e) {
     const { id } = e.currentTarget.dataset;
+    const doc = this.data.docList.find(item => item.id == id);
+    const shareTitle = doc ? (doc.title || '文档') : '文档';
+    const currentDocStatus = doc ? doc.status : '';
     this.setData({
       actionsVisible: true,
-      currentDocId: id
+      currentDocId: id,
+      shareTitle,
+      currentDocStatus
     });
   },
 
@@ -471,7 +478,9 @@ onTabChange(e) {
   onCloseActions() {
     this.setData({
       actionsVisible: false,
-      currentDocId: null
+      currentDocId: null,
+      shareTitle: '',
+      currentDocStatus: ''
     });
   },
 
@@ -495,9 +504,6 @@ onTabChange(e) {
         break;
       case 'preview':
         this.previewDoc(currentDocId);
-        break;
-      case 'share':
-        this.shareDoc(currentDocId);
         break;
     }
     
@@ -586,5 +592,14 @@ onTabChange(e) {
       url: `/pages/question/detail/index?id=${id}`
     });
   },
+
+  onShareAppMessage() {
+    const id = this.data.currentDocId;
+    const title = this.data.shareTitle || '文档';
+    return {
+      title,
+      path: id ? `pages/document/preview/index?id=${encodeURIComponent(id)}` : 'pages/document/index'
+    };
+  }
 
 });

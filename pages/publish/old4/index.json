@@ -1,7 +1,0 @@
-{
-  "usingComponents": {
-    "towxml": "/towxml/towxml"
-  },
-  "navigationBarTitleText": "技术文档",
-  "enablePullDownRefresh": false
-}

@@ -97,7 +97,13 @@ Page({
     const id = this.data.docId;
     if (!id) return;
     wx.setStorageSync('release_edit_doc_id', String(id));
-    wx.switchTab({ url: '/pages/release/index' });
+
+    wx.navigateTo({
+      url: `/pages/document/edit/index?id=${encodeURIComponent(id)}`,
+      fail: function (res) {
+        console.log('跳转失败', res);
+      }
+    });
   },
 
   onShareAppMessage() {

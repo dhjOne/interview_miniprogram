@@ -181,7 +181,8 @@
       <view class="actions-popup__handle" />
       <text class="actions-popup__title">文档操作</text>
       <view class="actions-popup__sheet">
-        <view class="action-item" hover-class="action-item--hover" data-action="edit" bindtap="onDocAction">
+        <view class="action-item" hover-class="action-item--hover" data-action="edit" bindtap="onDocAction"
+          wx:if="{{currentDocStatus === 'draft' || currentDocStatus === 'published' || currentDocStatus === 'offline'}}">
           <view class="action-item__icon action-item__icon--edit">
             <t-icon name="edit" size="40rpx" color="#07c160" />
           </view>
@@ -193,14 +194,16 @@
           </view>
           <text class="action-item__label">预览</text>
         </view>
-        <view class="action-item" hover-class="action-item--hover" data-action="share" bindtap="onDocAction">
+        <button class="action-item action-item--share" open-type="share"
+          wx:if="{{currentDocStatus === 'published'}}">
           <view class="action-item__icon action-item__icon--share">
             <t-icon name="share" size="40rpx" color="#ed7b2f" />
           </view>
           <text class="action-item__label">分享</text>
-        </view>
+        </button>
         <view class="action-item action-item--danger" hover-class="action-item--hover-danger" data-action="delete"
-          bindtap="onDocAction">
+          bindtap="onDocAction"
+          wx:if="{{currentDocStatus === 'progress' || currentDocStatus === 'draft' || currentDocStatus === 'published'}}">
           <view class="action-item__icon action-item__icon--delete">
             <t-icon name="delete" size="40rpx" color="#d54941" />
           </view>

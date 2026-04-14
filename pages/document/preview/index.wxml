@@ -4,29 +4,25 @@
   </view>
 
   <block wx:else>
-    <!-- 与编辑页「预览模式」相同的容器结构，便于复用 towxml 排版样式 -->
-    <view class="preview-page-body">
-      <view class="preview-container preview-container--standalone">
-        <scroll-view
-          scroll-y
-          class="preview-scroll preview-scroll--standalone"
-          enable-back-to-top="{{true}}"
-          scroll-anchoring="{{true}}"
-        >
-          <towxml
-            wx:if="{{renderedContent}}"
-            nodes="{{renderedContent}}"
-            type="markdown"
-            class="preview-render"
-          />
-          <view wx:else class="preview-empty-content">
-            <t-icon name="file" size="80" color="#c9cdd4" />
-            <text class="preview-empty-text">暂无预览内容</text>
-            <text class="preview-empty-subtext">文档可能为空或加载失败</text>
-          </view>
-        </scroll-view>
+    <!-- 全页展示 edit 预览模式样式 -->
+    <scroll-view
+      scroll-y
+      class="preview-scroll preview-scroll--fullpage"
+      enable-back-to-top="{{true}}"
+      scroll-anchoring="{{true}}"
+    >
+      <towxml
+        wx:if="{{renderedContent}}"
+        nodes="{{renderedContent}}"
+        type="markdown"
+        class="preview-render"
+      />
+      <view wx:else class="preview-empty-content">
+        <t-icon name="file" size="80" color="#c9cdd4" />
+        <text class="preview-empty-text">暂无预览内容</text>
+        <text class="preview-empty-subtext">文档可能为空或加载失败</text>
       </view>
-    </view>
+    </scroll-view>
 
     <view class="doc-preview-footer">
       <t-button theme="primary" size="large" block bindtap="onGoEdit" wx:if="{{docId}}">

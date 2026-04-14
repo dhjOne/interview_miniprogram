@@ -3,7 +3,7 @@
 /* 页面骨架 */
 .doc-preview-page {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: #ffffff;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -17,25 +17,12 @@
   padding: 120rpx 0;
 }
 
-/* 与编辑页预览 tab 一致：白底卡片 + 内层滚动 */
-.preview-page-body {
+.preview-scroll--fullpage {
   flex: 1;
   min-height: 0;
-  padding: 24rpx 24rpx 0;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-}
-
-.preview-container--standalone {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
   background: #ffffff;
-  border-radius: 12rpx;
-  overflow: hidden;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+  padding: 40rpx 24rpx 0;
+  box-sizing: border-box;
 }
 
 .preview-scroll--standalone {

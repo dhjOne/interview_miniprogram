@@ -91,12 +91,12 @@ export const authApi = {
       })
     },
 
-
     /** 发布管理-删除文档 */
-    deletePublishDoc: (id) => {
-      return http.delete(`/repository/publish/doc/${encodeURIComponent(id)}`, null, {
+    deletePublishDoc: (questionId) => {
+      return http.post(`/repository/questions/${questionId}/unpublish`, null, {
         showLoading: true,
-        loadingText: '删除中…'
+        loadingText: '删除中...'
       })
     }
+
 }

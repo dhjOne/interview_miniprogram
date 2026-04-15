@@ -420,6 +420,7 @@ Page({
   },
 
   onReleaseTap: function () {
+    console.log('/pages/publish/index')
     app.navigateToLogin({
       url: `/pages/publish/index`,
       fail: function (res) {

@@ -7,8 +7,7 @@ const LOGIN_TAB_ROOTS = [
   '/pages/home/index',
   '/pages/category/index',
   '/pages/message/index',
-  '/pages/my/index',
-  '/pages/release/index'
+  '/pages/my/index'
 ];
 
 Page({

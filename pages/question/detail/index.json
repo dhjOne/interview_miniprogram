@@ -1,16 +1,16 @@
 {
   "navigationBarTitleText": "详情",
   "usingComponents": {
-    "t-action-sheet": "tdesign-miniprogram/action-sheet/action-sheet",
-    "t-loading": "tdesign-miniprogram/loading/loading",
-    "t-icon": "tdesign-miniprogram/icon/icon",
-    "t-button": "tdesign-miniprogram/button/button",
-    "t-tag": "tdesign-miniprogram/tag/tag",
-    "t-textarea": "tdesign-miniprogram/textarea/textarea",
-    "t-popup": "tdesign-miniprogram/popup/popup",
-    "t-message": "tdesign-miniprogram/message/message",
-    "t-fab": "tdesign-miniprogram/fab/fab",
-    "towxml": "/towxml/towxml",
+    "t-action-sheet": "/miniprogram_npm/tdesign-miniprogram/action-sheet/action-sheet",
+    "t-loading": "/miniprogram_npm/tdesign-miniprogram/loading/loading",
+    "t-icon": "/miniprogram_npm/tdesign-miniprogram/icon/icon",
+    "t-button": "/miniprogram_npm/tdesign-miniprogram/button/button",
+    "t-tag": "/miniprogram_npm/tdesign-miniprogram/tag/tag",
+    "t-textarea": "/miniprogram_npm/tdesign-miniprogram/textarea/textarea",
+    "t-popup": "/miniprogram_npm/tdesign-miniprogram/popup/popup",
+    "t-message": "/miniprogram_npm/tdesign-miniprogram/message/message",
+    "t-fab": "/miniprogram_npm/tdesign-miniprogram/fab/fab",
+    "towxml": "/subpackages/towxml/towxml",
     "float-release-button": "/components/float-release-button/index"
   }
 }

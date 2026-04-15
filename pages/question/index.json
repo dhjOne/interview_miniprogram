@@ -1,12 +1,12 @@
 {
   "usingComponents": {
-    "t-search": "tdesign-miniprogram/search/search",
-    "t-tag": "tdesign-miniprogram/tag/tag",
-    "t-loading": "tdesign-miniprogram/loading/loading",
-    "t-button": "tdesign-miniprogram/button/button",
-    "t-icon": "tdesign-miniprogram/icon/icon",
-    "t-divider": "tdesign-miniprogram/divider/divider",
-    "t-message": "tdesign-miniprogram/message/message",
+    "t-search": "/miniprogram_npm/tdesign-miniprogram/search/search",
+    "t-tag": "/miniprogram_npm/tdesign-miniprogram/tag/tag",
+    "t-loading": "/miniprogram_npm/tdesign-miniprogram/loading/loading",
+    "t-button": "/miniprogram_npm/tdesign-miniprogram/button/button",
+    "t-icon": "/miniprogram_npm/tdesign-miniprogram/icon/icon",
+    "t-divider": "/miniprogram_npm/tdesign-miniprogram/divider/divider",
+    "t-message": "/miniprogram_npm/tdesign-miniprogram/message/message",
     "float-release-button": "/components/float-release-button/index"
   }
 }

@@ -47,7 +47,7 @@ Page({
         icon: 'setting', 
         type: 'setting', 
         url: '/pages/setting/index' 
-      },
+      }
     ],
     showImagePopup: false,
     popupImageUrl: '',

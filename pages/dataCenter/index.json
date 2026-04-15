@@ -1,8 +1,8 @@
 {
   "navigationStyle": "custom",
   "usingComponents": {
-    "t-navbar": "tdesign-miniprogram/navbar/navbar",
-    "t-progress": "tdesign-miniprogram/progress/progress",
-    "t-empty": "tdesign-miniprogram/empty/empty"
+    "t-navbar": "/miniprogram_npm/tdesign-miniprogram/navbar/navbar",
+    "t-progress": "/miniprogram_npm/tdesign-miniprogram/progress/progress",
+    "t-empty": "/miniprogram_npm/tdesign-miniprogram/empty/empty"
   }
 }

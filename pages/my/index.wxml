@@ -72,6 +72,7 @@
       bindclick="onEleClick"
     />
   </t-cell-group>
+  <button open-type="contact" bindcontact="handleContact">联系客服</button>
 </view>
 
 <!-- 图片弹窗 - 直接放在页面底部 -->

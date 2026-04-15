@@ -1,12 +1,12 @@
 {
   "navigationStyle": "custom",
   "usingComponents": {
-    "t-navbar": "tdesign-miniprogram/navbar/navbar",
-    "t-input": "tdesign-miniprogram/input/input",
-    "t-icon": "tdesign-miniprogram/icon/icon",
-    "t-link": "tdesign-miniprogram/link/link",
-    "t-button": "tdesign-miniprogram/button/button",
-    "t-radio-group": "tdesign-miniprogram/radio-group/radio-group",
-    "t-radio": "tdesign-miniprogram/radio/radio"
+    "t-navbar": "/miniprogram_npm/tdesign-miniprogram/navbar/navbar",
+    "t-input": "/miniprogram_npm/tdesign-miniprogram/input/input",
+    "t-icon": "/miniprogram_npm/tdesign-miniprogram/icon/icon",
+    "t-link": "/miniprogram_npm/tdesign-miniprogram/link/link",
+    "t-button": "/miniprogram_npm/tdesign-miniprogram/button/button",
+    "t-radio-group": "/miniprogram_npm/tdesign-miniprogram/radio-group/radio-group",
+    "t-radio": "/miniprogram_npm/tdesign-miniprogram/radio/radio"
   }
 }

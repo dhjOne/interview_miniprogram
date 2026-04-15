@@ -514,7 +514,6 @@ onTabChange(e) {
   editDoc(id) {
     if (id === undefined || id === null || id === '') return;
     wx.setStorageSync('release_edit_doc_id', String(id));
-    // wx.switchTab({ url: '/pages/release/index' });
     wx.navigateTo({
       url: `/pages/document/edit/index?id=${encodeURIComponent(id)}`,
       fail: function (res) {
@@ -572,12 +571,18 @@ onTabChange(e) {
 
   // 新建文档
   onCreateDoc() {
+
     try {
       wx.removeStorageSync('release_edit_doc_id');
     } catch (e) {
       // ignore
     }
-    wx.switchTab({ url: '/pages/release/index' });
+    app.navigateToLogin({
+      url: `/pages/publish/index`,
+      fail: function (res) {
+        console.log('跳转失败', res);
+      }
+    });
   },
 
   // 跳转到文档详情

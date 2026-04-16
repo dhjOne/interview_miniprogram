@@ -5,7 +5,7 @@ export default {
   
   // API 基础配置
   // baseUrl: 'http://localhost:9991',
-  baseUrl: 'https://wood-annex-accepting-east.trycloudflare.com/',
+  baseUrl: 'https://roommates-sorted-heath-bridges.trycloudflare.com/',
   // baseUrl: 'https://175vq12004jn.vicp.fun',
   apiPrefix: '/api',
   

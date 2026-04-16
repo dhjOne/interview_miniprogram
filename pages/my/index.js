@@ -6,7 +6,11 @@ Page({
 
   data: {
     isLoad: false,
-    service: [],
+    service: [
+      { name: '收藏题', icon: 'heart', type: 'favorite' },
+      { name: '我的订单', icon: 'file', type: 'order' },
+      { name: '刷题排行', icon: 'trend-chart', type: 'ranking' }
+    ],
     personalInfo: {},
     gridList: [
       {
@@ -37,21 +41,12 @@ Page({
 
     settingList: [
       { 
-        name: '联系客服', 
-        icon: 'service', 
-        type: 'service',
-        method: 'showImagePopup'
-      },
-      { 
         name: '设置', 
         icon: 'setting', 
         type: 'setting', 
         url: '/pages/setting/index' 
       }
-    ],
-    showImagePopup: false,
-    popupImageUrl: '',
-    isNetworkImage: false // 标记是否为网络图片
+    ]
   },
 
   onLoad() {
@@ -77,10 +72,13 @@ Page({
   },
 
   getServiceList() {
-    request('/api/getServiceList').then((res) => {
-      const { service } = res.data.data;
-      this.setData({ service });
-    });
+    // 如果后端返回服务列表，可在这里覆盖默认服务
+    // request('/repository/category').then((res) => {
+    //   const { service } = res.data.data;
+    //   if (service && service.length) {
+    //     this.setData({ service });
+    //   }
+    // });
   },
 
   async getPersonalInfo() {
@@ -104,8 +102,6 @@ Page({
     const { url, method } = e.currentTarget.dataset.data;
     // 如果有链接，执行跳转而不是直接返回
     if (url) {
-      // wx.navigateTo({ url });
-
       app.navigateToLogin({
         url: url
       });
@@ -121,169 +117,10 @@ Page({
     }
   },
 
+  handleContact(e) {
+    console.log('contact event', e);
+  },
+
   // 显示图片弹窗
-  showImagePopup() {
-    console.log("点击联系客服 - 方法被调用");
-    console.log("当前 showImagePopup 状态:", this.data.showImagePopup);
 
-    const imageUrl = '/static/contact/公众号.jpg';
-    const isNetworkImage = imageUrl.startsWith('http');
-  
-    this.setData({
-      showImagePopup: true,
-      popupImageUrl: imageUrl,
-      isNetworkImage: isNetworkImage
-    });
-  
-  },
-
-  // 隐藏图片弹窗
-  hideImagePopup() {
-    this.setData({
-      showImagePopup: false
-    });
-  },
-  onPopupVisibleChange(e) {
-    if (!e.detail.visible) {
-      this.hideImagePopup();
-    }
-  },
-  
-   // 图片长按事件
-  onImageLongPress() {
-    console.log("图片被长按");
-    // 可以在这里添加一些反馈，比如震动
-    wx.vibrateShort({
-      type: 'light'
-    });
-  },
-
-  // 保存图片到相册
-  async saveImageToPhotos() {
-    const that = this;
-    
-    try {
-      // 显示加载中
-      wx.showLoading({
-        title: '保存中...',
-        mask: true
-      });
-      
-      let tempFilePath = this.data.popupImageUrl;
-      
-      // 如果是网络图片，需要先下载
-      if (this.data.isNetworkImage) {
-        const downloadResult = await new Promise((resolve, reject) => {
-          wx.downloadFile({
-            url: this.data.popupImageUrl,
-            success: resolve,
-            fail: reject
-          });
-        });
-        
-        tempFilePath = downloadResult.tempFilePath;
-      }
-      
-      // 保存到相册
-      await new Promise((resolve, reject) => {
-        wx.saveImageToPhotosAlbum({
-          filePath: tempFilePath,
-          success: resolve,
-          fail: reject
-        });
-      });
-      
-      wx.hideLoading();
-      wx.showToast({
-        title: '保存成功',
-        icon: 'success',
-        duration: 2000
-      });
-      
-    } catch (error) {
-      wx.hideLoading();
-      console.error('保存图片失败:', error);
-      
-      // 处理不同的错误情况
-      if (error.errMsg && error.errMsg.includes('auth deny')) {
-        // 用户拒绝授权，引导用户打开相册权限
-        that.showAuthGuide();
-      } else {
-        wx.showToast({
-          title: '保存失败，请重试',
-          icon: 'none',
-          duration: 2000
-        });
-      }
-    }
-  },
-  // 显示授权引导
-  showAuthGuide() {
-    wx.showModal({
-      title: '需要相册权限',
-      content: '保存图片需要您授权访问相册，请在设置中打开相册权限',
-      confirmText: '去设置',
-      cancelText: '取消',
-      success: (res) => {
-        if (res.confirm) {
-          // 打开设置页面
-          wx.openSetting({
-            success: (settingRes) => {
-              if (settingRes.authSetting['scope.writePhotosAlbum']) {
-                wx.showToast({
-                  title: '授权成功',
-                  icon: 'success'
-                });
-              }
-            }
-          });
-        }
-      }
-    });
-  },
-
-  // 检查相册授权状态
-  checkPhotoAlbumAuth() {
-    return new Promise((resolve) => {
-      wx.getSetting({
-        success: (res) => {
-          if (res.authSetting['scope.writePhotosAlbum']) {
-            resolve(true);
-          } else {
-            resolve(false);
-          }
-        },
-        fail: () => resolve(false)
-      });
-    });
-  },
-
-  // 请求相册授权
-  requestPhotoAlbumAuth() {
-    return new Promise((resolve) => {
-      wx.authorize({
-        scope: 'scope.writePhotosAlbum',
-        success: () => resolve(true),
-        fail: () => resolve(false)
-      });
-    });
-  },
-
-  // 增强的保存图片方法（包含授权检查）
-  async enhancedSaveImage() {
-    // 检查授权状态
-    const hasAuth = await this.checkPhotoAlbumAuth();
-    
-    if (!hasAuth) {
-      // 请求授权
-      const authGranted = await this.requestPhotoAlbumAuth();
-      if (!authGranted) {
-        this.showAuthGuide();
-        return;
-      }
-    }
-    
-    // 授权通过，执行保存
-    this.saveImageToPhotos();
-  },
 });

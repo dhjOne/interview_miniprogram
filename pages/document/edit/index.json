@@ -10,6 +10,6 @@
     "t-dialog": "/miniprogram_npm/tdesign-miniprogram/dialog/dialog",
     "t-message": "/miniprogram_npm/tdesign-miniprogram/message/message",
     "t-popup": "/miniprogram_npm/tdesign-miniprogram/popup/popup",
-    "towxml": "/subpackages/towxml/towxml"
+    "towxml": "../../../subpackages/towxml/towxml"
   }
 }

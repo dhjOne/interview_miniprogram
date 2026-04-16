@@ -6,6 +6,11 @@ Page({
 
   data: {
     isLoad: false,
+    carousel: [
+      { image: '/static/home/card0.png', title: '广告宣传' },
+      { image: '/static/home/card1.png', title: '重点文献' },
+      { image: '/static/home/card2.png', title: '新功能介绍' }
+    ],
     service: [
       { name: '收藏题', icon: 'heart', type: 'favorite' },
       { name: '生疏题', icon: 'flash', type: 'weak' },

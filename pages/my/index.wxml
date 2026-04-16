@@ -42,6 +42,15 @@
     </t-grid>
   </view>
 
+  <view class="carousel-wrapper">
+    <swiper indicator-dots="{{true}}" autoplay="{{true}}" interval="{{5000}}" duration="{{1000}}" circular="{{true}}">
+      <swiper-item wx:for="{{carousel}}" wx:key="title">
+        <image src="{{item.image}}" mode="aspectFit" class="carousel-image" />
+        <view class="carousel-title">{{item.title}}</view>
+      </swiper-item>
+    </swiper>
+  </view>
+
   <view class="my-service">
     <view class="my-service__header">
       <text class="my-service__title">常用服务</text>

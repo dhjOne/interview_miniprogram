@@ -8,8 +8,9 @@ Page({
     isLoad: false,
     service: [
       { name: '收藏题', icon: 'heart', type: 'favorite' },
-      { name: '我的订单', icon: 'file', type: 'order' },
-      { name: '刷题排行', icon: 'trend-chart', type: 'ranking' }
+      { name: '生疏题', icon: 'flash', type: 'weak' },
+      { name: '刷题排行', icon: 'trend-chart', type: 'ranking' },
+      { name: '关于我们', icon: 'info-circle', type: 'about' }
     ],
     personalInfo: {},
     gridList: [

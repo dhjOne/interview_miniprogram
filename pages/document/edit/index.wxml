@@ -1,12 +1,19 @@
 <view class="publish-page">
   <!-- 页面头部 -->
   <view class="page-header">
-    <view class="header-title">技术文档编辑器</view>
-    <view class="header-subtitle">支持 Markdown 语法，实时预览，代码高亮，数学公式</view>
+    <view class="header-row">
+      <view class="header-icon-wrap">
+        <t-icon name="file" size="40" color="#165dff" />
+      </view>
+      <view class="header-texts">
+        <view class="header-title">技术文档</view>
+        <view class="header-subtitle">Markdown · 预览 · 代码高亮</view>
+      </view>
+    </view>
   </view>
 
   <!-- 标题输入 -->
-  <view class="form-section">
+  <view class="form-section form-section-card">
     <view class="section-label">
       <text>文档标题</text>
       <text class="required">*</text>
@@ -14,23 +21,42 @@
     <t-textarea placeholder="请输入文档标题（2-50字）" maxlength="50" value="{{docTitle}}" bind:change="onTitleChange" autosize />
   </view>
 
-  <!-- 分类选择 -->
-  <view class="form-section">
+  <!-- 分类选择（与题库页相同：/repository/category，一级 → 二级） -->
+  <view class="form-section form-section-card category-section">
     <view class="section-label">
       <text>文档分类</text>
       <text class="required">*</text>
     </view>
-    <view class="category-tags">
-      <t-tag wx:for="{{categories}}" wx:key="id" class="category-tag"
-        theme="{{selectedCategory === item.id ? 'primary' : 'default'}}" size="large" bind:click="selectCategory"
-        data-id="{{item.id}}">
-        {{item.name}}
-      </t-tag>
+    <view class="category-tier">
+      <view class="category-tier-label">一级分类</view>
+      <scroll-view scroll-x class="category-scroll" enhanced show-scrollbar="{{false}}" wx:if="{{categoryLevel1.length}}">
+        <view class="category-scroll-inner">
+          <t-tag wx:for="{{categoryLevel1}}" wx:key="id" class="category-tag" size="large"
+            theme="{{selectedParentCategory === item.id ? 'primary' : 'default'}}" bind:click="onSelectLevel1"
+            data-id="{{item.id}}">
+            {{item.name}}
+          </t-tag>
+        </view>
+      </scroll-view>
+      <view wx:else class="category-empty">暂无分类，请稍后再试</view>
+    </view>
+    <view class="category-tier category-tier-second" wx:if="{{selectedParentCategory}}">
+      <view class="category-tier-label">二级分类</view>
+      <scroll-view scroll-x class="category-scroll" enhanced show-scrollbar="{{false}}" wx:if="{{categoryLevel2.length}}">
+        <view class="category-scroll-inner">
+          <t-tag wx:for="{{categoryLevel2}}" wx:key="id" class="category-tag" size="large"
+            theme="{{selectedCategory === item.id ? 'primary' : 'default'}}" bind:click="onSelectLevel2"
+            data-id="{{item.id}}">
+            {{item.name}}
+          </t-tag>
+        </view>
+      </scroll-view>
+      <view wx:else class="category-leaf-hint">当前一级下无子分类，将使用「一级」作为文档分类</view>
     </view>
   </view>
 
   <!-- Markdown 编辑器区域 -->
-  <view class="form-section editor-section">
+  <view class="form-section form-section-card editor-section">
     <view class="section-label">
       <text>文档内容</text>
       <text class="required">*</text>
@@ -348,7 +374,7 @@
       保存草稿
     </t-button>
     <t-button theme="primary" size="large" block bindtap="publishDocument" loading="{{isPublishing}}"
-      disabled="{{!docTitle || !markdownContent || !selectedCategory}}">
+      disabled="{{!docTitle || !markdownContent || !selectedParentCategory || (categoryLevel2.length && !selectedCategory)}}">
       发布文档
     </t-button>
   </view>

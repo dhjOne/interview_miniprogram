@@ -8,13 +8,8 @@ import {
 } from '~/api/param/param_question';
 
 // 引入 towxml 解析器
-// const Towxml = require('/subpackages/towxml/index');
-try {
-  const Towxml = require('../../../subpackages/towxml/index');
-  console.log('加载成功', typeof Towxml);
-} catch(e) {
-  console.error('加载失败', e);
-}
+const Towxml = require('../../../subpackages/towxml/index');
+
 Page({
   data: {
     questionId: null,

@@ -1,4 +1,6 @@
-import { authApi } from '~/api/request/api_question';
+import { authApi as questionApi } from '~/api/request/api_question';
+import { authApi as categoryApi } from '~/api/request/api_category';
+import { CategoryParams } from '~/api/param/param_category';
 import { QuestionPublishParams } from '~/api/param/param_publish';
 import { QuestionParams } from '~/api/param/param_question';
 // 获取应用实例
@@ -29,8 +31,12 @@ Page({
     canUndo: false,
     canRedo: false,
     
-    // 分类选项（接口 getPublishDocCategories，与发布页一致）
-    categories: [],
+    /** 一级分类（与 pages/category 相同接口：parentId=0） */
+    categoryLevel1: [],
+    /** 当前一级下的二级分类 */
+    categoryLevel2: [],
+    /** 当前选中的一级 id */
+    selectedParentCategory: '',
 
     /** 编辑已有文档时的 id；新建为空 */
     editDocId: null,
@@ -72,87 +78,101 @@ Page({
     return d;
   },
 
-  _normalizeCategoryList(res) {
-    if (Array.isArray(res)) return res;
+  _categoryRowsFromResponse(res) {
     const d = res && typeof res === 'object' ? res.data : undefined;
-    if (Array.isArray(d)) return d;
-    if (Array.isArray(d?.data)) return d.data;
-    if (Array.isArray(d?.list)) return d.list;
     if (Array.isArray(d?.rows)) return d.rows;
-    if (Array.isArray(d?.records)) return d.records;
-    if (Array.isArray(d?.items)) return d.items;
-    if (Array.isArray(d?.categories)) return d.categories;
-    if (Array.isArray(res?.list)) return res.list;
+    if (Array.isArray(res?.rows)) return res.rows;
+    if (Array.isArray(d)) return d;
     return [];
   },
 
-  _buildCategoryTreeNodes(list) {
-    if (!list || !list.length) return [];
-    const nodes = {};
-    list.forEach((raw) => {
-      const id = raw.id;
-      if (id === undefined || id === null) return;
-      nodes[id] = {
-        id,
-        name: raw.name || '未命名',
-        parentId: raw.parentId,
-        children: []
-      };
-    });
-    const isRootParentId = (pid) => {
-      if (pid === undefined || pid === null || pid === '') return true;
-      const s = String(pid).trim().toLowerCase();
-      return s === '0' || s === '-1' || s === 'null';
-    };
-    const roots = [];
-    list.forEach((raw) => {
-      const id = raw.id;
-      if (id === undefined || id === null) return;
-      const node = nodes[id];
-      const pid = raw.parentId;
-      const hasParent = !isRootParentId(pid) && nodes[pid];
-      const parent = hasParent ? nodes[pid] : null;
-      if (parent) parent.children.push(node);
-      else roots.push(node);
-    });
-    const sortName = (a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'zh-Hans-CN');
-    const sortDeep = (arr) => {
-      arr.sort(sortName);
-      arr.forEach((n) => {
-        if (n.children.length) sortDeep(n.children);
-      });
-    };
-    sortDeep(roots);
-    return roots;
+  async fetchSubCategories(parentId) {
+    const categoryParams = new CategoryParams(null, parentId);
+    categoryParams.sortField = 'sort_order';
+    categoryParams.order = 'asc';
+    const response = await categoryApi.getCategories(categoryParams);
+    return this._categoryRowsFromResponse(response);
   },
 
-  _buildCategoryOptionsForTags(list) {
-    const opts = [];
-    if (!list || !list.length) return opts;
-    const roots = this._buildCategoryTreeNodes(list);
-    const walk = (nodes, pathPrefix) => {
-      nodes.forEach((n) => {
-        const label = pathPrefix ? `${pathPrefix} / ${n.name}` : n.name;
-        opts.push({ id: n.id, name: label });
-        if (n.children && n.children.length) {
-          walk(n.children, pathPrefix ? `${pathPrefix} / ${n.name}` : n.name);
-        }
-      });
-    };
-    walk(roots, '');
-    return opts;
-  },
-
-  async loadCategoriesFromApi() {
+  /** 与 pages/category 一致：拉取一级分类（categoryId = 0） */
+  async loadLevel1Categories() {
     try {
-      const res = await authApi.getPublishDocCategories();
-      const list = this._normalizeCategoryList(res);
-      const categories = this._buildCategoryOptionsForTags(list);
-      if (categories.length) {
-        this.setData({ categories });
-      }
+      const rows = await this.fetchSubCategories(0);
+      this.setData({ categoryLevel1: rows });
     } catch (e) {
-      console.error('loadCategoriesFromApi', e);
+      console.error('loadLevel1Categories', e);
+      wx.showToast({ title: '分类加载失败', icon: 'none' });
+      this.setData({ categoryLevel1: [] });
+    }
+  },
+
+  /**
+   * 根据 categoryId 解析一级/二级选中态（供详情回显与旧草稿兼容）
+   * @returns {Promise<object|null>} setData 用的 patch，或 null
+   */
+  async resolveCategorySelection(categoryId, fallbackName) {
+    if (categoryId === undefined || categoryId === null || String(categoryId).trim() === '') {
+      return null;
+    }
+    const idStr = String(categoryId);
+    const rows1 = this.data.categoryLevel1 || [];
+    if (!rows1.length) {
+      return fallbackName
+        ? {
+            selectedParentCategory: '',
+            categoryLevel2: [],
+            selectedCategory: categoryId,
+            categoryName: fallbackName
+          }
+        : null;
+    }
+
+    const results = await Promise.all(
+      rows1.map(async (p) => ({ p, sub: await this.fetchSubCategories(p.id) }))
+    );
+
+    for (const { p, sub } of results) {
+      const child = sub.find((c) => String(c.id) === idStr);
+      if (child) {
+        return {
+          selectedParentCategory: p.id,
+          categoryLevel2: sub,
+          selectedCategory: child.id,
+          categoryName: `${p.name} / ${child.name}`
+        };
+      }
+    }
+
+    const hit1 = rows1.find((c) => String(c.id) === idStr);
+    if (hit1) {
+      const sub = results.find((r) => String(r.p.id) === idStr)?.sub || [];
+      const leafId = sub.length ? '' : hit1.id;
+      const categoryName =
+        sub.length && fallbackName ? fallbackName : hit1.name;
+      return {
+        selectedParentCategory: hit1.id,
+        categoryLevel2: sub,
+        selectedCategory: leafId,
+        categoryName
+      };
+    }
+
+    if (fallbackName) {
+      return {
+        selectedParentCategory: '',
+        categoryLevel2: [],
+        selectedCategory: categoryId,
+        categoryName: fallbackName
+      };
+    }
+    return null;
+  },
+
+  /** 根据详情里的 categoryId 回显一级、二级 */
+  async applyDetailCategory(categoryId, fallbackName) {
+    const patch = await this.resolveCategorySelection(categoryId, fallbackName);
+    if (patch) {
+      this.setData(patch, () => this.updatePreviewContent());
     }
   },
 
@@ -161,28 +181,24 @@ Page({
     try {
       const questionDetail = new QuestionParams(null, null, id)
 
-      const res = await authApi.getQuestionDetail(questionDetail);
+      const res = await questionApi.getQuestionDetail(questionDetail);
       const row = this._unwrapPublishDetail(res);
       const title = row.title || '';
       const content = row.content || row.markdownContent || '';
       const categoryId = row.categoryId ?? row.category_id ?? '';
-      let categoryName = row.categoryName || row.category_name || '';
+      const categoryName = row.categoryName || row.category_name || '';
       const previewFullContent =
         row.previewFullContent || row.preview_full_content || '';
-
-      const categories = this.data.categories || [];
-      if (!categoryName && categoryId && categories.length) {
-        const c = categories.find((x) => String(x.id) === String(categoryId));
-        categoryName = c ? c.name : '';
-      }
 
       this.setData(
         {
           docTitle: title,
           markdownContent: content,
-          selectedCategory: categoryId,
+          selectedCategory: '',
+          selectedParentCategory: '',
+          categoryLevel2: [],
           previewFullContent,
-          categoryName,
+          categoryName: '',
           wordCount: (content || '').length,
           contentHistory: [content],
           historyIndex: 0,
@@ -194,6 +210,7 @@ Page({
           this.updatePreviewContent();
         }
       );
+      await this.applyDetailCategory(categoryId, categoryName);
       wx.setNavigationBarTitle({ title: '编辑文档' });
     } catch (e) {
       console.error(e);
@@ -205,7 +222,7 @@ Page({
   },
 
   async onLoad(options) {
-    await this.loadCategoriesFromApi();
+    await this.loadLevel1Categories();
     const idFromQuery =
       options && options.id != null && String(options.id).trim() !== ''
         ? String(options.id).trim()
@@ -227,13 +244,13 @@ Page({
       await this.loadDocForEdit(String(sid));
       return;
     }
-    this.initEditor();
+    await this.initEditor();
   },
 
   // 初始化编辑器（新建；编辑走 loadDocForEdit）
-  initEditor() {
+  async initEditor() {
     wx.setNavigationBarTitle({ title: '发布文档' });
-    this.loadDraft();
+    await this.loadDraft();
 
     if (!this.data.markdownContent) {
       this.setData({
@@ -346,21 +363,44 @@ Page({
     }
   },
 
-  // 选择分类
-  selectCategory(e) {
-    const categoryId = e.currentTarget.dataset.id;
-    const categories = this.data.categories;
-    const selectedCategory = categories.find(
-      (item) => String(item.id) === String(categoryId)
+  /** 选择一级：有二级则清空已选叶子，仅展示二级；无二级则一级即发布分类 */
+  async onSelectLevel1(e) {
+    const parentId = e.currentTarget.dataset.id;
+    if (parentId === undefined || parentId === null) return;
+    const sub = await this.fetchSubCategories(parentId);
+    const parent = this.data.categoryLevel1.find(
+      (p) => String(p.id) === String(parentId)
     );
-    const categoryName = selectedCategory ? selectedCategory.name : '';
-    
-    this.setData({
-      selectedCategory: categoryId,
-      categoryName: categoryName
-    }, () => {
-      this.updatePreviewContent();
-    });
+    const patch = {
+      selectedParentCategory: parentId,
+      categoryLevel2: sub
+    };
+    if (!sub.length) {
+      patch.selectedCategory = parentId;
+      patch.categoryName = parent ? parent.name : '';
+    } else {
+      patch.selectedCategory = '';
+      patch.categoryName = '';
+    }
+    this.setData(patch, () => this.updatePreviewContent());
+  },
+
+  /** 选择二级：提交用二级 id，预览展示「一级 / 二级」 */
+  onSelectLevel2(e) {
+    const id = e.currentTarget.dataset.id;
+    const parent = this.data.categoryLevel1.find(
+      (p) => String(p.id) === String(this.data.selectedParentCategory)
+    );
+    const child = this.data.categoryLevel2.find((c) => String(c.id) === String(id));
+    const categoryName =
+      parent && child ? `${parent.name} / ${child.name}` : child?.name || '';
+    this.setData(
+      {
+        selectedCategory: id,
+        categoryName
+      },
+      () => this.updatePreviewContent()
+    );
   },
 
   // 切换标签页
@@ -805,6 +845,8 @@ Page({
       docTitle: '',
       markdownContent: '',
       selectedCategory: '',
+      selectedParentCategory: '',
+      categoryLevel2: [],
       images: [],
       renderedContent: null,
       cursorPosition: 0,
@@ -837,6 +879,8 @@ Page({
       docTitle: this.data.docTitle,
       markdownContent: this.data.markdownContent,
       selectedCategory: this.data.selectedCategory,
+      selectedParentCategory: this.data.selectedParentCategory,
+      categoryName: this.data.categoryName,
       images: this.data.images,
       previewFullContent: this.data.previewFullContent,
       timestamp: Date.now()
@@ -863,34 +907,74 @@ Page({
   },
 
   // 加载草稿
-  loadDraft() {
+  async loadDraft() {
     const draft = wx.getStorageSync('markdown_draft');
-    if (draft) {
-      // 获取分类名称
-      let categoryName = '';
-      if (draft.selectedCategory) {
-        const selectedCat = this.data.categories.find(
-          (item) => String(item.id) === String(draft.selectedCategory)
-        );
-        categoryName = selectedCat ? selectedCat.name : '';
+    if (!draft) return;
+
+    const base = {
+      docTitle: draft.docTitle || '',
+      markdownContent: draft.markdownContent || '',
+      images: draft.images || [],
+      previewFullContent: draft.previewFullContent || ''
+    };
+
+    let categoryPatch = {
+      selectedCategory: '',
+      selectedParentCategory: '',
+      categoryLevel2: [],
+      categoryName: ''
+    };
+
+    if (draft.selectedParentCategory) {
+      const parentId = draft.selectedParentCategory;
+      let categoryLevel2 = [];
+      try {
+        categoryLevel2 = await this.fetchSubCategories(parentId);
+      } catch (e) {
+        console.error('loadDraft fetchSubCategories', e);
       }
-      
-      this.setData({
-        docTitle: draft.docTitle || '',
-        markdownContent: draft.markdownContent || '',
+      let categoryName = draft.categoryName || '';
+      if (!categoryName && draft.selectedCategory) {
+        const p = (this.data.categoryLevel1 || []).find(
+          (x) => String(x.id) === String(parentId)
+        );
+        const c = categoryLevel2.find(
+          (x) => String(x.id) === String(draft.selectedCategory)
+        );
+        if (p && c) categoryName = `${p.name} / ${c.name}`;
+        else if (c) categoryName = c.name;
+        else if (p && String(draft.selectedCategory) === String(parentId)) {
+          categoryName = p.name;
+        }
+      }
+      categoryPatch = {
+        selectedParentCategory: parentId,
         selectedCategory: draft.selectedCategory || '',
-        images: draft.images || [],
-        previewFullContent: draft.previewFullContent || '',
-        categoryName: categoryName
-      }, () => {
+        categoryLevel2,
+        categoryName
+      };
+    } else if (draft.selectedCategory) {
+      const resolved = await this.resolveCategorySelection(
+        draft.selectedCategory,
+        draft.categoryName || ''
+      );
+      if (resolved) {
+        categoryPatch = resolved;
+      }
+    }
+
+    this.setData(
+      {
+        ...base,
+        ...categoryPatch
+      },
+      () => {
         this.updatePreviewContent();
-        
-        // 加载草稿后滚动到底部
         setTimeout(() => {
           this.scrollToBottom();
         }, 300);
-      });
-    }
+      }
+    );
   },
 
   // 验证表单
@@ -913,7 +997,24 @@ Page({
       return false;
     }
     
-    if (!this.data.selectedCategory) {
+    if (!this.data.selectedParentCategory) {
+      wx.showToast({
+        title: '请选择一级分类',
+        icon: 'none',
+        duration: 2000
+      });
+      return false;
+    }
+    const hasL2 = (this.data.categoryLevel2 || []).length > 0;
+    if (hasL2 && !this.data.selectedCategory) {
+      wx.showToast({
+        title: '请选择二级分类',
+        icon: 'none',
+        duration: 2000
+      });
+      return false;
+    }
+    if (!hasL2 && !this.data.selectedCategory) {
       wx.showToast({
         title: '请选择文档分类',
         icon: 'none',
@@ -975,7 +1076,7 @@ Page({
         previewFullContent,
         this.data.editDocId
       );
-      const response = await authApi.publishQuestion(publishParams);
+      const response = await questionApi.publishQuestion(publishParams);
       if (response && response.code === '0000') {
         wx.removeStorageSync('markdown_draft');
         wx.showToast({
@@ -994,6 +1095,8 @@ Page({
           docTitle: '',
           markdownContent: '',
           selectedCategory: '',
+          selectedParentCategory: '',
+          categoryLevel2: [],
           images: [],
           renderedContent: null,
           contentHistory: [],

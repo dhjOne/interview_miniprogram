@@ -1,5 +1,6 @@
 import { authApi } from '~/api/request/api_question';
 import { QuestionParams } from '~/api/param/param_question';
+const Towxml = require('../../../subpackages/towxml/index');
 const app = getApp();
 
 function unwrapDetail(res) {
@@ -24,6 +25,7 @@ function buildFullPreviewContent(docTitle, categoryName, markdownContent) {
     fullContent += `</div>\n\n`;
   }
   fullContent += markdownContent || '';
+  // console.log('fullContent:',fullContent)
   return fullContent;
 }
 
@@ -57,19 +59,22 @@ Page({
       const questionDetail = new QuestionParams(null, null, id)
 
       const res = await authApi.getQuestionDetail(questionDetail);
-    
+      console.log('res-----:',res)
       const row = unwrapDetail(res);
       const docTitle = row.title || '';
       const markdownContent = row.content || row.markdownContent || '';
       const categoryName =
         row.categoryName || row.category_name || row.categoryLabel || '';
       const full = row.previewFullContent || row.preview_full_content || '';
-      const md = full && String(full).trim() ? String(full) : buildFullPreviewContent(docTitle, categoryName, markdownContent);
+      // console.log('full-----:',full)
+      const md = full && String(full).trim() ? String(full) : 
+      buildFullPreviewContent(docTitle, categoryName, markdownContent);
 
       let renderedContent = null;
-      if (app.towxml && md) {
+      const renderFn = app.towxml || Towxml;
+      if (renderFn && md) {
         try {
-          renderedContent = app.towxml(md, 'markdown', {
+          renderedContent = renderFn(md, 'markdown', {
             theme: 'light',
             base: '',
             events: {}
@@ -85,7 +90,7 @@ Page({
         renderedContent,
         shareTitle
       });
-      wx.setNavigationBarTitle({ title: shareTitle.slice(0, 18) + (shareTitle.length > 18 ? '…' : '') });
+      // wx.setNavigationBarTitle({ title: shareTitle.slice(0, 18) + (shareTitle.length > 18 ? '…' : '') });
     } catch (e) {
       console.error(e);
       this.setData({ loading: false });

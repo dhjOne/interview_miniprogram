@@ -3,14 +3,17 @@ import config from './config';
 import Mock from './mock/index';
 import createBus from './utils/eventBus';
 import { connectSocket, fetchUnreadNum } from './mock/chat';
+const Towxml = require('./subpackages/towxml/index');
 
 if (config.isMock) {
   Mock();
 }
 
 App({
+  towxml: Towxml,
+
   // // 引入`towxml3.0`解析方法
-	//  towxml:require('/towxml/index'),
+  //  towxml:require('/towxml/index'),
   
   onLaunch() {
 

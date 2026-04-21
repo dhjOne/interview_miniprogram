@@ -873,26 +873,75 @@ Page({
     });
   },
 
-  // 保存草稿
-  saveDraft() {
-    const draft = {
-      docTitle: this.data.docTitle,
-      markdownContent: this.data.markdownContent,
-      selectedCategory: this.data.selectedCategory,
-      selectedParentCategory: this.data.selectedParentCategory,
-      categoryName: this.data.categoryName,
-      images: this.data.images,
-      previewFullContent: this.data.previewFullContent,
-      timestamp: Date.now()
-    };
+  // 保存草稿 - 调用统一接口，operationType为draft
+  async saveDraft() {
+    // 验证基本内容
+    if (!this.data.docTitle.trim()) {
+      wx.showToast({
+        title: '请填写标题',
+        icon: 'none',
+        duration: 2000
+      });
+      return;
+    }
     
-    wx.setStorageSync('markdown_draft', draft);
+    if (!this.data.markdownContent.trim()) {
+      wx.showToast({
+        title: '请输入内容',
+        icon: 'none',
+        duration: 2000
+      });
+      return;
+    }
     
-    wx.showToast({
-      title: '草稿已保存',
-      icon: 'success',
-      duration: 2000
+    if (!this.data.selectedParentCategory) {
+      wx.showToast({
+        title: '请选择分类',
+        icon: 'none',
+        duration: 2000
+      });
+      return;
+    }
+
+    wx.showLoading({
+      title: '保存中…',
+      mask: true
     });
+
+    try {
+      const previewFullContent = this.buildFullPreviewContent();
+      this.setData({ previewFullContent });
+      const publishParams = new QuestionPublishParams(
+        this.data.docTitle,
+        this.data.selectedCategory,
+        this.data.markdownContent,
+        previewFullContent,
+        this.data.editDocId,
+        'draft' // 操作类型：保存草稿
+      );
+      const response = await questionApi.publishQuestion(publishParams);
+      if (response && response.code === '0000') {
+        wx.showToast({
+          title: '草稿已保存',
+          icon: 'success',
+          duration: 2000
+        });
+      } else {
+        wx.showToast({
+          title: (response && response.message) || '保存失败',
+          icon: 'none',
+          duration: 2000
+        });
+      }
+    } catch (error) {
+      wx.showToast({
+        title: error?.message || '保存失败，请重试',
+        icon: 'none',
+        duration: 2000
+      });
+    } finally {
+      wx.hideLoading();
+    }
   },
 
   // 自动保存草稿
@@ -1061,8 +1110,12 @@ Page({
       isPublishing: true
     });
 
+    // 根据editDocId判断操作类型：update(修改)|publish(发布)
+    const operationType = this.data.editDocId ? 'update' : 'publish';
+    const isEdit = this.data.editDocId ? true : false;
+
     wx.showLoading({
-      title: this.data.editDocId ? '保存中…' : '发布中…',
+      title: isEdit ? '保存中…' : '发布中…',
       mask: true
     });
 
@@ -1074,18 +1127,19 @@ Page({
         this.data.selectedCategory,
         this.data.markdownContent,
         previewFullContent,
-        this.data.editDocId
+        this.data.editDocId,
+        operationType // 操作类型：update(修改)|publish(发布)
       );
       const response = await questionApi.publishQuestion(publishParams);
       if (response && response.code === '0000') {
         wx.removeStorageSync('markdown_draft');
         wx.showToast({
-          title: this.data.editDocId ? '保存成功' : '发布成功',
+          title: isEdit ? '保存成功' : '发布成功',
           icon: 'success',
           duration: 1800
         });
 
-        if (this.data.editDocId) {
+        if (isEdit) {
           this.setData({ isPublishing: false, editDocId: null });
           wx.navigateBack({ delta: 1 });
           return;

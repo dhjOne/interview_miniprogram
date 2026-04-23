@@ -1,9 +1,12 @@
 import { authApi } from '~/api/request/api_question';
+import { authApi as categoryApi } from '~/api/request/api_category';
+import { CategoryParams } from '~/api/param/param_category';
 import { QuestionPublishParams } from '~/api/param/param_publish';
 // 获取应用实例
 const app = getApp();
 
 Page({
+  categorySubCache: {},
   data: {
     // 表单数据
     docTitle: '',
@@ -28,14 +31,12 @@ Page({
     canUndo: false,
     canRedo: false,
     
-    // 分类选项
-    categories: [
-      { id: 1 , name: '技术文档' },
-      { id: 2, name: '使用教程' },
-      { id: 3, name: 'API文档' },
-      { id: 4, name: '开发指南' },
-      { id: 5, name: '其他文档' }
-    ],
+    /** 一级分类（与 pages/category 相同接口：parentId=0） */
+    categoryLevel1: [],
+    /** 当前一级下的二级分类 */
+    categoryLevel2: [],
+    /** 当前选中的一级 id */
+    selectedParentCategory: '',
     
     // towxml 渲染数据
     renderedContent: null,
@@ -65,7 +66,45 @@ Page({
     insertOperations: []
   },
 
+  _categoryRowsFromResponse(res) {
+    const d = res && typeof res === 'object' ? res.data : undefined;
+    if (Array.isArray(d?.rows)) return d.rows;
+    if (Array.isArray(res?.rows)) return res.rows;
+    if (Array.isArray(d)) return d;
+    return [];
+  },
+
+  async fetchSubCategories(parentId) {
+    if (!this.categorySubCache) {
+      this.categorySubCache = {};
+    }
+    if (this.categorySubCache[parentId]) {
+      return this.categorySubCache[parentId];
+    }
+    const categoryParams = new CategoryParams(null, parentId);
+    categoryParams.sortField = 'sort_order';
+    categoryParams.order = 'asc';
+    categoryParams.limit = -1;
+    const response = await categoryApi.getCategories(categoryParams);
+    const rows = this._categoryRowsFromResponse(response);
+    this.categorySubCache[parentId] = rows;
+    return rows;
+  },
+
+  /** 与 pages/category 一致：拉取一级分类（categoryId = 0） */
+  async loadLevel1Categories() {
+    try {
+      const rows = await this.fetchSubCategories(0);
+      this.setData({ categoryLevel1: rows });
+    } catch (e) {
+      console.error('loadLevel1Categories', e);
+      wx.showToast({ title: '分类加载失败', icon: 'none' });
+      this.setData({ categoryLevel1: [] });
+    }
+  },
+
   onLoad() {
+    this.loadLevel1Categories();
     this.initEditor();
   },
 
@@ -186,19 +225,44 @@ Page({
     }
   },
 
-  // 选择分类
-  selectCategory(e) {
-    const categoryId = e.currentTarget.dataset.id;
-    const categories = this.data.categories;
-    const selectedCategory = categories.find(item => item.id === categoryId);
-    const categoryName = selectedCategory ? selectedCategory.name : '';
-    
-    this.setData({
-      selectedCategory: categoryId,
-      categoryName: categoryName
-    }, () => {
-      this.updatePreviewContent();
-    });
+  /** 选择一级：有二级则清空已选叶子，仅展示二级；无二级则一级即发布分类 */
+  async onSelectLevel1(e) {
+    const parentId = e.currentTarget.dataset.id;
+    if (parentId === undefined || parentId === null) return;
+    const sub = await this.fetchSubCategories(parentId);
+    const parent = this.data.categoryLevel1.find(
+      (p) => String(p.id) === String(parentId)
+    );
+    const patch = {
+      selectedParentCategory: parentId,
+      categoryLevel2: sub
+    };
+    if (!sub.length) {
+      patch.selectedCategory = parentId;
+      patch.categoryName = parent ? parent.name : '';
+    } else {
+      patch.selectedCategory = '';
+      patch.categoryName = '';
+    }
+    this.setData(patch, () => this.updatePreviewContent());
+  },
+
+  /** 选择二级：提交用二级 id，预览展示「一级 / 二级」 */
+  onSelectLevel2(e) {
+    const id = e.currentTarget.dataset.id;
+    const parent = this.data.categoryLevel1.find(
+      (p) => String(p.id) === String(this.data.selectedParentCategory)
+    );
+    const child = this.data.categoryLevel2.find((c) => String(c.id) === String(id));
+    const categoryName =
+      parent && child ? `${parent.name} / ${child.name}` : child?.name || '';
+    this.setData(
+      {
+        selectedCategory: id,
+        categoryName
+      },
+      () => this.updatePreviewContent()
+    );
   },
 
   // 切换标签页
@@ -297,6 +361,76 @@ Page({
     this.setData({
       showToolbarDropdown: false
     });
+  },
+
+  // 构建完整的预览内容
+  buildFullPreviewContent() {
+    const { docTitle, categoryName, markdownContent } = this.data;
+    
+    let fullContent = '';
+    
+    // 1. 标题部分 - 使用 HTML 实现标题居中和分类右对齐
+    if (docTitle) {
+      fullContent += `<div style="text-align: center; margin-bottom: 40rpx;">\n`;
+      fullContent += `  <h1 style="font-size: 48rpx; font-weight: 700; color: #1d2129; margin: 0;">${docTitle}</h1>\n`;
+      
+      // 2. 分类标签 - 如果存在分类，右对齐且无间距
+      if (categoryName) {
+        fullContent += `  <div style="text-align: right; margin: 0;">\n`;
+        fullContent += `    <span style="background: #165dff; color: white; padding: 4rpx 16rpx; border-radius: 16rpx; font-size: 24rpx; display: inline-block;">${categoryName}</span>\n`;
+        fullContent += `  </div>\n`;
+      }
+      fullContent += `</div>\n\n`;
+    } else {
+      // 如果没有标题，显示占位符
+      fullContent += `<div style="text-align: center; margin-bottom: 40rpx;">\n`;
+      fullContent += `  <h1 style="font-size: 48rpx; font-weight: 700; color: #c9cdd4; margin: 0;">未命名文档</h1>\n`;
+      fullContent += `</div>\n\n`;
+    }
+    
+    // 3. 文档内容 - 直接开始文档内容，没有分割线
+    if (markdownContent) {
+      fullContent += markdownContent;
+    } else {
+      fullContent += `## 文档内容\n\n`;
+      fullContent += `请在此处输入您的文档内容...\n\n`;
+      fullContent += `### 编辑器特色功能\n\n`;
+      fullContent += `- **实时预览**：编辑内容即时渲染\n`;
+      fullContent += `- **代码高亮**：支持多种编程语言\n`;
+      fullContent += `- **数学公式**：使用 LaTeX 语法\n`;
+      fullContent += `- **表格支持**：创建美观的表格\n`;
+      fullContent += `- **模板插入**：快速插入常用模板\n`;
+    }
+    
+    return fullContent;
+  },
+
+  // 更新预览内容
+  updatePreviewContent() {
+    const fullContent = this.buildFullPreviewContent();
+    
+    this.setData({
+      previewFullContent: fullContent
+    });
+    
+    // 使用 towxml 渲染
+    if (app.towxml && fullContent) {
+      try {
+        const renderData = app.towxml(fullContent, 'markdown', {
+          theme: 'light',
+          base: '',
+          events: {}
+        });
+        
+        this.setData({
+          renderedContent: renderData
+        });
+        
+        console.log('预览已更新，内容长度:', fullContent.length);
+      } catch (error) {
+        console.error('Markdown 渲染错误:', error);
+      }
+    }
   },
 
   // 插入 Markdown 语法 - 插入到文档末尾并自动滚动

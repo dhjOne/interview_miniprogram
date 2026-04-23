@@ -7,6 +7,7 @@ import { QuestionParams } from '~/api/param/param_question';
 const app = getApp();
 
 Page({
+  categorySubCache: {},
   data: {
     // 表单数据
     docTitle: '',
@@ -87,11 +88,20 @@ Page({
   },
 
   async fetchSubCategories(parentId) {
+    if (!this.categorySubCache) {
+      this.categorySubCache = {};
+    }
+    if (this.categorySubCache[parentId]) {
+      return this.categorySubCache[parentId];
+    }
     const categoryParams = new CategoryParams(null, parentId);
     categoryParams.sortField = 'sort_order';
     categoryParams.order = 'asc';
+    categoryParams.limit = -1;
     const response = await categoryApi.getCategories(categoryParams);
-    return this._categoryRowsFromResponse(response);
+    const rows = this._categoryRowsFromResponse(response);
+    this.categorySubCache[parentId] = rows;
+    return rows;
   },
 
   /** 与 pages/category 一致：拉取一级分类（categoryId = 0） */
@@ -127,11 +137,21 @@ Page({
         : null;
     }
 
-    const results = await Promise.all(
-      rows1.map(async (p) => ({ p, sub: await this.fetchSubCategories(p.id) }))
-    );
+    const hit1 = rows1.find((c) => String(c.id) === idStr);
+    if (hit1) {
+      const sub = await this.fetchSubCategories(hit1.id);
+      const leafId = sub.length ? '' : hit1.id;
+      const categoryName = sub.length && fallbackName ? fallbackName : hit1.name;
+      return {
+        selectedParentCategory: hit1.id,
+        categoryLevel2: sub,
+        selectedCategory: leafId,
+        categoryName
+      };
+    }
 
-    for (const { p, sub } of results) {
+    for (const p of rows1) {
+      const sub = await this.fetchSubCategories(p.id);
       const child = sub.find((c) => String(c.id) === idStr);
       if (child) {
         return {
@@ -141,20 +161,6 @@ Page({
           categoryName: `${p.name} / ${child.name}`
         };
       }
-    }
-
-    const hit1 = rows1.find((c) => String(c.id) === idStr);
-    if (hit1) {
-      const sub = results.find((r) => String(r.p.id) === idStr)?.sub || [];
-      const leafId = sub.length ? '' : hit1.id;
-      const categoryName =
-        sub.length && fallbackName ? fallbackName : hit1.name;
-      return {
-        selectedParentCategory: hit1.id,
-        categoryLevel2: sub,
-        selectedCategory: leafId,
-        categoryName
-      };
     }
 
     if (fallbackName) {
@@ -944,15 +950,34 @@ Page({
     }
   },
 
-  // 自动保存草稿
+  // 自动保存草稿（仅本地，避免未完成表单时频繁调接口或弹 Toast）
   autoSaveDraft() {
     if (this.autoSaveTimer) {
       clearTimeout(this.autoSaveTimer);
     }
     
     this.autoSaveTimer = setTimeout(() => {
-      this.saveDraft();
+      if (this.data.docTitle || this.data.markdownContent) {
+        this.persistDraftLocal();
+      }
     }, 2000);
+  },
+
+  /** 仅写入本地草稿，不调发布接口（用于自动保存与页面卸载，避免与「发布」混淆） */
+  persistDraftLocal() {
+    try {
+      wx.setStorageSync('markdown_draft', {
+        docTitle: this.data.docTitle || '',
+        markdownContent: this.data.markdownContent || '',
+        images: this.data.images || [],
+        previewFullContent: this.data.previewFullContent || '',
+        selectedParentCategory: this.data.selectedParentCategory || '',
+        selectedCategory: this.data.selectedCategory || '',
+        categoryName: this.data.categoryName || ''
+      });
+    } catch (e) {
+      console.error('persistDraftLocal', e);
+    }
   },
 
   // 加载草稿
@@ -1193,8 +1218,28 @@ Page({
 
   onUnload() {
     if (this.data.docTitle || this.data.markdownContent) {
-      this.saveDraft();
+      this.persistDraftLocal();
     }
+  },
+
+  /**
+   * Android 实体返回键：先关闭遮罩/弹窗，再允许系统返回上一页。
+   * 避免在「确认发布」等弹窗打开时，系统返回被误当成确认（依赖机型/基础库差异）。
+   */
+  onBackPress() {
+    if (this.data.showToolbarDropdown) {
+      this.closeToolbarDropdown();
+      return true;
+    }
+    if (this.data.showConfirmDialog) {
+      this.setData({ showConfirmDialog: false });
+      return true;
+    }
+    if (this.data.showClearConfirmDialog) {
+      this.setData({ showClearConfirmDialog: false });
+      return true;
+    }
+    return false;
   },
 
   // 监听页面滚动，如果下拉菜单打开，则关闭它

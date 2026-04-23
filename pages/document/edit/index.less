@@ -3,7 +3,9 @@
 .publish-page {
   min-height: 100vh;
   background: #f2f3f5;
-  padding: 24rpx 24rpx 140rpx;
+  padding: 24rpx 24rpx;
+  padding-bottom: calc(140rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(140rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 
@@ -525,7 +527,7 @@
   justify-content: center;
 }
 
-/* 底部操作栏 */
+/* 底部操作栏（含安全区，避免与手势条重叠误触「发布」） */
 .action-bar {
   position: fixed;
   bottom: 0;
@@ -533,10 +535,13 @@
   right: 0;
   background: #ffffff;
   padding: 20rpx 24rpx;
+  padding-bottom: calc(20rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
   box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.08);
   display: flex;
   gap: 20rpx;
   z-index: 100;
+  box-sizing: border-box;
 }
 
 

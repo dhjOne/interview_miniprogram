@@ -97,6 +97,16 @@ export const authApi = {
         showLoading: true,
         loadingText: '删除中...'
       })
+    },
+
+    /**
+     * 刷题排行榜（需后端提供 GET /repository/practice/ranking）
+     * 单条可包含：rank, nickname, avatar, practiceCount | answerCount | score 等
+     */
+    getPracticeRanking: (params) => {
+      return http.get('/repository/practice/ranking', params, {
+        showLoading: false
+      })
     }
 
 }

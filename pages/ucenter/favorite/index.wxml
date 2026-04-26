@@ -1,0 +1,118 @@
+<view class="uc-favorite">
+  <t-message id="t-message" />
+  <t-navbar left-arrow title="收藏题" fixed safe-area-inset-top />
+  <view class="uc-favorite__inner question-list-container">
+    <view class="question-list-sticky">
+      <view class="search-section">
+        <t-search
+          value="{{searchValue}}"
+          placeholder="搜索已收藏题目…"
+          bind:change="onSearchChange"
+          bind:search="onSearch"
+          bind:clear="onSearchClear"
+          shape="round"
+        />
+      </view>
+      <view class="sort-chip-bar">
+        <view
+          wx:for="{{sortChips}}"
+          wx:key="value"
+          class="sort-chip {{sortType === item.value ? 'sort-chip--active' : ''}}"
+          data-sort="{{item.value}}"
+          bindtap="onSortTap">
+          {{item.label}}
+        </view>
+      </view>
+      <view class="list-subbar" wx:if="{{listHeaderReady}}">
+        <text class="list-subbar-text">共 {{totalCount}} 道收藏</text>
+      </view>
+    </view>
+
+    <view class="questions-section">
+      <scroll-view
+        class="questions-scroll"
+        scroll-y
+        enhanced
+        show-scrollbar="{{false}}"
+        scroll-into-view="{{scrollIntoView}}"
+        scroll-with-animation
+        bindscrolltolower="loadMore"
+        lower-threshold="120">
+        <view id="list-top" class="list-top-anchor" />
+        <view class="question-list">
+          <block wx:for="{{questionList}}" wx:key="id" wx:for-index="idx">
+            <view
+              class="question-item question-item--collected"
+              bindtap="onQuestionClick"
+              data-id="{{item.id}}"
+              data-title="{{item.title}}">
+              <view class="question-header">
+                <view class="question-index">
+                  <text class="index-number">{{(page - 1) * pageSize + idx + 1}}</text>
+                </view>
+                <view class="question-main">
+                  <view class="question-title-row">
+                    <text class="question-title">{{item.title || '无标题'}}</text>
+                    <t-tag
+                      wx:if="{{item.difficultyTag}}"
+                      size="small"
+                      theme="{{item.difficultyTag.theme}}"
+                      class="question-diff-tag">
+                      {{item.difficultyTag.text}}
+                    </t-tag>
+                  </view>
+                  <view class="question-meta">
+                    <text class="meta-item">
+                      <t-icon name="time" size="24rpx" />
+                      {{item.displayDate}}
+                    </text>
+                    <text class="meta-item">
+                      <t-icon name="view" size="24rpx" />
+                      {{item.viewCount}} 浏览
+                    </text>
+                    <text class="meta-item">
+                      <t-icon name="app" size="24rpx" />
+                      {{item.commentCount}} 评论
+                    </text>
+                    <text class="meta-item">
+                      <t-icon name="thumb-up" size="24rpx" />
+                      {{item.likeCount}} 点赞
+                    </text>
+                  </view>
+                </view>
+                <view class="question-actions" catchtap="onCollect" data-id="{{item.id}}">
+                  <t-icon
+                    name="{{item.isCollected ? 'heart-filled' : 'heart'}}"
+                    size="40rpx"
+                    color="{{item.isCollected ? '#07C160' : '#bbb'}}"
+                    class="collect-icon"
+                  />
+                </view>
+              </view>
+              <view wx:if="{{item.description}}" class="question-description">
+                <text class="description-text">{{item.description}}</text>
+              </view>
+            </view>
+          </block>
+        </view>
+
+        <view class="list-footer" wx:if="{{questionList.length > 0}}">
+          <view class="list-footer-inner" wx:if="{{loading}}">
+            <t-loading size="36rpx" text="加载中…" />
+          </view>
+          <t-divider wx:elif="{{!hasMore}}" align="center" content="没有更多了" />
+        </view>
+
+        <view wx:if="{{questionList.length === 0 && !loading && loadAttempted}}" class="empty-state">
+          <t-icon name="heart" size="120rpx" color="#ddd" />
+          <text class="empty-text">暂无收藏题目</text>
+          <text class="empty-desc">在题库中点击「心形」即可收藏，或换关键词再搜</text>
+        </view>
+
+        <view wx:if="{{questionList.length === 0 && loading}}" class="list-loading-center">
+          <t-loading size="48rpx" text="加载中…" />
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+</view>

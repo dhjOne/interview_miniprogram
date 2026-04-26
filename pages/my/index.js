@@ -12,9 +12,9 @@ Page({
       { image: '/static/home/card2.png', title: '新功能介绍' }
     ],
     service: [
-      { name: '收藏题', icon: 'heart', type: 'favorite' },
+      { name: '收藏题', icon: 'heart', type: 'favorite', url: '/pages/ucenter/favorite/index' },
       { name: '生疏题', icon: 'flash', type: 'weak' },
-      { name: '刷题排行', icon: 'trend-chart', type: 'ranking' },
+      { name: '刷题排行', icon: 'trend-chart', type: 'ranking', url: '/pages/ucenter/ranking/index' },
       { name: '关于我们', icon: 'info-circle', type: 'about' }
     ],
     personalInfo: {},

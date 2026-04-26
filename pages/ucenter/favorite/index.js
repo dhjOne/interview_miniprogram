@@ -1,16 +1,9 @@
-// pages/question/index.js
 import Message from 'tdesign-miniprogram/message/index';
 import { authApi } from '~/api/request/api_question';
-// import { QuestionParams } from '~/api/param/param_question';
-import {
-  QuestionLikeOrCollectParams,
-  QuestionParams
-} from '~/api/param/param_question';
-
+import { QuestionParams, QuestionLikeOrCollectParams } from '~/api/param/param_question';
 
 const app = getApp();
 
-/** 列表卡片日期：仅展示 YYYY-MM-DD */
 function formatDateYMD(value) {
   if (value === undefined || value === null || value === '') return '—';
   const s = String(value).trim();
@@ -68,44 +61,12 @@ Page({
     hasMore: true,
     page: 1,
     pageSize: 20,
-    showBackTop: false,
-    categoryId: null,
-    categoryName: '',
+    listHeaderReady: false,
     scrollIntoView: '',
-    listHeaderReady: false
+    loadAttempted: false
   },
 
-  onLoad(options) {
-    const { categoryId, categoryName, secondaryCategoryId, secondaryCategoryName } = options;
-    const finalCategoryId = categoryId || secondaryCategoryId;
-    const finalCategoryName = categoryName || secondaryCategoryName;
-
-    this.setData({
-      categoryId: finalCategoryId,
-      categoryName: finalCategoryName
-    });
-
-    wx.setNavigationBarTitle({
-      title: finalCategoryName || '题库列表'
-    });
-
-    this.loadQuestions(true);
-  },
-
-  onReady() {
-    if (this.data.categoryName) {
-      wx.setNavigationBarTitle({
-        title: this.data.categoryName
-      });
-    }
-  },
-
-  onPageScroll(e) {
-    const top = (e.detail && e.detail.scrollTop) || 0;
-    this.setData({
-      showBackTop: top > 400
-    });
-  },
+  onShow() {},
 
   _sortParams() {
     const map = {
@@ -120,14 +81,13 @@ Page({
     if (this.data.loading) return;
 
     const requestPage = refresh ? 1 : this.data.page + 1;
-
     this.setData({ loading: true });
 
     try {
       const title = this.data.searchValue && this.data.searchValue.trim()
         ? this.data.searchValue.trim()
         : null;
-      const questionParams = new QuestionParams(title, this.data.categoryId, null);
+      const questionParams = new QuestionParams(title, null, null, 'collected');
       const [sortField, order] = this._sortParams();
       questionParams.sortField = sortField;
       questionParams.order = order;
@@ -146,7 +106,8 @@ Page({
             questionList: newList,
             totalCount: total,
             page: 1,
-            hasMore: newList.length < total
+            hasMore: newList.length < total,
+            loadAttempted: true
           });
         } else {
           const merged = [...this.data.questionList, ...newList];
@@ -154,7 +115,8 @@ Page({
             questionList: merged,
             totalCount: total,
             page: requestPage,
-            hasMore: merged.length < total
+            hasMore: merged.length < total,
+            loadAttempted: true
           });
         }
       } else {
@@ -163,23 +125,27 @@ Page({
           offset: [20, 32],
           content: response.message || '加载失败'
         });
+        this.setData({ loadAttempted: true });
       }
     } catch (error) {
-      console.error('加载题目列表失败:', error);
+      console.error('收藏列表加载失败:', error);
       Message.error({
         context: this,
         offset: [20, 32],
         content: '网络错误，请重试'
       });
+      this.setData({ loadAttempted: true });
     } finally {
       this.setData({ loading: false, listHeaderReady: true });
     }
   },
 
+  onLoad() {
+    this.loadQuestions(true);
+  },
+
   onSearchChange(e) {
-    this.setData({
-      searchValue: e.detail.value
-    });
+    this.setData({ searchValue: e.detail.value });
   },
 
   onSearch() {
@@ -200,24 +166,39 @@ Page({
     });
   },
 
+  loadMore() {
+    if (!this.data.loading && this.data.hasMore) {
+      this.loadQuestions(false);
+    }
+  },
+
   async onCollect(e) {
-    console.log('-----e----',e)
     const questionId = e.currentTarget.dataset.id;
     const question = this.data.questionList.find((item) => item.id === questionId);
     if (!question) return;
 
     try {
-      const collectQuestion = new QuestionLikeOrCollectParams(questionId, null, !question.isCollected)
-      const response = await authApi.toggleCollect(collectQuestion);
+      const response = await authApi.toggleCollect(
+        new QuestionLikeOrCollectParams(questionId, null, !question.isCollected)
+      );
 
       if (response.code == '0000') {
-        const updatedList = this.data.questionList.map((item) => {
-          if (item.id === questionId) {
-            return { ...item, isCollected: !item.isCollected };
-          }
-          return item;
-        });
-        this.setData({ questionList: updatedList });
+        const isNowCollected = !question.isCollected;
+        if (!isNowCollected) {
+          const updatedList = this.data.questionList.filter((item) => item.id !== questionId);
+          this.setData({
+            questionList: updatedList,
+            totalCount: Math.max(0, (this.data.totalCount || 1) - 1)
+          });
+        } else {
+          const updatedList = this.data.questionList.map((item) => {
+            if (item.id === questionId) {
+              return { ...item, isCollected: !item.isCollected };
+            }
+            return item;
+          });
+          this.setData({ questionList: updatedList });
+        }
         Message.success({
           context: this,
           offset: [20, 32],
@@ -231,39 +212,14 @@ Page({
           content: response.message || '操作失败'
         });
       }
-    } catch (error) {
-      console.error('收藏操作失败:', error);
+    } catch (err) {
+      console.error('收藏操作失败:', err);
       Message.error({
         context: this,
         offset: [20, 32],
         content: '操作失败，请重试'
       });
     }
-  },
-
-  loadMore() {
-    if (!this.data.loading && this.data.hasMore) {
-      this.loadQuestions(false);
-    }
-  },
-
-  scrollToTop() {
-    this.setData({ scrollIntoView: 'list-top' });
-    setTimeout(() => {
-      this.setData({ scrollIntoView: '' });
-    }, 200);
-  },
-
-  goRelease() {
-    const id = this.data.categoryId;
-    const q = id !== null && id !== undefined && id !== '' ? `?categoryId=${id}` : '';
-    wx.navigateTo({
-      url: `/pages/publish/index${q}`
-    });
-  },
-
-  onReleaseTap() {
-    this.goRelease();
   },
 
   onQuestionClick(e) {

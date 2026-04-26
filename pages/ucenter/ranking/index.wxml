@@ -1,0 +1,90 @@
+<view class="uc-rank">
+  <t-navbar left-arrow title="刷题排行" fixed safe-area-inset-top />
+  <view class="uc-rank__content">
+    <view class="uc-rank__hero">
+      <view class="uc-rank__hero-title">本周刷题榜</view>
+      <view class="uc-rank__hero-sub">以刷题/作答次数综合排序，坚持就会有收获</view>
+    </view>
+
+    <view wx:if="{{myRankInfo}}" class="uc-rank__me">
+      <t-avatar
+        class="uc-rank__me-avatar"
+        image="{{myRankInfo.avatar || defaultAvatar}}"
+        size="96rpx"
+      />
+      <view class="uc-rank__me-mid">
+        <text class="uc-rank__me-name">我的排名</text>
+        <text class="uc-rank__me-stat">已刷 {{myRankInfo.count || 0}} 题</text>
+      </view>
+      <view class="uc-rank__me-right">
+        <text class="uc-rank__me-rank">第 {{myRankInfo.rank > 0 ? myRankInfo.rank : '—'}} 名</text>
+      </view>
+    </view>
+
+    <scroll-view
+      class="uc-rank__scroll"
+      scroll-y
+      enhanced
+      show-scrollbar="{{false}}"
+      bindscrolltolower="onReachBottom"
+      lower-threshold="100">
+      <view wx:if="{{loading && rankList.length === 0 && !loadError}}" class="uc-rank__loading">
+        <t-loading size="48rpx" text="加载中…" />
+      </view>
+      <view class="uc-rank__list">
+        <view
+          wx:for="{{rankList}}"
+          wx:key="rid"
+          class="uc-rank__row"
+        >
+          <view class="uc-rank__badge {{item.rankClass}}">
+            <text>{{item.rank}}</text>
+          </view>
+          <t-avatar
+            class="uc-rank__av"
+            image="{{item.avatar || defaultAvatar}}"
+            size="88rpx"
+          />
+          <view class="uc-rank__main">
+            <text class="uc-rank__name">{{item.nickname}}</text>
+            <text class="uc-rank__sub">继续加油</text>
+          </view>
+          <view class="uc-rank__val">
+            <text class="uc-rank__num">{{item.count}}</text>
+            <text class="uc-rank__unit">题</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="uc-rank__foot" wx:if="{{rankList.length > 0}}">
+        <view wx:if="{{loading}}">
+          <t-loading size="36rpx" text="加载中…" />
+        </view>
+        <t-divider wx:elif="{{!hasMore}}" align="center" content="没有更多了" />
+      </view>
+
+      <view wx:if="{{!loading && loadDone && rankList.length === 0 && !loadError}}" class="uc-rank__empty">
+        <t-icon name="chart" size="120rpx" color="#ddd" />
+        <text class="uc-rank__empty-t">暂无排行数据</text>
+        <text class="uc-rank__empty-d">多刷题即可上榜，也可以稍后再来</text>
+        <t-button
+          class="uc-rank__empty-btn"
+          theme="primary"
+          size="medium"
+          shape="round"
+          bind:tap="goCategory"
+        >
+          去题库刷题
+        </t-button>
+      </view>
+
+      <view wx:if="{{!loading && loadError}}" class="uc-rank__empty">
+        <t-icon name="error-circle" size="100rpx" color="#f5a524" />
+        <text class="uc-rank__empty-t">排行榜暂不可用</text>
+        <text class="uc-rank__empty-d">{{errorMessage || '服务升级中，请稍后再试'}}</text>
+        <t-button theme="light" size="medium" shape="round" bind:tap="reload">重试</t-button>
+      </view>
+    </scroll-view>
+
+  </view>
+</view>

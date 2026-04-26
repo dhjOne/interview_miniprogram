@@ -77,6 +77,14 @@
       ]
     },
     {
+      "root": "pages/ucenter",
+      "name": "ucenter",
+      "pages": [
+        "favorite/index",
+        "ranking/index"
+      ]
+    },
+    {
       "root": "pages/publish",
       "name": "publish",
       "pages": [

@@ -174,7 +174,7 @@ Page({
       const categoryParams = new CategoryParams(null, 0);
       categoryParams.sortField = 'sort_order';
       categoryParams.order = 'asc';
-      const response = await authApi.getCategories(categoryParams, { encrypt: true });
+      const response = await authApi.getCategories(categoryParams);
       console.log('分类列表：', response);
 
       const categories = response.data?.rows || [];

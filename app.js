@@ -2,6 +2,7 @@
 import config from './config';
 import Mock from './mock/index';
 import createBus from './utils/eventBus';
+import encryption from './utils/encryption';
 import { connectSocket, fetchUnreadNum } from './mock/chat';
 const Towxml = require('./subpackages/towxml/index');
 
@@ -39,7 +40,13 @@ App({
     this.connect();
     // 初始化时检查登录状态
     this.checkLoginStatus();
+    // ECDH：启动后静默预加载会话并挂续期定时器，减少业务首包再暴露交换接口
+    encryption.startLifecycle();
 
+  },
+
+  onShow() {
+    encryption.onAppShow();
   },
   globalData: {
     userInfo: null,

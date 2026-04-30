@@ -31,9 +31,9 @@ export default {
   
   // 超时配置
   timeout: 15000,
-   // 加密相关接口
+  // 加密：不设 disabled 则预建 ECDH、按响应体自动解密密文；仅调试用 disabled:true 可全关
   encryption: {
-    exchange: '/api/encryption/exchange',      // 密钥交换
-    destroy_session: '/api/encryption/session'  // 销毁会话
+    exchange: '/api/encryption/exchange',
+    destroy_session: '/api/encryption/session'
   },
 }

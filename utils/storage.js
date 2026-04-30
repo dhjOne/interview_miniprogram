@@ -1,6 +1,9 @@
 // utils/storage.js
 const STORAGE_KEY = 'ecdh_session_info';
 
+/** 与后端 ECDHSessionManager.SessionInfo.SESSION_EXPIRY 一致（30 分钟） */
+const SESSION_TTL_MS = 30 * 60 * 1000;
+
 /**
  * 保存会话信息到本地存储
  */
@@ -10,7 +13,7 @@ function saveSession(sessionInfo) {
       sessionId: sessionInfo.sessionId,
       sharedKeyHex: sessionInfo.sharedKeyHex,
       createTime: Date.now(),
-      expireTime: 30 * 60 * 1000 // 30分钟
+      expireTime: SESSION_TTL_MS
     };
     
     wx.setStorageSync(STORAGE_KEY, JSON.stringify(data));
@@ -34,7 +37,7 @@ function loadSession() {
     const now = Date.now();
     
     // 检查是否过期
-    if (now - sessionInfo.createTime > sessionInfo.expireTime) {
+    if (now - sessionInfo.createTime > (sessionInfo.expireTime || SESSION_TTL_MS)) {
       console.log('⚠️ 会话已过期，清除本地缓存');
       clearSession();
       return null;
@@ -69,6 +72,7 @@ function isSessionValid() {
 }
 
 module.exports = {
+  SESSION_TTL_MS,
   saveSession,
   loadSession,
   clearSession,

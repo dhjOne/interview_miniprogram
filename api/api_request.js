@@ -28,6 +28,16 @@ class Request {
     /** 避免并发 401 多次触发跳转登录 */
     this._unauthorizedRedirecting = false
   }
+
+  /**
+   * 是否启用客户端加密链路（ECDH 会话、X-Session-Id、密文自动解密）
+   * 为 false 时仅当显式 `encryption.disabled === true`；与「后端是否加密」解耦，后端以 DB/配置为准。
+   * 未禁用时始终预建会话，以便后端按库表命中加密时使用 ECDH（无会话则会退化为 RSA，小程序无法解密）。
+   */
+  _isEncryptionPipelineEnabled() {
+    return config.encryption?.disabled !== true
+  }
+
   /**
    * 发送请求
    * @param {Object} options 请求选项
@@ -37,7 +47,7 @@ class Request {
    * @param {Object} options.header 请求头
    * @param {boolean} options.showLoading 是否显示加载提示
    * @param {string} options.loadingText 加载提示文字
-   * @param {boolean} options.encrypt 是否启用 ECDH 加密（加密请求头+解密响应）
+   * @param {boolean} options.encrypt 兼容保留，无实际作用（是否加密由服务端配置决定，客户端按响应体自动解密）
    * @param {boolean} options.checkBusinessCode 是否检查业务状态码
    */
   async request(options) {
@@ -53,12 +63,11 @@ class Request {
       encrypt = false
     } = options
 
-    // 若需要加密，先确保 ECDH 会话有效
-    console.log('🔄 开始判断是否加密   encrypt:',encrypt)
-    console.log('🔄 isSessionValid:',encryption.isSessionValid())
-    if (encrypt && !encryption.isSessionValid()) {
-      console.log('🔄 加密会话无效，执行密钥交换...')
-      await encryption.exchangeKeys()
+    const cryptoOn = this._isEncryptionPipelineEnabled()
+
+    // 未禁用时始终保证 ECDH 会话并携带 X-Session-Id，与后端库表「是否加密响应」无关；避免服务端退化为 RSA 导致小程序无法解密
+    if (cryptoOn) {
+      await encryption.ensureSession({ silent: true })
     }
     
     // 显示加载提示
@@ -101,14 +110,13 @@ class Request {
       'Authorization': this._getToken(),
       ...header
     }
-    if (encrypt && encryption.sessionId) {
+    if (cryptoOn && encryption.sessionId) {
       requestHeader['X-Session-Id'] = encryption.sessionId
     }
     
     console.group(`🌐 网络请求: ${method} ${url}`)
     console.log('请求参数:', requestData)
     console.log('完整URL:', fullUrl)
-    console.log('encrypt:', encrypt)
     
     return new Promise((resolve, reject) => {
       wx.request({
@@ -128,10 +136,18 @@ class Request {
             return
           }
 
-          // 若启用了加密且响应是加密格式，先解密（SecureEncryptedResponse 通常在 ApiResult.data 内）
+          // 按响应体自动识别：密文信封则解密（与后端 DB/API 是否开启加密一致）；明文 JSON 则直接使用
           let responseData = res.data
           const secureEnvelope = encryption.pickSecureEnvelope(responseData)
-          if (encrypt && secureEnvelope) {
+          if (secureEnvelope) {
+            if (!cryptoOn) {
+              reject(new BusinessError(-3, '收到加密响应但已在 config 中关闭加密链路（encryption.disabled）'))
+              return
+            }
+            if (secureEnvelope.encryptedAesKey && secureEnvelope.encryptedIv) {
+              reject(new BusinessError(-3, '响应为 RSA 混合加密，请保证未设置 encryption.disabled 且请求已带有效 X-Session-Id（先完成 ECDH）'))
+              return
+            }
             console.log('🔐 检测到加密响应，开始解密...')
             try {
               responseData = await encryption.decryptResponse(secureEnvelope)

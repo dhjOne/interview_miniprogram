@@ -7,6 +7,9 @@ const storage = require('./storage.js');
 const config = require('../config/index.js').default;
 const EC = require('../lib/elliptic.min.js');
 
+/** 在会话过期前提前续期，略小于 storage 的 TTL，与后端 30min 窗口对齐 */
+const RENEW_BEFORE_EXPIRY_MS = 5 * 60 * 1000;
+
 // 为椭圆曲线库配置小程序环境的随机数生成器
 function randomBytes(size) {
   var array = new Uint8Array(size);
@@ -32,8 +35,93 @@ class ECDHManager {
     this.sharedKeyHex = null; // AES-256 密钥（hex格式）
     this.clientKeyPair = null;
     this.useTestKeys = true; // 开发模式下使用预定义密钥对
+    /** 并发去重：多路同时 ensureSession 只发起一次交换 */
+    this._exchangePromise = null;
+    /** 到期前自动续期的定时器 */
+    this._renewTimer = null;
     // 从本地存储恢复会话
     this.restoreSession();
+  }
+
+  _isEncryptionDisabled() {
+    return config.encryption?.disabled === true
+  }
+
+  /**
+   * 应用启动时调用：未禁用加密链路时预建立 ECDH（与后端库表是否对该路径加密无关）
+   */
+  startLifecycle() {
+    if (this._isEncryptionDisabled()) return
+    this.ensureSession({ silent: true }).catch((e) => {
+      console.warn('[ECDH] 预加载失败，首包业务请求将重试密钥交换', e)
+    })
+  }
+
+  /**
+   * 从后台回前台时续期/补会话
+   */
+  onAppShow() {
+    if (this._isEncryptionDisabled()) return
+    this.ensureSession({ silent: true }).catch(() => {})
+  }
+
+  _shouldRenewSession() {
+    const s = storage.loadSession()
+    if (!s || !s.createTime) return false
+    const age = Date.now() - s.createTime
+    return age >= storage.SESSION_TTL_MS - RENEW_BEFORE_EXPIRY_MS
+  }
+
+  _clearRenewTimer() {
+    if (this._renewTimer != null) {
+      clearTimeout(this._renewTimer)
+      this._renewTimer = null
+    }
+  }
+
+  /**
+   * 按当前 createTime 计算「下次续期」时刻（到期前 RENEW_BEFORE_EXPIRY_MS）
+   */
+  _scheduleNextRenewal() {
+    this._clearRenewTimer()
+    if (this._isEncryptionDisabled()) return
+    const s = storage.loadSession()
+    if (!s || !s.createTime) return
+    const renewAt = s.createTime + storage.SESSION_TTL_MS - RENEW_BEFORE_EXPIRY_MS
+    const delay = Math.max(renewAt - Date.now(), 10 * 1000)
+    this._renewTimer = setTimeout(() => {
+      this.ensureSession({ silent: true }).catch((e) => {
+        console.warn('[ECDH] 定时续期失败，将在后续请求时重试', e)
+      })
+    }, delay)
+  }
+
+  /**
+   * 保证存在可用会话：有效且未临近过期则直接返回；否则单飞执行密钥交换
+   * @param {{ silent?: boolean, force?: boolean }} [options] silent 默认 true，不弹 Loading/Toast
+   */
+  ensureSession(options) {
+    const opts = options || {}
+    const silent = opts.silent !== false
+    const force = !!opts.force
+    if (this._isEncryptionDisabled()) {
+      return Promise.resolve()
+    }
+    if (this._exchangePromise) {
+      return this._exchangePromise
+    }
+    if (this.isSessionValid() && !force && !this._shouldRenewSession()) {
+      this._scheduleNextRenewal()
+      return Promise.resolve()
+    }
+    this._exchangePromise = this._performKeyExchange({ silent })
+      .then(() => {
+        this._scheduleNextRenewal()
+      })
+      .finally(() => {
+        this._exchangePromise = null
+      })
+    return this._exchangePromise
   }
 
   /**
@@ -113,61 +201,74 @@ class ECDHManager {
   }
 
   /**
-   * 执行密钥交换
+   * 兼容旧调用：显式密钥交换（默认带 Loading/Toast，适合手动触发）
+   * @param {{ silent?: boolean }} [opts]
    */
-  async exchangeKeys() {
+  async exchangeKeys(opts) {
+    const silent = opts && opts.silent === true
+    return this._performKeyExchange({ silent })
+  }
+
+  /**
+   * 实际发起 ECDH 交换（内部使用）
+   */
+  async _performKeyExchange(options) {
+    const silent = !!(options && options.silent)
+    let showedLoading = false
     try {
-      wx.showLoading({ title: '初始化加密...', mask: true });
-      
-      // Step 1: 生成密钥对
-      const clientPublicKeyHex = this.generateClientKeyPair();
-      
-      // Step 2: 转换为 Base64（后端需要 Base64 格式）
-      const clientPublicKeyBase64 = this.hexToBase64(clientPublicKeyHex);
-      console.log('config.encryption::::',config.encryption)
-      console.log('config.encryption.exchange::::',config.encryption.exchange)
-      // Step 3: 调用服务器密钥交换接口
+      if (!silent) {
+        wx.showLoading({ title: '初始化加密...', mask: true })
+        showedLoading = true
+      }
+
+      const clientPublicKeyHex = this.generateClientKeyPair()
+      const clientPublicKeyBase64 = this.hexToBase64(clientPublicKeyHex)
+      const exchangeUrl = (config.encryption && config.encryption.exchange)
+        ? config.encryption.exchange
+        : '/api/encryption/exchange'
+
       const res = await this.wxRequest({
-        url: config.encryption ? config.encryption.exchange : '/api/encryption/exchange',
+        url: exchangeUrl,
         method: 'POST',
         data: {
           clientPublicKey: clientPublicKeyBase64
         }
-      });
+      })
 
       if (res.code === '0000') {
-        this.sessionId = res.data.sessionId;
-        const serverPublicKeyBase64 = res.data.serverPublicKey;
-        
-        // Step 4: 计算共享密钥
-        await this.deriveSharedKey(serverPublicKeyBase64);
-        
-        // Step 5: 保存到本地存储
+        this.sessionId = res.data.sessionId
+        const serverPublicKeyBase64 = res.data.serverPublicKey
+        await this.deriveSharedKey(serverPublicKeyBase64)
         storage.saveSession({
           sessionId: this.sessionId,
           sharedKeyHex: this.sharedKeyHex
-        });
-        
-        wx.hideLoading();
-        wx.showToast({
-          title: '加密连接已建立',
-          icon: 'success',
-          duration: 1500
-        });
-        
-        console.log('✅ 密钥交换成功, sessionId:', this.sessionId);
-        return true;
-      } else {
-        throw new Error('密钥交换失败: ' + res.message);
+        })
+        if (showedLoading) {
+          wx.hideLoading()
+        }
+        if (!silent) {
+          wx.showToast({
+            title: '加密连接已建立',
+            icon: 'success',
+            duration: 1500
+          })
+        }
+        console.log('✅ 密钥交换成功, sessionId:', this.sessionId)
+        return true
       }
+      throw new Error('密钥交换失败: ' + (res.message || res.code))
     } catch (error) {
-      wx.hideLoading();
-      console.error('❌ 密钥交换失败:', error);
-      wx.showToast({
-        title: '加密初始化失败',
-        icon: 'none'
-      });
-      throw error;
+      if (showedLoading) {
+        wx.hideLoading()
+      }
+      console.error('❌ 密钥交换失败:', error)
+      if (!silent) {
+        wx.showToast({
+          title: '加密初始化失败',
+          icon: 'none'
+        })
+      }
+      throw error
     }
   }
 
@@ -352,9 +453,8 @@ class ECDHManager {
     const { url, method = 'GET', data = {}, needDecrypt = true } = options;
 
     // Step 1: 确保会话有效
-    if (needDecrypt && !this.isSessionValid()) {
-      console.log('🔄 会话无效，执行密钥交换...');
-      await this.exchangeKeys();
+    if (needDecrypt) {
+      await this.ensureSession({ silent: true })
     }
 
     // Step 2: 构建请求头
@@ -415,6 +515,7 @@ class ECDHManager {
    * 清除会话
    */
   clearSession() {
+    this._clearRenewTimer()
     this.sessionId = null;
     this.sharedKeyHex = null;
     this.clientKeyPair = null;
@@ -423,10 +524,18 @@ class ECDHManager {
   }
 
   /**
-   * 检查会话是否有效
+   * 检查会话是否有效（与本地 TTL 一致，过期会清空内存态）
    */
   isSessionValid() {
-    return this.sessionId !== null && this.sharedKeyHex !== null;
+    const session = storage.loadSession()
+    if (!session || !session.sessionId || !session.sharedKeyHex) {
+      this.sessionId = null
+      this.sharedKeyHex = null
+      return false
+    }
+    this.sessionId = session.sessionId
+    this.sharedKeyHex = session.sharedKeyHex
+    return true
   }
 
   /**

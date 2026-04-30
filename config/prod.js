@@ -19,7 +19,7 @@ export default {
   },
   timeout: 10000,
   encryption: {
-    exchange: '/encryption/exchange',      // 密钥交换
-    destroy_session: '/encryption/session'  // 销毁会话
+    exchange: '/encryption/exchange',
+    destroy_session: '/encryption/session'
   },
 }

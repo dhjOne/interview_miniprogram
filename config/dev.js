@@ -30,5 +30,10 @@ export default {
   },
   
   // 超时配置
-  timeout: 15000
+  timeout: 15000,
+   // 加密相关接口
+  encryption: {
+    exchange: '/api/encryption/exchange',      // 密钥交换
+    destroy_session: '/api/encryption/session'  // 销毁会话
+  },
 }

@@ -4,16 +4,17 @@ import http from '../api_request'
 export const authApi = {
   
   // 获取分类信息
-  getCategories: (categoryParams) => {
+  // @param {Object} categoryParams - 分类查询参数
+  getCategories: (categoryParams, options = {}) => {
     return http.get('/repository/category', categoryParams, {
-      showLoading: false
+      showLoading: false,
+      ...options
     })
   },
-
-  //获取问题列表
-  getQuestions: (categoryParams) => {
+  getQuestions: (categoryParams, options = {}) => {
     return http.get('/repository/category', categoryParams, {
-      showLoading: false
+      showLoading: false,
+      ...options
     })
   }
 }

@@ -17,5 +17,9 @@ export default {
     enableMock: false,
     logLevel: 'info'
   },
-  timeout: 10000
+  timeout: 10000,
+  encryption: {
+    exchange: '/encryption/exchange',      // 密钥交换
+    destroy_session: '/encryption/session'  // 销毁会话
+  },
 }

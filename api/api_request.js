@@ -1,5 +1,6 @@
 // 方案1: 使用相对路径（推荐）
 import config from '../config/index'
+import encryption from '../utils/encryption'
 console.log('🔧 request.js中加载的配置:', config) // 调试日志
 
 
@@ -36,6 +37,8 @@ class Request {
    * @param {Object} options.header 请求头
    * @param {boolean} options.showLoading 是否显示加载提示
    * @param {string} options.loadingText 加载提示文字
+   * @param {boolean} options.encrypt 是否启用 ECDH 加密（加密请求头+解密响应）
+   * @param {boolean} options.checkBusinessCode 是否检查业务状态码
    */
   async request(options) {
     const { 
@@ -46,8 +49,17 @@ class Request {
       header = {},
       showLoading = true,
       loadingText = '加载中...',
-      checkBusinessCode = true // 新增：是否检查业务状态码
+      checkBusinessCode = true,
+      encrypt = false
     } = options
+
+    // 若需要加密，先确保 ECDH 会话有效
+    console.log('🔄 开始判断是否加密   encrypt:',encrypt)
+    console.log('🔄 isSessionValid:',encryption.isSessionValid())
+    if (encrypt && !encryption.isSessionValid()) {
+      console.log('🔄 加密会话无效，执行密钥交换...')
+      await encryption.exchangeKeys()
+    }
     
     // 显示加载提示
     if (showLoading) {
@@ -82,23 +94,30 @@ class Request {
     
     // 构建完整URL
     const fullUrl = this._buildUrl(url)
+
+    // 构建请求头
+    const requestHeader = {
+      'Content-Type': 'application/json',
+      'Authorization': this._getToken(),
+      ...header
+    }
+    if (encrypt && encryption.sessionId) {
+      requestHeader['X-Session-Id'] = encryption.sessionId
+    }
     
     console.group(`🌐 网络请求: ${method} ${url}`)
     console.log('请求参数:', requestData)
     console.log('完整URL:', fullUrl)
+    console.log('encrypt:', encrypt)
     
     return new Promise((resolve, reject) => {
       wx.request({
         url: fullUrl,
         method: method.toUpperCase(),
         data: requestData,
-        header: {
-          'Content-Type': 'application/json',
-          'Authorization': this._getToken(),
-          ...header
-        },
+        header: requestHeader,
         timeout: config.timeout || 10000,
-        success: (res) => {
+        success: async (res) => {
           console.log('响应数据:', res)
           console.groupEnd()
           
@@ -108,17 +127,30 @@ class Request {
             reject(error)
             return
           }
+
+          // 若启用了加密且响应是加密格式，先解密（SecureEncryptedResponse 通常在 ApiResult.data 内）
+          let responseData = res.data
+          const secureEnvelope = encryption.pickSecureEnvelope(responseData)
+          if (encrypt && secureEnvelope) {
+            console.log('🔐 检测到加密响应，开始解密...')
+            try {
+              responseData = await encryption.decryptResponse(secureEnvelope)
+            } catch (decryptError) {
+              console.error('❌ 响应解密失败:', decryptError)
+              reject(new BusinessError(-3, '响应解密失败，请重试'))
+              return
+            }
+          }
+          
           // 统一处理业务状态码异常
-          console.log("统一处理业务状态码异常222")
-          if (checkBusinessCode && !this._isBusinessSuccess(res.data)) {
-            console.log("统一处理业务状态码异常")
-            const error = this._handleBusinessError(res.data)
+          if (checkBusinessCode && !this._isBusinessSuccess(responseData)) {
+            const error = this._handleBusinessError(responseData)
             reject(error)
             return
           }
           console.log("请求成功")
           // 请求成功
-          resolve(res.data)
+          resolve(responseData)
         },
         fail: (error) => {
           console.error('请求失败:', error)
@@ -362,6 +394,11 @@ class Request {
       params,
       ...options 
     })
+  }
+
+  // 通用请求（直接使用完整 options）
+  requestDirect(options = {}) {
+    return this.request(options)
   }
 
   // 上传文件

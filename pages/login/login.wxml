@@ -88,7 +88,7 @@
     </view>
 
     <view class="login__mode-switch">
-      <text class="login__mode-link" bindtap="changeLogin">
+      <text class="login__mode-link" bindtap="changeLogin" >
         {{ isPasswordLogin ? '使用手机号一键登录' : '使用账号密码登录' }}
       </text>
     </view>

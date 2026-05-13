@@ -1,7 +1,6 @@
 import { authApi } from '~/api/request/api_question';
 import { QuestionParams } from '~/api/param/param_question';
 const Towxml = require('../../../subpackages/towxml/index');
-const app = getApp();
 
 function unwrapDetail(res) {
   if (!res || typeof res !== 'object') return {};
@@ -71,7 +70,7 @@ Page({
       buildFullPreviewContent(docTitle, categoryName, markdownContent);
 
       let renderedContent = null;
-      const renderFn = app.towxml || Towxml;
+      const renderFn = Towxml;
       if (renderFn && md) {
         try {
           renderedContent = renderFn(md, 'markdown', {

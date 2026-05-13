@@ -5,6 +5,7 @@ import { QuestionPublishParams } from '~/api/param/param_publish';
 import { QuestionParams } from '~/api/param/param_question';
 // 获取应用实例
 const app = getApp();
+const Towxml = require('../../../subpackages/towxml/index');
 
 Page({
   categorySubCache: {},
@@ -474,9 +475,9 @@ Page({
     });
     
     // 使用 towxml 渲染
-    if (app.towxml && fullContent) {
+    if (Towxml && fullContent) {
       try {
-        const renderData = app.towxml(fullContent, 'markdown', {
+        const renderData = Towxml(fullContent, 'markdown', {
           theme: 'light',
           base: '',
           events: {}

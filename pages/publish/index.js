@@ -2,8 +2,10 @@ import { authApi } from '~/api/request/api_question';
 import { authApi as categoryApi } from '~/api/request/api_category';
 import { CategoryParams } from '~/api/param/param_category';
 import { QuestionPublishParams } from '~/api/param/param_publish';
+import Message from 'tdesign-miniprogram/message/index';
 // 获取应用实例
 const app = getApp();
+const Towxml = require('../../subpackages/towxml/index');
 
 Page({
   categorySubCache: {},
@@ -330,9 +332,9 @@ Page({
     });
     
     // 使用 towxml 渲染
-    if (app.towxml && fullContent) {
+    if (Towxml && fullContent) {
       try {
-        const renderData = app.towxml(fullContent, 'markdown', {
+        const renderData = Towxml(fullContent, 'markdown', {
           theme: 'light',
           base: '',
           events: {}
@@ -414,9 +416,9 @@ Page({
     });
     
     // 使用 towxml 渲染
-    if (app.towxml && fullContent) {
+    if (Towxml && fullContent) {
       try {
-        const renderData = app.towxml(fullContent, 'markdown', {
+        const renderData = Towxml(fullContent, 'markdown', {
           theme: 'light',
           base: '',
           events: {}
@@ -923,8 +925,8 @@ Page({
     });
   },
 
-  // 确认发布
-  confirmPublish() {
+  // 确认发布（接口在业务失败时会 reject；明文/密文响应均在 api_request 内统一解密后再校验 code）
+  async confirmPublish() {
     this.setData({
       showConfirmDialog: false,
       isPublishing: true
@@ -941,7 +943,7 @@ Page({
         createTime: new Date().toISOString(),
         wordCount: this.data.wordCount
       };
-    
+
       console.log('发布文档数据:', documentData);
       const publishParams = new QuestionPublishParams(
         this.data.docTitle,
@@ -949,51 +951,46 @@ Page({
         this.data.markdownContent,
         this.data.previewFullContent
       );
-      const response = authApi.publishQuestion(publishParams);
-      if (response.code === "0000") {
-        // 清空草稿
-        wx.removeStorageSync('markdown_draft');
-        wx.showToast({
-          title: '文档发布成功！',
-          icon: 'success',
-          duration: 2000
-        });
+      await authApi.publishQuestion(publishParams);
 
-        // 重置表单
-        this.setData({
-          docTitle: '',
-          markdownContent: '',
-          selectedCategory: '',
-          images: [],
-          renderedContent: null,
-          contentHistory: [],
-          historyIndex: -1,
-          canUndo: false,
-          canRedo: false,
-          wordCount: 0,
-          previewFullContent: '',
-          categoryName: '',
-          lastInsertType: '',
-          isPublishing: false,
-          editorScrollTop: 0,
-          editorAutoScroll: false
-        });
-
-        // todo 跳转问题详情
-
-
-
-      } else {
-        Message.error({
-          content: response.message || '操作失败',
-          duration: 2000
-        });
-      }
-    } catch (error) {
-      Message.error({
-        content: '操作失败，请重试',
+      wx.removeStorageSync('markdown_draft');
+      wx.showToast({
+        title: '文档发布成功！',
+        icon: 'success',
         duration: 2000
       });
+
+      this.setData({
+        docTitle: '',
+        markdownContent: '',
+        selectedCategory: '',
+        selectedParentCategory: '',
+        categoryLevel2: [],
+        images: [],
+        renderedContent: null,
+        contentHistory: [],
+        historyIndex: -1,
+        canUndo: false,
+        canRedo: false,
+        wordCount: 0,
+        previewFullContent: '',
+        categoryName: '',
+        lastInsertType: '',
+        editorScrollTop: 0,
+        editorAutoScroll: false
+      });
+      this.updatePreviewContent();
+    } catch (error) {
+      console.error('发布失败', error);
+      const content =
+        (error && typeof error === 'object' && (error.message || error.msg)) ||
+        '操作失败，请重试';
+      Message.error({
+        content: String(content),
+        duration: 3000
+      });
+    } finally {
+      this.setData({ isPublishing: false });
     }
   },
 

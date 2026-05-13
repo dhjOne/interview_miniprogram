@@ -1,23 +1,10 @@
 // app.js
-import config from './config';
-import Mock from './mock/index';
 import createBus from './utils/eventBus';
 import encryption from './utils/encryption';
-import { connectSocket, fetchUnreadNum } from './mock/chat';
-const Towxml = require('./subpackages/towxml/index');
-
-if (config.isMock) {
-  Mock();
-}
+import { connectSocket, fetchUnreadNum } from './utils/chatService';
 
 App({
-  towxml: Towxml,
-
-  // // 引入`towxml3.0`解析方法
-  //  towxml:require('/towxml/index'),
-  
   onLaunch() {
-
     const updateManager = wx.getUpdateManager();
 
     updateManager.onCheckForUpdate((res) => {

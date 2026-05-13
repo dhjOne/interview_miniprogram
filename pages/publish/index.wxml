@@ -381,7 +381,7 @@
     cancel-btn="再检查一下" bind:confirm="confirmPublish" bind:cancel="cancelPublish" />
 
   <!-- 消息组件 -->
-  <t-message id="message" />
+  <t-message id="t-message" />
 
   <!-- 下拉菜单遮罩层 -->
   <view class="dropdown-mask" wx:if="{{showToolbarDropdown}}" bind:tap="closeToolbarDropdown"></view>

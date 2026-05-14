@@ -123,9 +123,35 @@
 
 .editor-tabs {
   height: 800rpx;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Tab 内容区占满剩余高度，避免编辑区外层留白无法聚焦 */
+.editor-tabs .t-tabs__content {
+  flex: 1;
+  min-height: 0;
+}
+
+.editor-tabs .t-tabs__content-inner {
+  height: 100%;
+}
+
+/* 仅编辑 Tab：覆盖 TDesign active 面板默认 height:auto，让内部 flex 得到确定高度 */
+.editor-tabs .publish-tab-panel-edit.t-tab-panel--active {
+  height: 100% !important;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
 
 .editor-container {
+  flex: 1;
+  min-height: 0;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -281,18 +307,44 @@
   margin-top: 4rpx;
 }
 
-/* 文本编辑器 */
-.md-editor {
-  padding: 24rpx;
+/* Markdown 编辑区：容器与组件根节点吃满 Tab 剩余高度 */
+.md-editor-container {
   flex: 1;
-  font-size: 28rpx;
-  line-height: 1.6;
-  min-height: 400rpx;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.md-editor .t-textarea__inner {
+/* 文本编辑器（t-textarea 根节点带 md-editor） */
+.md-editor {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 24rpx;
   font-size: 28rpx;
   line-height: 1.6;
+}
+
+.md-editor.t-textarea .t-textarea__wrapper {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.md-editor .t-textarea__wrapper-inner {
+  font-size: 28rpx;
+  line-height: 1.6;
+}
+
+/* 透传到原生 textarea：整块区域可点击、可输入（autosize 关闭时需明确高度） */
+.md-editor-textarea-native {
+  height: 100%;
+  min-height: 280rpx;
+  box-sizing: border-box;
 }
 
 /* 编辑器底部 */

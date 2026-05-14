@@ -61,7 +61,7 @@
     <!-- 编辑器模式切换 -->
     <t-tabs value="{{activeTab}}" bind:change="onTabChange" class="editor-tabs">
       <!-- 编辑模式 -->
-      <t-tab-panel label="编辑模式" value="edit">
+      <t-tab-panel label="编辑模式" value="edit" t-class="publish-tab-panel-edit">
         <view class="editor-container">
           <!-- 工具栏头部 -->
           <view class="toolbar-header">
@@ -224,10 +224,11 @@
 
           <!-- 文本编辑区 -->
           <view class="md-editor-container">
-            <t-textarea class="md-editor" placeholder="请输入 Markdown 格式的文档内容，支持代码高亮、数学公式、表格、流程图等..."
+            <t-textarea class="md-editor" t-class-textarea="md-editor-textarea-native"
+              placeholder="请输入 Markdown 格式的文档内容，支持代码高亮、数学公式、表格、流程图等..."
               value="{{markdownContent}}" bind:change="onContentChange" maxlength="{{maxLength}}" autosize="{{false}}"
               cursor="{{cursorPosition}}" bind:focus="onEditorFocus" bind:blur="onEditorBlur"
-              show-confirm-bar="{{false}}" style="height: 100%;" />
+              show-confirm-bar="{{false}}" />
           </view>
 
           <!-- 字数统计 -->

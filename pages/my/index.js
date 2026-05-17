@@ -1,21 +1,43 @@
 import request from '~/api/request';
 import useToastBehavior from '~/behaviors/useToast';
+import { getQuestionBrowseHistoryCount } from '~/utils/questionBrowseHistory';
+
 const app = getApp();
 Page({
   behaviors: [useToastBehavior],
 
   data: {
     isLoad: false,
+    historyCount: 0,
     carousel: [
       { image: '/static/home/card0.png', title: '广告宣传' },
       { image: '/static/home/card1.png', title: '重点文献' },
       { image: '/static/home/card2.png', title: '新功能介绍' }
     ],
     service: [
-      { name: '收藏题', icon: 'heart', type: 'favorite', url: '/pages/ucenter/favorite/index' },
-      { name: '生疏题', icon: 'flash', type: 'weak' },
-      { name: '刷题排行', icon: 'trend-chart', type: 'ranking', url: '/pages/ucenter/ranking/index' },
-      { name: '关于我们', icon: 'info-circle', type: 'about' }
+      {
+        name: '浏览历史',
+        icon: 'browse',
+        type: 'history',
+        url: '/pages/ucenter/history/index'
+      },
+      {
+        name: '收藏夹',
+        icon: 'heart',
+        type: 'favorite',
+        url: '/pages/ucenter/favorite/index'
+      },
+      {
+        name: '刷题排行',
+        icon: 'trend-chart',
+        type: 'ranking',
+        url: '/pages/ucenter/ranking/index'
+      },
+      {
+        name: '联系客服',
+        icon: 'chat',
+        type: 'contact'
+      }
     ],
     personalInfo: {},
     gridList: [
@@ -23,68 +45,59 @@ Page({
         name: '全部发布',
         icon: 'root-list',
         type: 'all',
-        url: '/pages/document/index?type=all',
+        url: '/pages/document/index?type=all'
       },
       {
         name: '审核中',
         icon: 'search',
         type: 'progress',
-        url: '/pages/document/index?type=review',
+        url: '/pages/document/index?type=review'
       },
       {
         name: '已发布',
         icon: 'upload',
         type: 'published',
-        url: '/pages/document/index?type=published',
+        url: '/pages/document/index?type=published'
       },
       {
         name: '草稿箱',
         icon: 'file-copy',
         type: 'draft',
-        url: '/pages/document/index?type=drafts',
-      },
+        url: '/pages/document/index?type=drafts'
+      }
     ],
 
     settingList: [
-      { 
-        name: '设置', 
-        icon: 'setting', 
-        type: 'setting', 
-        url: '/pages/setting/index' 
+      {
+        name: '设置',
+        icon: 'setting',
+        type: 'setting',
+        url: '/pages/setting/index'
       }
     ]
   },
 
-  onLoad() {
-    this.getServiceList();
-  },
-
   async onShow() {
+    const historyCount = getQuestionBrowseHistoryCount();
+    this.setData({ historyCount });
+
     const Token = wx.getStorageSync('access_token');
     if (Token) {
-      // 先从全局获取用户信息
-      const app = getApp();
       let personalInfo = app.getUserInfo();
-      
-      // 如果全局没有，再调用接口
+
       if (!personalInfo) {
         personalInfo = await this.getPersonalInfo();
-      } 
+      }
       this.setData({
         isLoad: true,
-        personalInfo,
+        personalInfo
+      });
+    } else {
+      this.setData({
+        isLoad: false,
+        personalInfo: {}
       });
     }
-  },
-
-  getServiceList() {
-    // 如果后端返回服务列表，可在这里覆盖默认服务
-    // request('/repository/category').then((res) => {
-    //   const { service } = res.data.data;
-    //   if (service && service.length) {
-    //     this.setData({ service });
-    //   }
-    // });
   },
 
   async getPersonalInfo() {
@@ -92,9 +105,9 @@ Page({
     return info;
   },
 
-  onLogin(e) {
+  onLogin() {
     wx.navigateTo({
-      url: '/pages/login/login',
+      url: '/pages/login/login'
     });
   },
 
@@ -102,31 +115,32 @@ Page({
     wx.navigateTo({ url: `/pages/my/info-edit/index` });
   },
 
-
   onEleClick(e) {
-    console.log('调整。。。。。')
-    const { url, method } = e.currentTarget.dataset.data;
-    // 如果有链接，执行跳转而不是直接返回
+    const { url } = e.currentTarget.dataset.data;
     if (url) {
       app.navigateToLogin({
-        url: url
+        url
       });
       return;
     }
-    // 如果有指定方法，调用对应方法
-    if (method && typeof this[method] === 'function') {
-      this[method]();
-    } else {
-      // 默认处理
-      const { name } = e.currentTarget.dataset.data;
-      this.onShowToast('#t-toast', name);
+    const { name } = e.currentTarget.dataset.data;
+    this.onShowToast('#t-toast', name || '敬请期待');
+  },
+
+  /** 常用服务：浏览历史免登录；收藏与排行需登录 */
+  onServiceItemTap(e) {
+    const item = e.currentTarget.dataset.item;
+    if (!item || item.type === 'contact' || !item.url) return;
+
+    if (item.type === 'history') {
+      wx.navigateTo({ url: item.url });
+      return;
     }
+
+    app.navigateToLogin({ url: item.url });
   },
 
-  handleContact(e) {
-    console.log('contact event', e);
-  },
-
-  // 显示图片弹窗
-
+  handleContact() {
+    // 用户从客服会话返回时可选提示；此处保持静默以免打扰
+  }
 });

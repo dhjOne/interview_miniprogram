@@ -1,6 +1,6 @@
 <view class="uc-favorite">
   <t-message id="t-message" />
-  <t-navbar left-arrow title="收藏题" fixed safe-area-inset-top />
+  <t-navbar left-arrow title="收藏夹" fixed safe-area-inset-top />
   <view class="uc-favorite__inner question-list-container">
     <view class="question-list-sticky">
       <view class="search-section">
@@ -24,7 +24,7 @@
         </view>
       </view>
       <view class="list-subbar" wx:if="{{listHeaderReady}}">
-        <text class="list-subbar-text">共 {{totalCount}} 道收藏</text>
+        <text class="list-subbar-text">共 {{totalCount}} 道已收藏</text>
       </view>
     </view>
 

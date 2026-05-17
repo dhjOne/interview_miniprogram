@@ -1,0 +1,71 @@
+<view class="uc-history">
+  <t-message id="t-message" />
+  <t-navbar left-arrow title="浏览历史" fixed safe-area-inset-top />
+
+  <view class="uc-history__inner question-list-container">
+    <view class="question-list-sticky">
+      <view class="uc-history__tip-bar">
+        <text class="uc-history__tip">仅保存在本机，最多保留 100 条</text>
+        <t-button
+          wx:if="{{list.length > 0}}"
+          theme="light"
+          size="extra-small"
+          variant="outline"
+          bindtap="onClearAll"
+        >
+          清空
+        </t-button>
+      </view>
+    </view>
+
+    <view class="questions-section">
+      <scroll-view class="questions-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+        <view wx:if="{{loading}}" class="uc-history__loading">
+          <t-loading size="40rpx" text="加载中…" />
+        </view>
+
+        <view wx:elif="{{list.length === 0}}" class="uc-history__empty-wrap">
+          <t-empty description="暂无浏览记录" />
+          <t-button theme="primary" size="medium" bindtap="goPractice" class="uc-history__cta">
+            去刷题
+          </t-button>
+        </view>
+
+        <view wx:else class="question-list">
+          <block wx:for="{{list}}" wx:key="id">
+            <view class="question-item question-item--history">
+              <view
+                class="question-header"
+                bindtap="onQuestionTap"
+                data-id="{{item.id}}"
+                data-title="{{item.title}}"
+              >
+                <view class="question-index">
+                  <text class="index-number">{{item.idx}}</text>
+                </view>
+                <view class="question-main">
+                  <view class="question-title-row">
+                    <text class="question-title">{{item.title}}</text>
+                  </view>
+                  <view class="question-meta">
+                    <text class="meta-item">
+                      <t-icon name="time" size="24rpx" />
+                      {{item.timeText}}
+                    </text>
+                  </view>
+                </view>
+              </view>
+              <view
+                class="uc-history__remove"
+                catchtap="onRemoveOne"
+                data-id="{{item.id}}"
+              >
+                <t-icon name="close-circle" size="44rpx" color="#bbb" />
+              </view>
+            </view>
+          </block>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+</view>

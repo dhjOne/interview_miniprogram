@@ -6,6 +6,7 @@ import {
   QuestionLikeOrCollectParams,
   QuestionParams
 } from '~/api/param/param_question';
+import { recordQuestionBrowse } from '~/utils/questionBrowseHistory';
 
 // 引入 towxml 解析器
 const Towxml = require('../../../subpackages/towxml/index');
@@ -136,6 +137,15 @@ Page({
           loading: false,
           isMarkdown: isMarkdownContent
         });
+
+        try {
+          recordQuestionBrowse({
+            id: questionDetail.id ?? this.data.questionId,
+            title: questionDetail.title
+          });
+        } catch (e) {
+          // 本地浏览记录失败不影响详情页
+        }
         
         // 根据内容类型选择渲染方式
         if (isMarkdownContent) {

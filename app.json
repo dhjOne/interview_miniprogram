@@ -81,7 +81,8 @@
       "name": "ucenter",
       "pages": [
         "favorite/index",
-        "ranking/index"
+        "ranking/index",
+        "history/index"
       ]
     },
     {

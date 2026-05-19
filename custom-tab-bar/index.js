@@ -11,9 +11,9 @@ Component({
         label: '题库',
       },
       {
-        icon: 'upload',
-        value: 'release',
-        label: '发布',
+        icon: 'chat-bubble',
+        value: 'mknow',
+        label: 'm知道',
       },
       {
         icon: 'user',
@@ -48,7 +48,7 @@ Component({
       const nameRe = /pages\/(\w+)\/index/.exec(curPage.route);
       if (!nameRe || !nameRe[1]) return;
       const name = nameRe[1];
-      const allowed = ['category', 'release', 'my', 'home', 'message'];
+      const allowed = ['category', 'mknow', 'my', 'home', 'message'];
       if (!allowed.includes(name)) return;
       if (name !== this.data.value) {
         this.setData({ value: name });

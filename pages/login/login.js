@@ -4,10 +4,11 @@ import { WxLoginParams } from '~/api/param/param_login'
 
 /** 与 app.json tabBar 一致，用于 switchTab / 非 Tab 用 reLaunch */
 const LOGIN_TAB_ROOTS = [
-  '/pages/home/index',
   '/pages/category/index',
-  '/pages/message/index',
-  '/pages/my/index'
+  '/pages/mknow/index',
+  '/pages/my/index',
+  '/pages/home/index',
+  '/pages/message/index'
 ];
 
 Page({

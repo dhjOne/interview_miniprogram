@@ -1,0 +1,118 @@
+<t-toast id="t-toast" />
+
+<view class="mknow-page">
+  <image class="mknow-page__nav-bg" src="/static/bg_navbar.png" mode="aspectFill" />
+  <nav title-text="m知道" />
+
+  <view class="mknow-page__body">
+    <!-- 欢迎区：无对话时展示 -->
+    <view wx:if="{{!messages.length}}" class="mknow-welcome">
+      <view class="mknow-brand">
+        <view class="mknow-brand__badge">
+          <text class="mknow-brand__letter">M</text>
+        </view>
+        <text class="mknow-brand__title">m知道</text>
+        <text class="mknow-brand__desc">面试 AI 搜索 · 讲题思路 · 八股速查 · 模拟问答</text>
+      </view>
+
+      <view class="mknow-welcome__section">
+        <text class="mknow-welcome__label">试试这样问</text>
+        <view class="mknow-suggestions">
+          <view
+            wx:for="{{suggestions}}"
+            wx:key="id"
+            class="mknow-suggestion"
+            hover-class="mknow-suggestion--active"
+            data-text="{{item.text}}"
+            bindtap="onSuggestionTap"
+          >
+            <t-icon name="{{item.icon}}" size="36rpx" class="mknow-suggestion__icon" />
+            <text class="mknow-suggestion__text">{{item.text}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="mknow-welcome__tips">
+        <t-icon name="info-circle" size="28rpx" />
+        <text>登录后可同步对话；接入后端 AI 接口后将返回真实回答</text>
+      </view>
+    </view>
+
+    <!-- 对话区 -->
+    <scroll-view
+      wx:else
+      class="mknow-chat"
+      scroll-y
+      scroll-into-view="{{anchor}}"
+      scroll-with-animation
+      show-scrollbar="{{false}}"
+    >
+      <view class="mknow-messages">
+        <block wx:for="{{messages}}" wx:key="id">
+          <view wx:if="{{item.role === 'user'}}" class="mknow-msg mknow-msg--user">
+            <view class="mknow-bubble mknow-bubble--user">
+              <text user-select>{{item.content}}</text>
+            </view>
+          </view>
+
+          <view wx:else class="mknow-msg mknow-msg--assistant">
+            <view class="mknow-avatar">
+              <text>M</text>
+            </view>
+            <view class="mknow-bubble mknow-bubble--assistant">
+              <view wx:if="{{item.pending}}" class="mknow-bubble__loading">
+                <t-loading theme="dots" size="40rpx" />
+                <text>正在思考…</text>
+              </view>
+              <block wx:else>
+                <text user-select>{{item.content}}</text>
+                <text wx:if="{{item.fallback}}" class="mknow-bubble__tag">预览模式</text>
+              </block>
+            </view>
+          </view>
+        </block>
+        <view id="mknow-bottom" />
+      </view>
+    </scroll-view>
+  </view>
+
+  <view class="mknow-composer-spacer" style="height: {{keyboardHeight}}px" />
+  <view class="mknow-composer" style="margin-bottom: {{keyboardHeight}}px">
+    <view wx:if="{{messages.length}}" class="mknow-composer__toolbar">
+      <view class="mknow-clear" bindtap="onClearChat">
+        <t-icon name="delete" size="32rpx" />
+        <text>清空</text>
+      </view>
+    </view>
+    <view class="mknow-input-row">
+      <view class="mknow-input">
+        <input
+          value="{{input}}"
+          type="text"
+          confirm-type="send"
+          placeholder="问面试题、知识点、解题思路…"
+          placeholder-style="color: #00000066"
+          disabled="{{sending}}"
+          adjust-position="{{false}}"
+          hold-keyboard
+          confirm-hold
+          bindkeyboardheightchange="handleKeyboardHeightChange"
+          bindblur="handleBlur"
+          bindinput="handleInput"
+          bindconfirm="handleSubmit"
+        />
+      </view>
+      <t-button
+        class="mknow-send"
+        theme="primary"
+        shape="round"
+        size="small"
+        loading="{{sending}}"
+        disabled="{{!input || sending}}"
+        bind:tap="handleSubmit"
+      >
+        发送
+      </t-button>
+    </view>
+  </view>
+</view>

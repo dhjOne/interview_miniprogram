@@ -1,6 +1,7 @@
 {
   "pages": [
     "pages/category/index",
+    "pages/mknow/index",
     "pages/home/index",
     "pages/message/index",
     "pages/my/index",
@@ -104,16 +105,12 @@
     "custom": true,
     "list": [
       {
-        "pagePath": "pages/home/index",
-        "text": "首页"
-      },
-      {
         "pagePath": "pages/category/index",
         "text": "题库"
       },
       {
-        "pagePath": "pages/message/index",
-        "text": "消息"
+        "pagePath": "pages/mknow/index",
+        "text": "m知道"
       },
       {
         "pagePath": "pages/my/index",

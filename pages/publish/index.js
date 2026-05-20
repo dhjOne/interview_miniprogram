@@ -2,6 +2,7 @@ import { authApi } from '~/api/request/api_question';
 import { authApi as categoryApi } from '~/api/request/api_category';
 import { CategoryParams } from '~/api/param/param_category';
 import { QuestionPublishParams } from '~/api/param/param_publish';
+import { consumePendingPublish } from '~/utils/aiChatStorage';
 import Message from 'tdesign-miniprogram/message/index';
 // 获取应用实例
 const app = getApp();
@@ -105,16 +106,45 @@ Page({
     }
   },
 
-  onLoad() {
+  onLoad(options) {
+    this._fromMknow = options && options.from === 'mknow';
     this.loadLevel1Categories();
     this.initEditor();
   },
 
+  applyMknowImport() {
+    const pending = consumePendingPublish();
+    if (!pending || !pending.markdownContent) return false;
+
+    this.setData(
+      {
+        docTitle: pending.docTitle || '',
+        markdownContent: pending.markdownContent,
+        wordCount: (pending.markdownContent || '').length,
+      },
+      () => {
+        this.updatePreviewContent();
+        setTimeout(() => this.scrollToBottom(), 300);
+      }
+    );
+
+    wx.showToast({
+      title: '已导入 AI 对话',
+      icon: 'success',
+      duration: 2000,
+    });
+    return true;
+  },
+
   // 初始化编辑器
   initEditor() {
+    if (this._fromMknow && this.applyMknowImport()) {
+      return;
+    }
+
     // 尝试从草稿中恢复
     this.loadDraft();
-    
+
     // 初始化示例内容
     if (!this.data.markdownContent) {
       this.setData({

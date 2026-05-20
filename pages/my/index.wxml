@@ -20,6 +20,19 @@
         <t-icon slot="right-icon" name="edit" size="40rpx" color="var(--td-text-color-primary, rgba(0,0,0,.9))" bindtap="onNavigateTo" />
       </t-cell>
 
+      <view class="my-stats" wx:if="{{isLoad}}">
+        <view
+          wx:for="{{socialStats}}"
+          wx:key="type"
+          class="my-stats__item"
+          data-item="{{item}}"
+          bindtap="onSocialStatTap"
+        >
+          <text class="my-stats__num">{{item.displayCount}}</text>
+          <text class="my-stats__label">{{item.label}}</text>
+        </view>
+      </view>
+
       <t-cell
         wx:if="{{!isLoad}}"
         title="请先登录 / 注册"

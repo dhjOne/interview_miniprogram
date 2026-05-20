@@ -2,16 +2,30 @@
 
 <view class="mknow-page">
   <image class="mknow-page__nav-bg" src="/static/bg_navbar.png" mode="aspectFill" />
-  <nav title-text="m知道" />
+  <nav use-custom-title nav-type="drawer">
+    <view slot="left" class="mknow-nav-menu" hover-class="mknow-nav-menu--active" bindtap="onOpenHistory">
+      <t-icon name="view-list" size="44rpx" color="rgba(0,0,0,0.78)" />
+    </view>
+    <!-- <view slot="title" class="mknow-nav-title">
+      <text wx:if="{{messages.length}}" class="mknow-nav-title__session">{{chatTitle}}</text>
+      <view wx:else class="mknow-wordmark mknow-wordmark--nav">
+        <text class="mknow-wordmark__zh">AI</text>
+        <text class="mknow-wordmark__zh">引擎</text>
+      </view>
+    </view> -->
+  </nav>
 
   <view class="mknow-page__body">
-    <!-- 欢迎区：无对话时展示 -->
     <view wx:if="{{!messages.length}}" class="mknow-welcome">
       <view class="mknow-brand">
+        <view class="mknow-brand__glow" aria-hidden="true" />
         <view class="mknow-brand__badge">
           <text class="mknow-brand__letter">M</text>
         </view>
-        <text class="mknow-brand__title">m知道</text>
+        <view class="mknow-wordmark mknow-wordmark--hero">
+          <!-- <text class="mknow-wordmark__m">m</text> -->
+          <text class="mknow-wordmark__zh">知道</text>
+        </view>
         <text class="mknow-brand__desc">面试 AI 搜索 · 讲题思路 · 八股速查 · 模拟问答</text>
       </view>
 
@@ -34,11 +48,10 @@
 
       <view class="mknow-welcome__tips">
         <t-icon name="info-circle" size="28rpx" />
-        <text>登录后可同步对话；接入后端 AI 接口后将返回真实回答</text>
+        <text>对话保存在本地；可整理为 Markdown 发布到文档</text>
       </view>
     </view>
 
-    <!-- 对话区 -->
     <scroll-view
       wx:else
       class="mknow-chat"
@@ -78,41 +91,131 @@
 
   <view class="mknow-composer-spacer" style="height: {{keyboardHeight}}px" />
   <view class="mknow-composer" style="margin-bottom: {{keyboardHeight}}px">
-    <view wx:if="{{messages.length}}" class="mknow-composer__toolbar">
-      <view class="mknow-clear" bindtap="onClearChat">
-        <t-icon name="delete" size="32rpx" />
-        <text>清空</text>
+    <view class="mknow-composer__card">
+      <view class="mknow-composer__actions">
+        <view
+          class="mknow-action-chip {{messages.length && !sending ? '' : 'mknow-action-chip--disabled'}}"
+          hover-class="{{messages.length && !sending ? 'mknow-action-chip--active' : ''}}"
+          bindtap="onExportToPublish"
+        >
+          <t-icon name="file-paste" size="32rpx" />
+          <text>发布文档</text>
+        </view>
+        <view
+          wx:if="{{messages.length}}"
+          class="mknow-action-chip mknow-action-chip--muted"
+          hover-class="mknow-action-chip--active"
+          bindtap="onClearChat"
+        >
+          <t-icon name="delete" size="32rpx" />
+          <text>清空</text>
+        </view>
       </view>
-    </view>
-    <view class="mknow-input-row">
-      <view class="mknow-input">
-        <input
-          value="{{input}}"
-          type="text"
-          confirm-type="send"
-          placeholder="问面试题、知识点、解题思路…"
-          placeholder-style="color: #00000066"
-          disabled="{{sending}}"
-          adjust-position="{{false}}"
-          hold-keyboard
-          confirm-hold
-          bindkeyboardheightchange="handleKeyboardHeightChange"
-          bindblur="handleBlur"
-          bindinput="handleInput"
-          bindconfirm="handleSubmit"
-        />
+      <view class="mknow-composer__input-wrap">
+        <view class="mknow-composer__input">
+          <input
+            value="{{input}}"
+            type="text"
+            confirm-type="send"
+            placeholder="问面试题、知识点、解题思路…"
+            placeholder-class="mknow-composer__placeholder"
+            disabled="{{sending}}"
+            adjust-position="{{false}}"
+            hold-keyboard
+            confirm-hold
+            bindkeyboardheightchange="handleKeyboardHeightChange"
+            bindblur="handleBlur"
+            bindinput="handleInput"
+            bindconfirm="handleSubmit"
+          />
+        </view>
+        <view
+          class="mknow-send {{input && !sending ? 'mknow-send--ready' : ''}} {{sending ? 'mknow-send--loading' : ''}}"
+          bindtap="handleSubmit"
+        >
+          <t-loading wx:if="{{sending}}" theme="circular" size="36rpx" />
+          <t-icon wx:else name="chevron-up" size="40rpx" />
+        </view>
       </view>
-      <t-button
-        class="mknow-send"
-        theme="primary"
-        shape="round"
-        size="small"
-        loading="{{sending}}"
-        disabled="{{!input || sending}}"
-        bind:tap="handleSubmit"
-      >
-        发送
-      </t-button>
     </view>
   </view>
 </view>
+
+<t-popup
+  visible="{{showHistory}}"
+  placement="left"
+  using-custom-navbar="{{true}}"
+  custom-navbar-height="{{popupNavBarHeight}}"
+  bind:visible-change="onCloseHistory"
+>
+  <view class="mknow-drawer">
+    <view class="mknow-drawer__head">
+      <view class="mknow-wordmark mknow-wordmark--drawer">
+        <text class="mknow-wordmark__m">m</text>
+        <text class="mknow-wordmark__zh">知道</text>
+      </view>
+      <view class="mknow-drawer__search" bindtap="onFocusHistorySearch">
+        <t-icon name="search" size="40rpx" color="rgba(0,0,0,0.55)" />
+      </view>
+    </view>
+
+    <view class="mknow-drawer__search-bar" wx:if="{{historySearchFocus || historyKeyword}}">
+      <t-icon name="search" size="32rpx" color="rgba(0,0,0,0.4)" />
+      <input
+        class="mknow-drawer__search-input"
+        value="{{historyKeyword}}"
+        placeholder="搜索历史对话"
+        placeholder-class="mknow-drawer__search-placeholder"
+        focus="{{historySearchFocus}}"
+        bindinput="onHistorySearch"
+        bindblur="onBlurHistorySearch"
+      />
+      <view wx:if="{{historyKeyword}}" class="mknow-drawer__search-clear" bindtap="onClearHistorySearch">
+        <t-icon name="close-circle-filled" size="32rpx" color="rgba(0,0,0,0.35)" />
+      </view>
+    </view>
+
+    <view
+      class="mknow-drawer__new"
+      hover-class="mknow-drawer__new--active"
+      bindtap="onNewChat"
+    >
+      <view class="mknow-drawer__new-icon">
+        <t-icon name="chat-bubble" size="36rpx" color="rgba(0,0,0,0.75)" />
+        <view class="mknow-drawer__new-plus">
+          <t-icon name="add" size="20rpx" color="#fff" />
+        </view>
+      </view>
+      <text class="mknow-drawer__new-text">新建对话</text>
+    </view>
+
+    <scroll-view class="mknow-drawer__list" scroll-y show-scrollbar="{{false}}">
+      <view wx:if="{{!historyGroups.length}}" class="mknow-drawer__empty">
+        <text>{{historyKeyword ? '未找到相关对话' : '暂无历史记录'}}</text>
+        <text wx:if="{{!historyKeyword}}" class="mknow-drawer__empty-hint">点击上方新建对话开始提问</text>
+      </view>
+
+      <block wx:for="{{historyGroups}}" wx:key="key" wx:for-item="group">
+        <text class="mknow-drawer__group">{{group.label}}</text>
+        <view
+          wx:for="{{group.items}}"
+          wx:for-item="conv"
+          wx:key="id"
+          class="mknow-drawer-item {{conv.id === activeConversationId ? 'mknow-drawer-item--active' : ''}}"
+          hover-class="mknow-drawer-item--hover"
+          data-id="{{conv.id}}"
+          bindtap="onSelectConversation"
+          bindlongpress="onLongPressConversation"
+        >
+          <text class="mknow-drawer-item__title">{{conv.title}}</text>
+          <view wx:if="{{conv.id === activeConversationId}}" class="mknow-drawer-item__dot" />
+        </view>
+      </block>
+    </scroll-view>
+
+    <view class="mknow-drawer__foot">
+      <t-icon name="info-circle" size="28rpx" color="rgba(0,0,0,0.35)" />
+      <text>长按对话可删除 · 本地保存</text>
+    </view>
+  </view>
+</t-popup>

@@ -1,6 +1,11 @@
 import request from '~/api/request';
 import useToastBehavior from '~/behaviors/useToast';
 import { getQuestionBrowseHistoryCount } from '~/utils/questionBrowseHistory';
+import {
+  SOCIAL_STAT_ITEMS,
+  fetchSocialSummary,
+  formatStatCount
+} from '~/utils/userSocial';
 
 const app = getApp();
 Page({
@@ -40,6 +45,11 @@ Page({
       }
     ],
     personalInfo: {},
+    socialStats: SOCIAL_STAT_ITEMS.map((item) => ({
+      ...item,
+      count: 0,
+      displayCount: '0'
+    })),
     gridList: [
       {
         name: '全部发布',
@@ -92,12 +102,45 @@ Page({
         isLoad: true,
         personalInfo
       });
+      this.loadSocialStats();
     } else {
       this.setData({
         isLoad: false,
-        personalInfo: {}
+        personalInfo: {},
+        socialStats: this._buildSocialStatsDisplay(null)
       });
     }
+  },
+
+  _buildSocialStatsDisplay(summary) {
+    const countKeyMap = {
+      following: 'followingCount',
+      followers: 'followerCount',
+      visits: 'visitCount',
+      ranking: 'myRank'
+    };
+    return SOCIAL_STAT_ITEMS.map((item) => {
+      const key = item.countKey || countKeyMap[item.type];
+      const count = summary && key ? Number(summary[key]) || 0 : 0;
+      return {
+        ...item,
+        count,
+        displayCount: formatStatCount(count)
+      };
+    });
+  },
+
+  async loadSocialStats() {
+    const summary = await fetchSocialSummary();
+    this.setData({
+      socialStats: this._buildSocialStatsDisplay(summary)
+    });
+  },
+
+  onSocialStatTap(e) {
+    const item = e.currentTarget.dataset.item;
+    if (!item || !item.url) return;
+    app.navigateToLogin({ url: item.url });
   },
 
   async getPersonalInfo() {

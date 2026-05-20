@@ -191,6 +191,44 @@
   }
 }
 
+.my-stats {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-around;
+  padding: 8rpx 16rpx 24rpx;
+  margin: 0 8rpx;
+  background: var(--td-bg-color-container, #fff);
+
+  &__item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8rpx;
+    padding: 12rpx 0;
+    border-radius: var(--td-radius-default, 16rpx);
+
+    &:active {
+      opacity: 0.75;
+      background: var(--td-bg-color-secondarycontainer, #f3f3f3);
+    }
+  }
+
+  &__num {
+    font-size: 36rpx;
+    font-weight: 700;
+    color: var(--td-text-color-primary, rgba(0, 0, 0, 0.9));
+    line-height: 1.2;
+  }
+
+  &__label {
+    font-size: 24rpx;
+    color: var(--td-text-color-secondary, rgba(0, 0, 0, 0.6));
+    line-height: 1.35;
+  }
+}
+
 .my-profile {
   &__name {
     font-size: 34rpx;

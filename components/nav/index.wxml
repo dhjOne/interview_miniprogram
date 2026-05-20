@@ -1,8 +1,13 @@
 <view class="home-navbar">
-  <t-navbar title="{{ navType === 'search' ? '' : titleText }}">
+  <t-navbar title="{{ navType === 'search' || useCustomTitle ? '' : titleText }}">
+    <view slot="title" wx:if="{{useCustomTitle}}">
+      <slot name="title" />
+    </view>
     <view slot="left">
-      <view class="home-navbar__left">
-        <!-- <t-icon class="home-navbar__icon" bind:tap="openDrawer" name="view-list" size="48rpx" /> -->
+      <view wx:if="{{navType === 'drawer'}}" class="home-navbar__left home-navbar__left--drawer">
+        <slot name="left" />
+      </view>
+      <view wx:else class="home-navbar__left">
         <t-search
           shape="round"
           placeholder="搜索面试题、知识点…"

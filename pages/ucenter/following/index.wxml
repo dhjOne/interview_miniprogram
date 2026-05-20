@@ -1,0 +1,67 @@
+<view class="uc-social">
+  <t-navbar left-arrow title="{{pageTitle}}" fixed safe-area-inset-top />
+  <view class="uc-social__inner">
+    <view class="uc-social__hero">
+      <view class="uc-social__hero-title">{{heroTitle}}</view>
+      <view class="uc-social__hero-sub">{{heroSub}}</view>
+    </view>
+
+    <view wx:if="{{fromDemo}}" class="uc-social__demo-tip">当前为演示数据，接入后端接口后将展示真实列表</view>
+
+    <scroll-view
+      class="uc-social__scroll"
+      scroll-y
+      enhanced
+      show-scrollbar="{{false}}"
+      bindscrolltolower="onReachBottom"
+      lower-threshold="100"
+    >
+      <view wx:if="{{loading && list.length === 0}}" class="uc-social__loading">
+        <t-loading size="48rpx" text="加载中…" />
+      </view>
+
+      <view class="uc-social__list">
+        <view wx:for="{{list}}" wx:key="userId" class="uc-social__row">
+          <t-avatar image="{{item.avatar || defaultAvatar}}" size="88rpx" />
+          <view class="uc-social__main">
+            <text class="uc-social__name">{{item.nickname}}</text>
+            <text wx:if="{{item.bio}}" class="uc-social__bio">{{item.bio}}</text>
+            <text wx:if="{{item.timeText}}" class="uc-social__time">关注于 {{item.timeText}}</text>
+          </view>
+          <view class="uc-social__action">
+            <t-button
+              size="small"
+              shape="round"
+              theme="{{item.isFollowing ? 'light' : 'primary'}}"
+              variant="{{item.isFollowing ? 'outline' : 'base'}}"
+              data-id="{{item.userId}}"
+              data-index="{{index}}"
+              bind:tap="onFollowTap"
+            >
+              {{item.isFollowing ? '已关注' : '关注'}}
+            </t-button>
+          </view>
+        </view>
+      </view>
+
+      <view class="uc-social__foot" wx:if="{{list.length > 0}}">
+        <view wx:if="{{loading}}">
+          <t-loading size="36rpx" text="加载中…" />
+        </view>
+        <t-divider wx:elif="{{!hasMore}}" align="center" content="没有更多了" />
+      </view>
+
+      <view wx:if="{{!loading && loadDone && list.length === 0 && !loadError}}" class="uc-social__empty">
+        <t-icon name="usergroup" size="120rpx" color="#ddd" />
+        <text class="uc-social__empty-t">还没有关注任何人</text>
+        <text class="uc-social__empty-d">去刷题排行看看活跃用户吧</text>
+      </view>
+
+      <view wx:if="{{!loading && loadError}}" class="uc-social__empty">
+        <t-icon name="error-circle" size="100rpx" color="#f5a524" />
+        <text class="uc-social__empty-t">加载失败</text>
+        <t-button theme="light" size="medium" shape="round" bind:tap="reload">重试</t-button>
+      </view>
+    </scroll-view>
+  </view>
+</view>

@@ -1,6 +1,7 @@
 Component({
   options: {
     styleIsolation: 'shared',
+    multipleSlots: true,
   },
   properties: {
     navType: {
@@ -8,6 +9,10 @@ Component({
       value: 'title',
     },
     titleText: String,
+    useCustomTitle: {
+      type: Boolean,
+      value: false,
+    },
   },
   data: {
     visible: false,

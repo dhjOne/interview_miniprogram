@@ -1,5 +1,10 @@
 @import '/variable.less';
 
+@mknow-brand-start: #0052d9;
+@mknow-brand-mid: #366ef4;
+@mknow-brand-end: #00a870;
+@mknow-ink: #0f172a;
+
 .mknow-page {
   display: flex;
   flex-direction: column;
@@ -26,14 +31,106 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
-    padding: 8rpx 24rpx 0;
+    padding: 0 24rpx 220rpx;
     box-sizing: border-box;
+  }
+}
+
+/* 品牌艺术字：渐变 + 轻阴影，导航/欢迎/侧栏三档字号 */
+.mknow-wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  line-height: 1;
+  position: relative;
+
+  &__m {
+    font-weight: 800;
+    font-style: italic;
+    letter-spacing: -3rpx;
+    background: linear-gradient(135deg, @mknow-brand-start 0%, @mknow-brand-mid 52%, @mknow-brand-end 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 6rpx 20rpx rgba(0, 82, 217, 0.18);
+  }
+
+  &__zh {
+    font-weight: 700;
+    letter-spacing: 4rpx;
+    background: linear-gradient(120deg, @mknow-ink 8%, @mknow-brand-start 55%, @mknow-brand-mid 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  &--nav {
+    .mknow-wordmark__m {
+      font-size: 38rpx;
+    }
+
+    .mknow-wordmark__zh {
+      font-size: 34rpx;
+    }
+  }
+
+  &--hero {
+    margin-top: 28rpx;
+
+    .mknow-wordmark__m {
+      font-size: 72rpx;
+    }
+
+    .mknow-wordmark__zh {
+      font-size: 64rpx;
+      letter-spacing: 8rpx;
+    }
+  }
+
+  &--drawer {
+    .mknow-wordmark__m {
+      font-size: 44rpx;
+    }
+
+    .mknow-wordmark__zh {
+      font-size: 40rpx;
+      letter-spacing: 6rpx;
+    }
+  }
+}
+
+.mknow-nav-menu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72rpx;
+  height: 72rpx;
+  margin-left: 4rpx;
+  border-radius: 16rpx;
+
+  &--active {
+    background: rgba(15, 23, 42, 0.06);
+  }
+}
+
+.mknow-nav-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 420rpx;
+
+  &__session {
+    font-size: 32rpx;
+    font-weight: 600;
+    color: var(--td-text-color-primary, rgba(0, 0, 0, 0.9));
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
 .mknow-welcome {
   flex: 1;
-  padding-top: 24rpx;
+  padding-top: 16rpx;
 
   &__section {
     margin-top: 48rpx;
@@ -66,16 +163,28 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 16rpx 24rpx 0;
+  padding: 8rpx 24rpx 0;
+  position: relative;
+
+  &__glow {
+    position: absolute;
+    top: 20rpx;
+    width: 280rpx;
+    height: 280rpx;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0, 82, 217, 0.14) 0%, transparent 70%);
+    pointer-events: none;
+  }
 
   &__badge {
+    position: relative;
     width: 120rpx;
     height: 120rpx;
     border-radius: 32rpx;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(145deg, #0052d9 0%, #366ef4 55%, #699ef5 100%);
+    background: linear-gradient(145deg, @mknow-brand-start 0%, @mknow-brand-mid 55%, #699ef5 100%);
     box-shadow: 0 16rpx 40rpx rgba(0, 82, 217, 0.28);
   }
 
@@ -86,16 +195,8 @@
     line-height: 1;
   }
 
-  &__title {
-    margin-top: 24rpx;
-    font-size: 44rpx;
-    font-weight: 700;
-    color: var(--td-text-color-primary, rgba(0, 0, 0, 0.9));
-    letter-spacing: 2rpx;
-  }
-
   &__desc {
-    margin-top: 16rpx;
+    margin-top: 20rpx;
     font-size: 26rpx;
     line-height: 1.5;
     color: var(--td-text-color-secondary, rgba(0, 0, 0, 0.6));
@@ -127,7 +228,7 @@
   &__icon {
     flex-shrink: 0;
     margin-top: 4rpx;
-    color: var(--td-brand-color, #0052d9);
+    color: var(--td-brand-color, @mknow-brand-start);
   }
 
   &__text {
@@ -177,7 +278,7 @@
   font-size: 28rpx;
   font-weight: 700;
   color: #fff;
-  background: linear-gradient(145deg, #0052d9, #699ef5);
+  background: linear-gradient(145deg, @mknow-brand-start, #699ef5);
 }
 
 .mknow-bubble {
@@ -229,51 +330,310 @@
   right: 0;
   bottom: @tab-bar-height;
   z-index: 10;
-  padding: 12rpx 24rpx 16rpx;
-  background: var(--td-bg-color-container, #fff);
-  border-top: 1rpx solid var(--td-component-stroke, #e7e7e7);
+  padding: 0 20rpx 12rpx;
   box-sizing: border-box;
+  background: linear-gradient(180deg, transparent 0%, rgba(245, 245, 245, 0.96) 28%);
 
-  &__toolbar {
+  &__card {
+    padding: 16rpx 16rpx 14rpx;
+    border-radius: 28rpx;
+    background: var(--td-bg-color-container, #fff);
+    border: 1rpx solid rgba(15, 23, 42, 0.07);
+    box-shadow: 0 8rpx 32rpx rgba(15, 23, 42, 0.08);
+    box-sizing: border-box;
+  }
+
+  &__actions {
     display: flex;
-    justify-content: flex-end;
-    margin-bottom: 12rpx;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12rpx;
+    margin-bottom: 14rpx;
+    padding: 0 4rpx;
+  }
+
+  &__input-wrap {
+    display: flex;
+    align-items: flex-end;
+    gap: 12rpx;
+  }
+
+  &__input {
+    flex: 1;
+    min-height: 80rpx;
+    max-height: 200rpx;
+    padding: 18rpx 24rpx;
+    border-radius: 22rpx;
+    background: var(--td-bg-color-secondarycontainer, #f3f3f3);
+    border: 1rpx solid transparent;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, background 0.2s ease;
+
+    &:focus-within {
+      background: #fff;
+      border-color: rgba(0, 82, 217, 0.28);
+      box-shadow: 0 0 0 4rpx rgba(0, 82, 217, 0.08);
+    }
+
+    input {
+      width: 100%;
+      min-height: 44rpx;
+      font-size: 28rpx;
+      line-height: 1.45;
+      color: var(--td-text-color-primary, rgba(0, 0, 0, 0.9));
+    }
+  }
+
+  &__placeholder {
+    color: var(--td-text-color-placeholder, rgba(0, 0, 0, 0.4));
+    font-size: 28rpx;
   }
 }
 
-.mknow-clear {
+.mknow-action-chip {
   display: inline-flex;
   align-items: center;
   gap: 8rpx;
-  padding: 8rpx 12rpx;
+  padding: 10rpx 18rpx;
+  border-radius: 999rpx;
   font-size: 24rpx;
-  color: var(--td-text-color-placeholder, rgba(0, 0, 0, 0.4));
-}
+  color: var(--td-brand-color, @mknow-brand-start);
+  background: rgba(0, 82, 217, 0.07);
+  border: 1rpx solid rgba(0, 82, 217, 0.1);
+  transition: opacity 0.15s ease, transform 0.15s ease;
 
-.mknow-input-row {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-}
+  &--muted {
+    color: var(--td-text-color-secondary, rgba(0, 0, 0, 0.6));
+    background: rgba(15, 23, 42, 0.04);
+    border-color: rgba(15, 23, 42, 0.06);
+  }
 
-.mknow-input {
-  flex: 1;
-  min-height: 80rpx;
-  padding: 16rpx 28rpx;
-  border-radius: 40rpx;
-  background: var(--td-bg-color-secondarycontainer, #f3f3f3);
-  border: 1rpx solid var(--td-component-stroke, #e7e7e7);
-  box-sizing: border-box;
+  &--disabled {
+    opacity: 0.42;
+    pointer-events: none;
+  }
 
-  input {
-    width: 100%;
-    height: 48rpx;
-    font-size: 28rpx;
-    line-height: 48rpx;
+  &--active {
+    transform: scale(0.97);
+    opacity: 0.88;
   }
 }
 
 .mknow-send {
   flex-shrink: 0;
-  min-width: 128rpx !important;
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.08);
+  color: rgba(15, 23, 42, 0.28);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+
+  &--ready {
+    background: linear-gradient(145deg, @mknow-brand-start 0%, @mknow-brand-mid 100%);
+    color: #fff;
+    box-shadow: 0 8rpx 24rpx rgba(0, 82, 217, 0.32);
+  }
+
+  &--loading {
+    background: rgba(0, 82, 217, 0.12);
+    color: var(--td-brand-color, @mknow-brand-start);
+  }
+
+  &:active {
+    transform: scale(0.94);
+  }
+}
+
+/* 侧栏：参考千问 — 白底、顶栏品牌+搜索、通栏新建对话、时间分组列表 */
+.mknow-drawer {
+  width: 78vw;
+  max-width: 640rpx;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  box-sizing: border-box;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    padding: 20rpx 32rpx 12rpx;
+  }
+
+  &__search {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 72rpx;
+    height: 72rpx;
+    border-radius: 50%;
+
+    &:active {
+      background: rgba(15, 23, 42, 0.06);
+    }
+  }
+
+  &__search-bar {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+    flex-shrink: 0;
+    margin: 0 24rpx 8rpx;
+    padding: 14rpx 20rpx;
+    border-radius: 16rpx;
+    background: #f3f4f6;
+  }
+
+  &__search-input {
+    flex: 1;
+    font-size: 28rpx;
+    color: @mknow-ink;
+  }
+
+  &__search-placeholder {
+    color: rgba(0, 0, 0, 0.35);
+    font-size: 28rpx;
+  }
+
+  &__search-clear {
+    display: flex;
+    padding: 4rpx;
+  }
+
+  &__new {
+    display: flex;
+    align-items: center;
+    gap: 20rpx;
+    flex-shrink: 0;
+    margin: 8rpx 20rpx 12rpx;
+    padding: 26rpx 28rpx;
+    border-radius: 20rpx;
+    background: #f3f4f6;
+    transition: background 0.15s ease;
+
+    &--active {
+      background: #ebedf0;
+    }
+  }
+
+  &__new-icon {
+    position: relative;
+    width: 44rpx;
+    height: 44rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__new-plus {
+    position: absolute;
+    right: -6rpx;
+    bottom: -6rpx;
+    width: 28rpx;
+    height: 28rpx;
+    border-radius: 50%;
+    background: @mknow-brand-start;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2rpx solid #f3f4f6;
+  }
+
+  &__new-text {
+    font-size: 30rpx;
+    font-weight: 500;
+    color: @mknow-ink;
+    letter-spacing: 1rpx;
+  }
+
+  &__list {
+    flex: 1;
+    min-height: 0;
+    height: 0;
+    padding: 8rpx 0 16rpx;
+  }
+
+  &__group {
+    display: block;
+    padding: 28rpx 32rpx 12rpx;
+    font-size: 24rpx;
+    color: rgba(0, 0, 0, 0.4);
+    font-weight: 400;
+  }
+
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12rpx;
+    padding: 80rpx 32rpx;
+    text-align: center;
+    font-size: 28rpx;
+    color: rgba(0, 0, 0, 0.4);
+  }
+
+  &__empty-hint {
+    font-size: 24rpx;
+    color: rgba(0, 0, 0, 0.32);
+  }
+
+  &__foot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8rpx;
+    flex-shrink: 0;
+    padding: 20rpx 32rpx calc(24rpx + constant(safe-area-inset-bottom));
+    padding: 20rpx 32rpx calc(24rpx + env(safe-area-inset-bottom));
+    font-size: 22rpx;
+    color: rgba(0, 0, 0, 0.35);
+    border-top: 1rpx solid #f0f0f0;
+  }
+}
+
+.mknow-drawer-item {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin: 0 16rpx;
+  padding: 22rpx 20rpx;
+  border-radius: 12rpx;
+
+  &--active {
+    background: rgba(0, 82, 217, 0.06);
+
+    .mknow-drawer-item__title {
+      color: @mknow-brand-start;
+      font-weight: 500;
+    }
+  }
+
+  &--hover {
+    background: rgba(15, 23, 42, 0.04);
+  }
+
+  &__title {
+    flex: 1;
+    min-width: 0;
+    font-size: 30rpx;
+    line-height: 1.4;
+    color: @mknow-ink;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__dot {
+    flex-shrink: 0;
+    width: 12rpx;
+    height: 12rpx;
+    border-radius: 50%;
+    background: @mknow-brand-start;
+  }
 }

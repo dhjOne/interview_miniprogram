@@ -1,38 +1,324 @@
-const STORAGE_KEY = 'mknow_chat_messages';
-const SESSION_KEY = 'mknow_session_id';
+const CONVS_KEY = 'mknow_conversations_v2';
+const LEGACY_MESSAGES_KEY = 'mknow_chat_messages';
+const LEGACY_SESSION_KEY = 'mknow_session_id';
+const PENDING_PUBLISH_KEY = 'mknow_pending_publish';
 
-export function getSessionId() {
-  let id = wx.getStorageSync(SESSION_KEY);
-  if (!id) {
-    id = `mknow_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-    wx.setStorageSync(SESSION_KEY, id);
-  }
-  return id;
+const MAX_CONVERSATIONS = 30;
+const MAX_MESSAGES_PER_CONV = 50;
+
+function createSessionId() {
+  return `mknow_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
-export function resetSessionId() {
-  const id = `mknow_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-  wx.setStorageSync(SESSION_KEY, id);
-  return id;
+function createConversationId() {
+  return `conv_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
-export function loadMessages() {
+function deriveTitle(messages) {
+  const firstUser = (messages || []).find((m) => m.role === 'user' && m.content);
+  if (!firstUser) return '新对话';
+  const text = String(firstUser.content).trim();
+  return text.length > 24 ? `${text.slice(0, 24)}…` : text;
+}
+
+function formatTime(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const pad = (n) => String(n).padStart(2, '0');
+  const now = new Date();
+  const isToday =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+  if (isToday) return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function loadStore() {
   try {
-    const raw = wx.getStorageSync(STORAGE_KEY);
-    return Array.isArray(raw) ? raw : [];
+    const raw = wx.getStorageSync(CONVS_KEY);
+    if (raw && Array.isArray(raw.conversations) && raw.conversations.length) {
+      return raw;
+    }
   } catch (e) {
-    return [];
+    // ignore
   }
+  return migrateLegacyStore();
 }
 
-export function saveMessages(messages) {
+function saveStore(store) {
   try {
-    wx.setStorageSync(STORAGE_KEY, messages.slice(-50));
+    const conversations = (store.conversations || []).slice(0, MAX_CONVERSATIONS);
+    wx.setStorageSync(CONVS_KEY, {
+      activeId: store.activeId,
+      conversations,
+    });
   } catch (e) {
     // ignore quota
   }
 }
 
+function migrateLegacyStore() {
+  let legacyMessages = [];
+  let legacySessionId = '';
+  try {
+    const raw = wx.getStorageSync(LEGACY_MESSAGES_KEY);
+    legacyMessages = Array.isArray(raw) ? raw : [];
+    legacySessionId = wx.getStorageSync(LEGACY_SESSION_KEY) || '';
+  } catch (e) {
+    // ignore
+  }
+
+  const id = createConversationId();
+  const store = {
+    activeId: id,
+    conversations: [
+      {
+        id,
+        title: deriveTitle(legacyMessages),
+        updatedAt: legacyMessages.length
+          ? legacyMessages[legacyMessages.length - 1].time || Date.now()
+          : Date.now(),
+        updatedAtText: '',
+        sessionId: legacySessionId || createSessionId(),
+        messages: legacyMessages.slice(-MAX_MESSAGES_PER_CONV),
+      },
+    ],
+  };
+
+  if (legacyMessages.length) {
+    saveStore(store);
+    try {
+      wx.removeStorageSync(LEGACY_MESSAGES_KEY);
+      wx.removeStorageSync(LEGACY_SESSION_KEY);
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  return store;
+}
+
+function ensureActiveConversation(store) {
+  if (!store.conversations.length) {
+    const id = createConversationId();
+    store.conversations.push({
+      id,
+      title: '新对话',
+      updatedAt: Date.now(),
+      updatedAtText: formatTime(Date.now()),
+      sessionId: createSessionId(),
+      messages: [],
+    });
+    store.activeId = id;
+    saveStore(store);
+  }
+  if (!store.activeId || !store.conversations.find((c) => c.id === store.activeId)) {
+    store.activeId = store.conversations[0].id;
+    saveStore(store);
+  }
+  return store;
+}
+
+function getActiveConv(store) {
+  return store.conversations.find((c) => c.id === store.activeId);
+}
+
+function decorateConversation(conv) {
+  const messages = conv.messages || [];
+  const preview = messages.find((m) => m.role === 'user' && m.content);
+  return {
+    ...conv,
+    title: conv.title || deriveTitle(messages),
+    updatedAtText: formatTime(conv.updatedAt),
+    messageCount: messages.filter((m) => !m.pending).length,
+    preview: preview ? String(preview.content).slice(0, 40) : '暂无消息',
+  };
+}
+
+/** @deprecated 兼容旧调用 */
+export function getSessionId() {
+  const store = ensureActiveConversation(loadStore());
+  const conv = getActiveConv(store);
+  return conv ? conv.sessionId : createSessionId();
+}
+
+/** @deprecated 兼容旧调用 */
+export function resetSessionId() {
+  const store = ensureActiveConversation(loadStore());
+  const conv = getActiveConv(store);
+  if (conv) {
+    conv.sessionId = createSessionId();
+    saveStore(store);
+    return conv.sessionId;
+  }
+  return createSessionId();
+}
+
+export function loadMessages() {
+  const store = ensureActiveConversation(loadStore());
+  const conv = getActiveConv(store);
+  return conv && Array.isArray(conv.messages) ? conv.messages : [];
+}
+
+export function saveMessages(messages) {
+  const store = ensureActiveConversation(loadStore());
+  const conv = getActiveConv(store);
+  if (!conv) return;
+
+  const trimmed = (messages || []).slice(-MAX_MESSAGES_PER_CONV);
+  conv.messages = trimmed;
+  conv.updatedAt = trimmed.length ? trimmed[trimmed.length - 1].time || Date.now() : Date.now();
+  conv.title = deriveTitle(trimmed);
+  conv.updatedAtText = formatTime(conv.updatedAt);
+
+  store.conversations.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  saveStore(store);
+}
+
 export function clearMessages() {
-  wx.removeStorageSync(STORAGE_KEY);
+  saveMessages([]);
+}
+
+export function listConversations() {
+  const store = ensureActiveConversation(loadStore());
+  return store.conversations
+    .map(decorateConversation)
+    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+}
+
+export function getActiveConversationId() {
+  return ensureActiveConversation(loadStore()).activeId;
+}
+
+export function switchConversation(conversationId) {
+  const store = ensureActiveConversation(loadStore());
+  const target = store.conversations.find((c) => c.id === conversationId);
+  if (!target) return null;
+
+  store.activeId = conversationId;
+  saveStore(store);
+  return {
+    messages: target.messages || [],
+    sessionId: target.sessionId,
+    title: target.title,
+  };
+}
+
+export function createConversation() {
+  const store = ensureActiveConversation(loadStore());
+  const active = getActiveConv(store);
+  if (active && !(active.messages || []).length) {
+    return {
+      messages: [],
+      sessionId: active.sessionId,
+      conversationId: active.id,
+      isExistingEmpty: true,
+    };
+  }
+
+  const id = createConversationId();
+  const conv = {
+    id,
+    title: '新对话',
+    updatedAt: Date.now(),
+    updatedAtText: formatTime(Date.now()),
+    sessionId: createSessionId(),
+    messages: [],
+  };
+
+  store.conversations.unshift(conv);
+  store.activeId = id;
+  if (store.conversations.length > MAX_CONVERSATIONS) {
+    store.conversations = store.conversations.slice(0, MAX_CONVERSATIONS);
+  }
+  saveStore(store);
+
+  return {
+    messages: [],
+    sessionId: conv.sessionId,
+    conversationId: id,
+    isExistingEmpty: false,
+  };
+}
+
+export function deleteConversation(conversationId) {
+  const store = ensureActiveConversation(loadStore());
+  const idx = store.conversations.findIndex((c) => c.id === conversationId);
+  if (idx < 0) return null;
+
+  store.conversations.splice(idx, 1);
+
+  if (!store.conversations.length) {
+    const created = createConversation();
+    return {
+      messages: created.messages,
+      sessionId: created.sessionId,
+      conversationId: created.conversationId,
+    };
+  }
+
+  if (store.activeId === conversationId) {
+    store.activeId = store.conversations[0].id;
+  }
+  saveStore(store);
+
+  const active = getActiveConv(store);
+  return {
+    messages: active ? active.messages || [] : [],
+    sessionId: active ? active.sessionId : createSessionId(),
+    conversationId: store.activeId,
+  };
+}
+
+export function messagesToMarkdown(messages, options = {}) {
+  const { title: customTitle } = options;
+  const list = (messages || []).filter((m) => m.content && !m.pending);
+  if (!list.length) return { title: '', content: '' };
+
+  const firstUser = list.find((m) => m.role === 'user');
+  const title =
+    customTitle ||
+    (firstUser
+      ? String(firstUser.content).trim().slice(0, 30) +
+        (String(firstUser.content).trim().length > 30 ? '…' : '')
+      : 'AI 对话整理');
+
+  const lines = [
+    `# ${title}`,
+    '',
+    `> 由 m知道 AI 对话整理 · ${formatTime(Date.now())}`,
+    '',
+  ];
+
+  list.forEach((m) => {
+    if (m.role === 'user') {
+      lines.push('## 提问', '', String(m.content).trim(), '');
+    } else if (m.role === 'assistant') {
+      lines.push('## 回答', '', String(m.content).trim(), '');
+    }
+  });
+
+  return { title, content: lines.join('\n').trim() };
+}
+
+export function setPendingPublish(payload) {
+  try {
+    wx.setStorageSync(PENDING_PUBLISH_KEY, {
+      ...payload,
+      timestamp: Date.now(),
+    });
+  } catch (e) {
+    // ignore
+  }
+}
+
+export function consumePendingPublish() {
+  try {
+    const raw = wx.getStorageSync(PENDING_PUBLISH_KEY);
+    wx.removeStorageSync(PENDING_PUBLISH_KEY);
+    return raw || null;
+  } catch (e) {
+    return null;
+  }
 }

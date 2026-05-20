@@ -83,7 +83,10 @@
       "pages": [
         "favorite/index",
         "ranking/index",
-        "history/index"
+        "history/index",
+        "following/index",
+        "followers/index",
+        "visits/index"
       ]
     },
     {

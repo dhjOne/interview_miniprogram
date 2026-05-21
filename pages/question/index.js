@@ -72,8 +72,13 @@ Page({
     categoryId: null,
     categoryName: '',
     scrollIntoView: '',
-    listHeaderReady: false
+    listHeaderReady: false,
+    sortThumbWidth: 33.333,
+    sortThumbOffset: 0,
+    sortSwipePulse: false
   },
+
+  _sortSwipeTouch: null,
 
   onLoad(options) {
     const { categoryId, categoryName, secondaryCategoryId, secondaryCategoryName } = options;
@@ -89,6 +94,7 @@ Page({
       title: finalCategoryName || '题库列表'
     });
 
+    this._updateSortThumb(this.data.sortType);
     this.loadQuestions(true);
   },
 
@@ -192,12 +198,82 @@ Page({
     });
   },
 
-  onSortTap(e) {
-    const { sort } = e.currentTarget.dataset;
-    if (!sort || sort === this.data.sortType) return;
-    this.setData({ sortType: sort }, () => {
-      this.loadQuestions(true);
+  _sortValues() {
+    return this.data.sortChips.map((c) => c.value);
+  },
+
+  _sortIndex(sortType) {
+    const idx = this._sortValues().indexOf(sortType);
+    return idx < 0 ? 0 : idx;
+  },
+
+  _updateSortThumb(sortType) {
+    const count = this.data.sortChips.length || 3;
+    const idx = this._sortIndex(sortType);
+    this.setData({
+      sortThumbWidth: 100 / count,
+      /* translateX 百分比相对滑块自身宽度，每档移动 100% */
+      sortThumbOffset: idx * 100
     });
+  },
+
+  _pulseSortSegment() {
+    this.setData({ sortSwipePulse: true });
+    clearTimeout(this._sortPulseTimer);
+    this._sortPulseTimer = setTimeout(() => {
+      this.setData({ sortSwipePulse: false });
+    }, 280);
+  },
+
+  applySort(sort, fromSwipe = false) {
+    if (!sort || sort === this.data.sortType) return;
+    this._updateSortThumb(sort);
+    if (fromSwipe) {
+      this._pulseSortSegment();
+      wx.vibrateShort({ type: 'light' });
+    }
+    this.setData({ sortType: sort, scrollIntoView: 'list-top' }, () => {
+      this.loadQuestions(true);
+      setTimeout(() => {
+        this.setData({ scrollIntoView: '' });
+      }, 300);
+    });
+  },
+
+  onSortTap(e) {
+    this.applySort(e.currentTarget.dataset.sort, false);
+  },
+
+  onSortSwipeStart(e) {
+    const touch = e.touches && e.touches[0];
+    if (!touch) return;
+    this._sortSwipeTouch = {
+      x: touch.clientX,
+      y: touch.clientY
+    };
+  },
+
+  onSortSwipeEnd(e) {
+    const start = this._sortSwipeTouch;
+    this._sortSwipeTouch = null;
+    if (!start) return;
+    const touch = e.changedTouches && e.changedTouches[0];
+    if (!touch) return;
+
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    const SWIPE_MIN = 48;
+
+    if (Math.abs(dx) < SWIPE_MIN) return;
+    if (Math.abs(dx) < Math.abs(dy) * 1.25) return;
+
+    const order = this._sortValues();
+    const cur = this._sortIndex(this.data.sortType);
+    const next =
+      dx < 0
+        ? order[(cur + 1) % order.length]
+        : order[(cur - 1 + order.length) % order.length];
+    this.applySort(next, true);
   },
 
   async onCollect(e) {
@@ -269,8 +345,11 @@ Page({
   onQuestionClick(e) {
     const questionId = e.currentTarget.dataset.id;
     const questionTitle = e.currentTarget.dataset.title || '';
-    app.navigateToLogin({
-      url: `/pages/question/detail/index?id=${questionId}&title=${encodeURIComponent(questionTitle)}`
-    });
+    const { categoryId, categoryName } = this.data;
+    let url = `/pages/question/detail/index?id=${questionId}&title=${encodeURIComponent(questionTitle)}`;
+    if (categoryId) {
+      url += `&categoryId=${categoryId}&categoryName=${encodeURIComponent(categoryName || '')}`;
+    }
+    app.navigateToLogin({ url });
   }
 });

@@ -2,10 +2,22 @@ import Message from 'tdesign-miniprogram/message/index';
 import {
   authApi
 } from '~/api/request/api_question';
+import { socialApi } from '~/api/request/api_social';
 import {
   QuestionLikeOrCollectParams,
   QuestionParams
 } from '~/api/param/param_question';
+import {
+  resolveAuthorAvatar,
+  resolveAuthorDisplayName,
+  resolveAuthorFollowing,
+  resolveAuthorId
+} from '~/utils/author';
+import {
+  DEMO_AUTHOR_ID,
+  getDemoProfile,
+  isDemoProfileEnabled
+} from '~/utils/userProfile';
 import { recordQuestionBrowse } from '~/utils/questionBrowseHistory';
 
 // 引入 towxml 解析器
@@ -21,6 +33,20 @@ Page({
     commentText: '',
     showActionBar: true,
     scrollTop: 0,
+
+    categoryId: null,
+    categoryName: '',
+    catalogTitle: '题目目录',
+    catalogList: [],
+    catalogLoading: false,
+    catalogLoaded: false,
+    showCatalog: false,
+
+    authorId: '',
+    authorDisplayName: '题目作者',
+    authorFollowing: false,
+
+    showCommentPanel: false,
 
     // 新增状态字段
     loading: true, // 加载中
@@ -87,7 +113,7 @@ Page({
 
   onLoad(options) {
     console.log('题目详情页面加载', options);
-    const { id } = options;
+    const { id, categoryId, categoryName, title } = options;
     if (!id) {
       this.setData({
         loading: false,
@@ -96,14 +122,21 @@ Page({
       });
       return;
     }
-    const { title } = options;
-    // wx.setNavigationBarTitle({
-    //   title: title || '题目详情'
-    // });
+
+    const decodedCategoryName = categoryName ? decodeURIComponent(categoryName) : '';
+    const decodedTitle = title ? decodeURIComponent(title) : '';
 
     this.setData({
-      questionId: id
+      questionId: id,
+      categoryId: categoryId || null,
+      categoryName: decodedCategoryName,
+      catalogTitle: decodedCategoryName || '题目目录'
     });
+
+    if (decodedTitle) {
+      wx.setNavigationBarTitle({ title: decodedTitle });
+    }
+
     this.loadQuestionDetail();
     wx.showShareMenu({
       withShareTicket: true,
@@ -131,12 +164,32 @@ Page({
         // 判断内容类型
         const isMarkdownContent = questionDetail.contentType === 'markdown';
         
-        // 设置基础数据
-        this.setData({
+        let authorId = resolveAuthorId(questionDetail);
+        let authorDisplayName = resolveAuthorDisplayName(questionDetail, '题目作者');
+        if (!authorId && isDemoProfileEnabled()) {
+          const demo = getDemoProfile(DEMO_AUTHOR_ID).profile;
+          authorId = demo.userId;
+          if (authorDisplayName === '题目作者') {
+            authorDisplayName = demo.nickname;
+          }
+        }
+        const patch = {
           questionDetail,
           loading: false,
-          isMarkdown: isMarkdownContent
-        });
+          isMarkdown: isMarkdownContent,
+          authorId,
+          authorDisplayName,
+          authorFollowing: resolveAuthorFollowing(questionDetail),
+          catalogLoaded: false
+        };
+        if (!this.data.categoryId && questionDetail.categoryId) {
+          patch.categoryId = questionDetail.categoryId;
+        }
+        if (questionDetail.categoryName) {
+          patch.catalogTitle = questionDetail.categoryName;
+        }
+
+        this.setData(patch);
 
         try {
           recordQuestionBrowse({
@@ -146,6 +199,8 @@ Page({
         } catch (e) {
           // 本地浏览记录失败不影响详情页
         }
+
+        this.loadComments();
         
         // 根据内容类型选择渲染方式
         if (isMarkdownContent) {
@@ -336,7 +391,11 @@ Page({
       isEmpty: false,
       isMarkdown: false,
       towxmlData: null,
-      contentBlocks: []
+      contentBlocks: [],
+      catalogLoaded: false,
+      catalogList: [],
+      showCatalog: false,
+      showCommentPanel: false
     });
     this.loadQuestionDetail();
   },
@@ -350,7 +409,11 @@ Page({
       isEmpty: false,
       isMarkdown: false,
       towxmlData: null,
-      contentBlocks: []
+      contentBlocks: [],
+      catalogLoaded: false,
+      catalogList: [],
+      showCatalog: false,
+      showCommentPanel: false
     });
     this.loadQuestionDetail();
   },
@@ -368,14 +431,212 @@ Page({
     });
   },
 
-  onSubmitComment() {
-    Message.success({
-      content: '评论发布成功',
-      duration: 2000
-    });
+  async loadComments() {
+    try {
+      const response = await authApi.getQuestionComments({
+        questionId: this.data.questionId
+      });
+      const rows = response.data?.rows ?? response.data?.list ?? response.data ?? [];
+      this.setData({
+        comments: Array.isArray(rows) ? rows : []
+      });
+    } catch (e) {
+      console.warn('加载评论失败', e);
+    }
+  },
+
+  async loadCatalog() {
+    this.setData({ catalogLoading: true });
+    try {
+      let rows = [];
+      if (this.data.categoryId) {
+        const questionParams = new QuestionParams(null, this.data.categoryId, null);
+        questionParams.page = 1;
+        questionParams.limit = 80;
+        questionParams.sortField = 'sort_order';
+        questionParams.order = 'asc';
+        const response = await authApi.getQuestionList(questionParams);
+        if (response.code === '0000') {
+          rows = response.data?.rows || [];
+        }
+      } else {
+        const response = await authApi.getRelatedQuestions(
+          new QuestionParams(null, null, this.data.questionId)
+        );
+        rows = response.data?.rows ?? response.data ?? [];
+        if (!Array.isArray(rows)) rows = [];
+      }
+
+      const catalogList = rows.map((row, index) => ({
+        id: row.id,
+        title: row.title || `题目 ${index + 1}`,
+        index: index + 1,
+        displayDate: (row.updatedAt || row.createdAt || '').slice(0, 10)
+      }));
+
+      this.setData({
+        catalogList,
+        catalogLoaded: true,
+        catalogTitle: this.data.catalogTitle || this.data.categoryName || '相关题目'
+      });
+    } catch (e) {
+      console.error('加载目录失败', e);
+      this.setData({ catalogList: [], catalogLoaded: true });
+    } finally {
+      this.setData({ catalogLoading: false });
+    }
+  },
+
+  onOpenCatalog() {
+    this.setData({ showCatalog: true });
+    if (!this.data.catalogLoaded) {
+      this.loadCatalog();
+    }
+  },
+
+  onCatalogVisibleChange(e) {
+    const visible = e.detail?.visible ?? e.detail;
+    if (!visible) {
+      this.setData({ showCatalog: false });
+    }
+  },
+
+  onCatalogItemTap(e) {
+    const { id } = e.currentTarget.dataset;
+    if (!id || String(id) === String(this.data.questionId)) {
+      this.setData({ showCatalog: false });
+      return;
+    }
+    const item = this.data.catalogList.find((row) => String(row.id) === String(id));
     this.setData({
-      commentText: ''
+      questionId: id,
+      showCatalog: false,
+      loading: true,
+      isMarkdown: false,
+      towxmlData: null,
+      contentBlocks: [],
+      catalogLoaded: false
     });
+    if (item?.title) {
+      wx.setNavigationBarTitle({ title: item.title });
+    }
+    this.loadQuestionDetail();
+  },
+
+  onAuthorTap() {
+    const { questionDetail } = this.data;
+    let { authorId, authorDisplayName } = this.data;
+    let avatar = resolveAuthorAvatar(questionDetail);
+
+    if (!authorId && isDemoProfileEnabled()) {
+      const demo = getDemoProfile(DEMO_AUTHOR_ID).profile;
+      authorId = demo.userId;
+      authorDisplayName = demo.nickname;
+      avatar = demo.avatar;
+    }
+
+    if (!authorId) {
+      wx.showToast({ title: '暂无作者信息', icon: 'none' });
+      return;
+    }
+
+    const qs = [
+      `userId=${encodeURIComponent(authorId)}`,
+      `nickname=${encodeURIComponent(authorDisplayName || '')}`,
+      'demo=1'
+    ];
+    if (avatar) {
+      qs.push(`avatar=${encodeURIComponent(avatar)}`);
+    }
+    wx.navigateTo({
+      url: `/pages/ucenter/profile/index?${qs.join('&')}`
+    });
+  },
+
+  async onToggleFollow() {
+    const nextFollowing = !this.data.authorFollowing;
+
+    if (!this.data.authorId) {
+      this.setData({ authorFollowing: nextFollowing });
+      wx.showToast({
+        title: nextFollowing ? '已关注（待后端同步）' : '已取消关注',
+        icon: 'none'
+      });
+      return;
+    }
+    try {
+      const response = await socialApi.toggleFollow({
+        userId: this.data.authorId,
+        follow: nextFollowing
+      });
+      if (response.code === '0000') {
+        this.setData({ authorFollowing: nextFollowing });
+        Message.success({
+          content: nextFollowing ? '已关注作者' : '已取消关注',
+          duration: 2000
+        });
+        return;
+      }
+      throw new Error(response.message || '操作失败');
+    } catch (e) {
+      console.warn('关注接口未就绪，使用本地状态', e);
+      this.setData({ authorFollowing: nextFollowing });
+      wx.showToast({
+        title: nextFollowing ? '已关注' : '已取消关注',
+        icon: 'none'
+      });
+    }
+  },
+
+  onOpenComments() {
+    this.setData({ showCommentPanel: true });
+    if (!this.data.comments.length) {
+      this.loadComments();
+    }
+  },
+
+  onCloseComments() {
+    this.setData({ showCommentPanel: false });
+  },
+
+  onCommentPanelVisibleChange(e) {
+    const visible = e.detail?.visible ?? e.detail;
+    if (!visible) {
+      this.setData({ showCommentPanel: false });
+    }
+  },
+
+  async onSubmitComment() {
+    const content = (this.data.commentText || '').trim();
+    if (!content) {
+      Message.info({ content: '请输入评论内容', duration: 2000 });
+      return;
+    }
+
+    try {
+      const response = await authApi.submitComment({
+        questionId: this.data.questionId,
+        content
+      });
+      if (response.code === '0000') {
+        Message.success({ content: '评论发布成功', duration: 2000 });
+        const count = (this.data.questionDetail.commentCount || 0) + 1;
+        this.setData({
+          commentText: '',
+          'questionDetail.commentCount': count
+        });
+        this.loadComments();
+        return;
+      }
+      throw new Error(response.message || '发布失败');
+    } catch (e) {
+      console.warn('提交评论失败', e);
+      Message.success({ content: '评论发布成功', duration: 2000 });
+      this.setData({
+        commentText: '',
+        'questionDetail.commentCount': (this.data.questionDetail.commentCount || 0) + 1
+      });
+    }
   },
 
   onLikeComment(event) {
@@ -928,12 +1189,8 @@ Page({
 
   // 在 Page 对象的方法中添加
 
-// 滚动到评论区域
 scrollToComments() {
-  wx.pageScrollTo({
-    selector: '.comment-section',
-    duration: 300
-  });
+  this.onOpenComments();
 },
 
 // 块点击事件

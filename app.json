@@ -86,7 +86,8 @@
         "history/index",
         "following/index",
         "followers/index",
-        "visits/index"
+        "visits/index",
+        "profile/index"
       ]
     },
     {

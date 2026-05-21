@@ -1,30 +1,52 @@
 <view class="question-list-container">
   <view class="question-list-sticky">
-    <view class="search-section">
-      <t-search
-        value="{{searchValue}}"
-        placeholder="搜索题目标题…"
-        bind:change="onSearchChange"
-        bind:search="onSearch"
-        bind:clear="onSearchClear"
-        shape="round"
-      />
-    </view>
-
-    <!-- 排序：与整站绿色风格一致，替代原横向标签 + 底部单选重复 -->
-    <view class="sort-chip-bar">
-      <view
-        wx:for="{{sortChips}}"
-        wx:key="value"
-        class="sort-chip {{sortType === item.value ? 'sort-chip--active' : ''}}"
-        data-sort="{{item.value}}"
-        bindtap="onSortTap">
-        {{item.label}}
+    <view class="ql-filter">
+      <view class="ql-filter__search">
+        <t-search
+          value="{{searchValue}}"
+          placeholder="搜索题目标题…"
+          bind:change="onSearchChange"
+          bind:search="onSearch"
+          bind:clear="onSearchClear"
+          shape="round"
+          t-class="ql-filter-search"
+          t-class-input-container="ql-filter-search__box"
+          t-class-input="ql-filter-search__input"
+        />
       </view>
-    </view>
 
-    <view class="list-subbar" wx:if="{{listHeaderReady}}">
-      <text class="list-subbar-text">共 {{totalCount}} 道题目</text>
+      <view class="ql-filter__sort-row">
+        <text class="ql-filter__sort-label">排序</text>
+        <view
+          class="ql-sort-segment {{sortSwipePulse ? 'ql-sort-segment--pulse' : ''}}"
+          bindtouchstart="onSortSwipeStart"
+          bindtouchend="onSortSwipeEnd"
+        >
+          <view
+            class="ql-sort-segment__thumb"
+            style="width: {{sortThumbWidth}}%; transform: translateX({{sortThumbOffset}}%);"
+          />
+          <view
+            wx:for="{{sortChips}}"
+            wx:key="value"
+            class="ql-sort-segment__item {{sortType === item.value ? 'ql-sort-segment__item--active' : ''}}"
+            data-sort="{{item.value}}"
+            bindtap="onSortTap"
+          >
+            {{item.label}}
+          </view>
+        </view>
+      </view>
+      <text class="ql-filter__swipe-tip">左右滑动排序条或题目列表可切换</text>
+
+      <view class="ql-filter__meta" wx:if="{{listHeaderReady}}">
+        <view class="ql-filter__meta-left">
+          <text class="ql-filter__count">共 {{totalCount}} 道</text>
+          <text wx:if="{{categoryName}}" class="ql-filter__dot">·</text>
+          <text wx:if="{{categoryName}}" class="ql-filter__category">{{categoryName}}</text>
+        </view>
+        <text wx:if="{{searchValue}}" class="ql-filter__hint">关键词「{{searchValue}}」</text>
+      </view>
     </view>
   </view>
 
@@ -38,6 +60,8 @@
       scroll-with-animation
       bindscroll="onPageScroll"
       bindscrolltolower="loadMore"
+      bindtouchstart="onSortSwipeStart"
+      bindtouchend="onSortSwipeEnd"
       lower-threshold="120">
       <view id="list-top" class="list-top-anchor" />
       <view class="question-list">

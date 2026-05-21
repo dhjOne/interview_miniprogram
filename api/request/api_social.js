@@ -23,5 +23,24 @@ export const socialApi = {
   getVisitsList: (params) =>
     http.get('/repository/user/social/visits', params, {
       showLoading: false
+    }),
+
+  /** 关注 / 取消关注用户 */
+  toggleFollow: (params) =>
+    http.post('/repository/user/social/follow', params, {
+      showLoading: true,
+      loadingText: '操作中...'
+    }),
+
+  /** 用户个人主页资料 */
+  getUserProfile: (params) =>
+    http.get('/repository/user/social/profile', params, {
+      showLoading: false
+    }),
+
+  /** 用户发布的题目/文章列表 */
+  getUserQuestions: (params) =>
+    http.get('/repository/user/social/questions', params, {
+      showLoading: false
     })
 };

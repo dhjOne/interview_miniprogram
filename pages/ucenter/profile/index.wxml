@@ -1,0 +1,153 @@
+<view class="user-profile">
+  <t-navbar left-arrow title="个人主页" fixed safe-area-inset-top />
+
+  <view class="user-profile__inner">
+    <view wx:if="{{pageLoading}}" class="user-profile__loading">
+      <t-loading size="48rpx" text="加载中…" />
+    </view>
+
+    <block wx:else>
+      <view class="profile-hero">
+        <view class="profile-hero__bg" aria-hidden="true" />
+        <view class="profile-hero__card">
+          <t-avatar image="{{profile.avatar || defaultAvatar}}" size="128rpx" />
+          <text class="profile-hero__name">{{profile.nickname}}</text>
+          <text wx:if="{{profile.bio}}" class="profile-hero__bio">{{profile.bio}}</text>
+          <text wx:else class="profile-hero__bio profile-hero__bio--muted">暂无个人简介</text>
+
+          <view class="profile-stats">
+            <view class="profile-stats__item">
+              <text class="profile-stats__num">{{profile.followingCount}}</text>
+              <text class="profile-stats__label">关注</text>
+            </view>
+            <view class="profile-stats__divider" />
+            <view class="profile-stats__item">
+              <text class="profile-stats__num">{{profile.followerCount}}</text>
+              <text class="profile-stats__label">粉丝</text>
+            </view>
+            <view class="profile-stats__divider" />
+            <view class="profile-stats__item">
+              <text class="profile-stats__num">{{profile.publishCount}}</text>
+              <text class="profile-stats__label">发布</text>
+            </view>
+            <view class="profile-stats__divider" />
+            <view class="profile-stats__item">
+              <text class="profile-stats__num">{{profile.likeCount}}</text>
+              <text class="profile-stats__label">获赞</text>
+            </view>
+          </view>
+
+          <view class="profile-hero__action">
+            <t-button
+              wx:if="{{!isSelf}}"
+              block
+              shape="round"
+              theme="{{profile.isFollowing ? 'light' : 'primary'}}"
+              variant="{{profile.isFollowing ? 'outline' : 'base'}}"
+              bind:tap="onToggleFollow"
+            >
+              {{profile.isFollowing ? '已关注' : '关注 TA'}}
+            </t-button>
+            <t-button wx:else block shape="round" theme="light" variant="outline" disabled>
+              这是你自己
+            </t-button>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{fromDemo}}" class="user-profile__demo-tip">
+        当前为演示数据，接入后端个人主页接口后将展示真实信息
+      </view>
+
+      <view class="profile-articles">
+        <view class="profile-articles__head">
+          <view class="profile-articles__head-main">
+            <view class="profile-articles__accent" />
+            <text class="profile-articles__title">发布的文章</text>
+          </view>
+          <view class="profile-articles__badge">
+            <text class="profile-articles__badge-num">{{totalCount}}</text>
+            <text class="profile-articles__badge-unit">篇</text>
+          </view>
+        </view>
+
+        <scroll-view
+          class="profile-articles__scroll"
+          scroll-y
+          enhanced
+          show-scrollbar="{{false}}"
+          bindscrolltolower="onReachBottom"
+          lower-threshold="100"
+        >
+          <view class="profile-article-list">
+            <view
+              wx:for="{{articleList}}"
+              wx:key="id"
+              wx:for-index="idx"
+              class="profile-article-card"
+              hover-class="profile-article-card--active"
+              data-id="{{item.id}}"
+              data-title="{{item.title}}"
+              bindtap="onArticleTap"
+            >
+              <view class="profile-article-card__index">
+                <text class="profile-article-card__index-num">{{idx + 1}}</text>
+              </view>
+
+              <view class="profile-article-card__main">
+                <text class="profile-article-card__title">{{item.title}}</text>
+                <view class="profile-article-card__meta">
+                  <view class="profile-article-card__chip">
+                    <t-icon name="time" size="22rpx" color="#999" />
+                    <text>{{item.displayDate}}</text>
+                  </view>
+                  <view class="profile-article-card__chip">
+                    <t-icon name="view" size="22rpx" color="#999" />
+                    <text>{{item.viewCount}}</text>
+                  </view>
+                  <view class="profile-article-card__chip">
+                    <t-icon name="thumb-up" size="22rpx" color="#999" />
+                    <text>{{item.likeCount}}</text>
+                  </view>
+                  <view wx:if="{{item.commentCount}}" class="profile-article-card__chip">
+                    <t-icon name="chat" size="22rpx" color="#999" />
+                    <text>{{item.commentCount}}</text>
+                  </view>
+                </view>
+              </view>
+
+              <view class="profile-article-card__arrow">
+                <t-icon name="chevron-right" size="36rpx" color="#ccc" />
+              </view>
+            </view>
+          </view>
+
+          <view class="profile-articles__foot" wx:if="{{articleList.length > 0}}">
+            <view wx:if="{{listLoading}}" class="profile-articles__foot-loading">
+              <t-loading size="36rpx" text="加载中…" />
+            </view>
+            <t-divider wx:elif="{{!hasMore}}" align="center" content="没有更多了" />
+          </view>
+
+          <view wx:if="{{!listLoading && listDone && articleList.length === 0}}" class="profile-articles__empty">
+            <view class="profile-articles__empty-icon">
+              <t-icon name="file" size="80rpx" color="#d9d9d9" />
+            </view>
+            <text class="profile-articles__empty-title">还没有发布文章</text>
+            <text class="profile-articles__empty-desc">TA 发布的内容会展示在这里</text>
+          </view>
+
+          <view wx:if="{{!listLoading && listError}}" class="profile-articles__empty">
+            <view class="profile-articles__empty-icon profile-articles__empty-icon--warn">
+              <t-icon name="error-circle" size="80rpx" color="#f5a524" />
+            </view>
+            <text class="profile-articles__empty-title">文章加载失败</text>
+            <t-button theme="light" size="medium" shape="round" bind:tap="reloadArticles">重试</t-button>
+          </view>
+
+          <view class="profile-articles__safe-bottom" />
+        </scroll-view>
+      </view>
+    </block>
+  </view>
+</view>

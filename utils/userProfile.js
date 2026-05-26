@@ -46,10 +46,12 @@ const DEMO_PROFILES = {
 };
 
 const DEMO_QUESTIONS = [
-  { id: 'q101', title: 'Redis 持久化 RDB 与 AOF 如何选择？', viewCount: 1204, likeCount: 86, commentCount: 12, createdAt: '2025-05-10' },
-  { id: 'q102', title: 'MySQL 索引下推 ICP 原理', viewCount: 892, likeCount: 45, commentCount: 8, createdAt: '2025-05-08' },
-  { id: 'q103', title: '分布式锁 Redisson 实现要点', viewCount: 2103, likeCount: 132, commentCount: 24, createdAt: '2025-05-01' },
-  { id: 'q104', title: 'Spring 循环依赖三级缓存', viewCount: 1560, likeCount: 98, commentCount: 15, createdAt: '2025-04-22' }
+  { id: 'q101', title: 'Redis 持久化 RDB 与 AOF 如何选择？', viewCount: 1204, likeCount: 86, commentCount: 12, createdAt: '2025-05-10', category: 'tech' },
+  { id: 'q102', title: 'MySQL 索引下推 ICP 原理', viewCount: 892, likeCount: 45, commentCount: 8, createdAt: '2025-05-08', category: 'tech' },
+  { id: 'q103', title: '分布式锁 Redisson 实现要点', viewCount: 2103, likeCount: 132, commentCount: 24, createdAt: '2025-05-01', category: 'tech' },
+  { id: 'q104', title: 'Spring 循环依赖三级缓存', viewCount: 1560, likeCount: 98, commentCount: 15, createdAt: '2025-04-22', category: 'tech' },
+  { id: 'q105', title: '如何高效学习技术', viewCount: 856, likeCount: 62, commentCount: 18, createdAt: '2025-04-15', category: 'life' },
+  { id: 'q106', title: '字节跳动三面分享', viewCount: 3204, likeCount: 201, commentCount: 45, createdAt: '2025-04-08', category: 'news' }
 ];
 
 function pickPayload(res) {

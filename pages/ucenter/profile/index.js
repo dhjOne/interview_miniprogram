@@ -27,6 +27,7 @@ Page({
       isFollowing: false
     },
     articleList: [],
+    allArticleList: [],
     totalCount: 0,
     page: 1,
     pageSize: 20,
@@ -37,7 +38,15 @@ Page({
     listError: false,
     fromDemo: false,
     isSelf: false,
-    defaultAvatar: DEFAULT_AVATAR
+    defaultAvatar: DEFAULT_AVATAR,
+    categories: [
+      { id: 'all', name: '全部', count: 0 },
+      { id: 'tech', name: '技术', count: 0 },
+      { id: 'life', name: '生活', count: 0 },
+      { id: 'news', name: '资讯', count: 0 },
+      { id: 'other', name: '其他', count: 0 }
+    ],
+    activeCategory: 'all'
   },
 
   onLoad(options) {
@@ -69,6 +78,7 @@ Page({
             userId
           )
         : profile;
+      patch.allArticleList = list;
       patch.articleList = list;
       patch.totalCount = total;
       patch.hasMore = list.length < total;
@@ -76,6 +86,7 @@ Page({
       patch.pageLoading = false;
       patch.listDone = true;
       patch.listLoading = false;
+      patch.categories = this.updateCategoryCounts(list, this.data.categories);
     } else if (nickname || avatar) {
       patch.profile = normalizeProfileRow(
         {
@@ -139,23 +150,28 @@ Page({
         nextPage,
         this.data.pageSize
       );
-      const merged = isRefresh ? list : [...this.data.articleList, ...list];
-      const hasMore = merged.length < total;
+      const allMerged = isRefresh ? list : [...this.data.allArticleList, ...list];
+      const hasMore = allMerged.length < total;
 
       const profile = { ...this.data.profile };
       if (!profile.publishCount) {
         profile.publishCount = total;
       }
 
+      const updatedCategories = this.updateCategoryCounts(allMerged, this.data.categories);
+      const filtered = this.getFilteredArticles(allMerged, this.data.activeCategory);
+
       this.setData({
-        articleList: merged,
+        allArticleList: allMerged,
+        articleList: filtered,
         totalCount: total,
         page: nextPage,
         hasMore,
         profile,
         fromDemo: this.data.fromDemo || fromDemo,
         listDone: true,
-        listError: false
+        listError: false,
+        categories: updatedCategories
       });
     } catch (e) {
       console.error('[profile] 文章列表失败', e);
@@ -202,5 +218,52 @@ Page({
     app.navigateToLogin({
       url: `/pages/question/detail/index?id=${id}${titleQ}`
     });
+  },
+
+  onCategoryChange(e) {
+    const category = e.currentTarget.dataset.category;
+    if (category === this.data.activeCategory) return;
+
+    this.setData({
+      activeCategory: category,
+      page: 1
+    });
+
+    const filtered = this.getFilteredArticles(this.data.allArticleList, category);
+    this.setData({
+      articleList: filtered,
+      hasMore: filtered.length < this.data.totalCount
+    });
+  },
+
+  getFilteredArticles(list, category) {
+    if (category === 'all') {
+      return list;
+    }
+    return list.filter(item => item.category === category);
+  },
+
+  updateCategoryCounts(list, categories) {
+    const counts = {
+      all: list.length,
+      tech: 0,
+      life: 0,
+      news: 0,
+      other: 0
+    };
+
+    list.forEach(item => {
+      const category = item.category || 'other';
+      if (category in counts) {
+        counts[category]++;
+      } else {
+        counts.other++;
+      }
+    });
+
+    return categories.map(cat => ({
+      ...cat,
+      count: counts[cat.id] || 0
+    }));
   }
 });

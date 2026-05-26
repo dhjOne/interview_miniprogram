@@ -66,10 +66,32 @@
             <text class="profile-articles__title">发布的文章</text>
           </view>
           <view class="profile-articles__badge">
-            <text class="profile-articles__badge-num">{{totalCount}}</text>
+            <text class="profile-articles__badge-num">{{articleList.length}}</text>
             <text class="profile-articles__badge-unit">篇</text>
           </view>
         </view>
+
+        <!-- 新增：分类选项卡 -->
+        <scroll-view
+          class="profile-articles__tabs"
+          scroll-x
+          enhanced
+          show-scrollbar="{{false}}"
+        >
+          <view class="profile-articles__tab-wrapper">
+            <view
+              wx:for="{{categories}}"
+              wx:key="id"
+              class="profile-articles__tab"
+              class:profile-articles__tab--active="{{item.id === activeCategory}}"
+              data-category="{{item.id}}"
+              bindtap="onCategoryChange"
+            >
+              <text class="profile-articles__tab-name">{{item.name}}</text>
+              <view wx:if="{{item.count > 0}}" class="profile-articles__tab-count">{{item.count}}</view>
+            </view>
+          </view>
+        </scroll-view>
 
         <scroll-view
           class="profile-articles__scroll"
@@ -96,6 +118,14 @@
 
               <view class="profile-article-card__main">
                 <text class="profile-article-card__title">{{item.title}}</text>
+                <!-- 新增：分类标签 -->
+                <view wx:if="{{item.category}}" class="profile-article-card__category">
+                  <t-tag
+                    theme="light"
+                    variant="outline"
+                    size="small"
+                  >{{item.category === 'tech' ? '技术' : item.category === 'life' ? '生活' : item.category === 'news' ? '资讯' : '其他'}}</t-tag>
+                </view>
                 <view class="profile-article-card__meta">
                   <view class="profile-article-card__chip">
                     <t-icon name="time" size="22rpx" color="#999" />
@@ -133,7 +163,7 @@
             <view class="profile-articles__empty-icon">
               <t-icon name="file" size="80rpx" color="#d9d9d9" />
             </view>
-            <text class="profile-articles__empty-title">还没有发布文章</text>
+            <text class="profile-articles__empty-title">{{activeCategory !== 'all' ? '此分类暂无文章' : '还没有发布文章'}}</text>
             <text class="profile-articles__empty-desc">TA 发布的内容会展示在这里</text>
           </view>
 

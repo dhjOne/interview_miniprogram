@@ -180,6 +180,56 @@
   color: #999;
 }
 
+/* ---------- 分类选项卡 ---------- */
+.profile-articles__tabs {
+  flex-shrink: 0;
+  padding: 0 24rpx;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.profile-articles__tab-wrapper {
+  display: flex;
+  gap: 12rpx;
+  padding-bottom: 8rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.profile-articles__tab {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 20rpx;
+  font-size: 28rpx;
+  color: #666;
+  border-radius: 20rpx;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.profile-articles__tab--active {
+  color: #0052d9;
+  font-weight: 600;
+  background: rgba(0, 82, 217, 0.08);
+}
+
+.profile-articles__tab-name {
+  flex-shrink: 0;
+}
+
+.profile-articles__tab-count {
+  font-size: 24rpx;
+  color: inherit;
+  opacity: 0.7;
+}
+
+.profile-articles__tab--active .profile-articles__tab-count {
+  color: #0052d9;
+  opacity: 1;
+  font-weight: 600;
+}
+
 .profile-articles__scroll {
   flex: 1;
   height: 0;
@@ -242,6 +292,11 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   word-break: break-word;
+}
+
+/* 新增：分类标签样式 */
+.profile-article-card__category {
+  margin-bottom: 12rpx;
 }
 
 .profile-article-card__meta {

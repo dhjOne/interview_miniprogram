@@ -7,13 +7,16 @@ import {
   getActiveConversationId,
   listConversations,
   loadMessages,
+  mergeRemoteConversations,
   messagesToMarkdown,
+  saveRemoteConversation,
   saveMessages,
   setPendingPublish,
   switchConversation,
 } from '~/utils/aiChatStorage';
 
 const app = getApp();
+const Towxml = require('../../subpackages/towxml/index');
 
 const SUGGESTIONS = [
   { id: 1, text: '帮我梳理一道二叉树的中序遍历思路', icon: 'chart-bubble' },
@@ -21,6 +24,9 @@ const SUGGESTIONS = [
   { id: 3, text: '前端性能优化可以从哪几方面入手？', icon: 'logo-miniprogram' },
   { id: 4, text: '模拟一场 3 分钟的项目经历自我介绍', icon: 'user' },
 ];
+
+const MODEL_KEY = 'mknow_selected_model_key';
+const DEFAULT_MODEL_OPTIONS = [{ key: 'auto', label: 'Auto', provider: 'auto', auto: true }];
 
 function createMessage(role, content, extra = {}) {
   return {
@@ -30,6 +36,30 @@ function createMessage(role, content, extra = {}) {
     time: Date.now(),
     ...extra,
   };
+}
+
+function renderMarkdown(content) {
+  if (!content) return null;
+  try {
+    return Towxml(content, 'markdown', {
+      theme: 'light',
+      events: {},
+    });
+  } catch (e) {
+    console.warn('[mknow] render markdown failed', e);
+    return null;
+  }
+}
+
+function hydrateMessages(messages = []) {
+  return messages.map((m) => {
+    if (m.role !== 'assistant' || !m.content || m.renderedContent) return m;
+    return { ...m, renderedContent: renderMarkdown(m.content) };
+  });
+}
+
+function stripRendered(messages = []) {
+  return messages.map(({ renderedContent, ...rest }) => rest);
 }
 
 function extractReplyText(res) {
@@ -44,6 +74,98 @@ function extractReplyText(res) {
     (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) ||
     ''
   );
+}
+
+function extractSources(res) {
+  const data = res && res.data != null ? res.data : res;
+  return Array.isArray(data && data.sources) ? data.sources : [];
+}
+
+function extractErrorType(res) {
+  const data = res && res.data != null ? res.data : res;
+  return data && data.errorType ? data.errorType : '';
+}
+
+function hasLoginToken() {
+  try {
+    return !!wx.getStorageSync('access_token');
+  } catch (e) {
+    return false;
+  }
+}
+
+function parseRemoteTime(value) {
+  if (!value) return Date.now();
+  if (typeof value === 'number') return value;
+  const ts = Date.parse(String(value).replace(' ', 'T'));
+  return Number.isNaN(ts) ? Date.now() : ts;
+}
+
+function pickRows(res) {
+  const data = res && res.data != null ? res.data : res;
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data && data.rows)) return data.rows;
+  return [];
+}
+
+function normalizeRemoteConversations(res) {
+  return pickRows(res).map((conv) => {
+    const sessionId = conv.sessionId || conv.conversationId || String(conv.id || '');
+    return {
+      id: conv.conversationId || sessionId,
+      conversationId: conv.conversationId || sessionId,
+      sessionId,
+      title: conv.title || '新对话',
+      preview: conv.preview || '暂无消息',
+      updatedAt: parseRemoteTime(conv.updatedAt || conv.createdAt),
+      messageCount: conv.messageCount || 0,
+      remote: true,
+    };
+  });
+}
+
+function normalizeRemoteMessages(res) {
+  return pickRows(res)
+    .filter((m) => m && m.content)
+    .map((m) =>
+      createMessage(m.role === 'assistant' ? 'assistant' : 'user', m.content, {
+        id: `remote_${m.id || Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        time: parseRemoteTime(m.createdAt),
+        renderedContent: m.role === 'assistant' ? renderMarkdown(m.content) : null,
+      }),
+    );
+}
+
+function normalizeModelOptions(res) {
+  const data = res && res.data != null ? res.data : res;
+  const list = Array.isArray(data) ? data : [];
+  const merged = [...DEFAULT_MODEL_OPTIONS];
+  list.forEach((item) => {
+    if (!item || !item.key || merged.find((m) => m.key === item.key)) return;
+    merged.push({
+      key: item.key,
+      label: item.label || item.key,
+      provider: item.provider || '',
+      auto: !!item.auto,
+    });
+  });
+  return merged;
+}
+
+function getStoredModelKey() {
+  try {
+    return wx.getStorageSync(MODEL_KEY) || 'auto';
+  } catch (e) {
+    return 'auto';
+  }
+}
+
+function saveStoredModelKey(modelKey) {
+  try {
+    wx.setStorageSync(MODEL_KEY, modelKey || 'auto');
+  } catch (e) {
+    // ignore
+  }
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -137,6 +259,7 @@ Page({
     sending: false,
     anchor: '',
     keyboardHeight: 0,
+    streaming: false,
     sessionId: '',
     conversationId: '',
     chatTitle: '新对话',
@@ -147,10 +270,15 @@ Page({
     historySearchFocus: false,
     activeConversationId: '',
     popupNavBarHeight: 44,
+    modelOptions: DEFAULT_MODEL_OPTIONS,
+    selectedModelIndex: 0,
+    selectedModelKey: 'auto',
+    selectedModelName: 'Auto',
   },
 
   onLoad() {
     this.setData({ popupNavBarHeight: getNavContentHeight() });
+    this.initModelSelector();
     this.refreshConversationState();
     const { messages } = this.data;
     if (messages.length) {
@@ -159,11 +287,52 @@ Page({
   },
 
   onShow() {
+    this.initModelSelector();
     this.refreshHistoryList();
   },
 
+  async initModelSelector() {
+    const selectedModelKey = getStoredModelKey();
+    this.applyModelOptions(DEFAULT_MODEL_OPTIONS, selectedModelKey);
+    if (!hasLoginToken()) return;
+    try {
+      const res = await aiApi.listModels();
+      this.applyModelOptions(normalizeModelOptions(res), selectedModelKey);
+    } catch (err) {
+      console.warn('[mknow] load models failed', err);
+    }
+  },
+
+  applyModelOptions(modelOptions, selectedModelKey = 'auto') {
+    const options = modelOptions && modelOptions.length ? modelOptions : DEFAULT_MODEL_OPTIONS;
+    const selectedModelIndex = Math.max(0, options.findIndex((item) => item.key === selectedModelKey));
+    const selected = options[selectedModelIndex] || options[0];
+    this.setData({
+      modelOptions: options,
+      selectedModelIndex,
+      selectedModelKey: selected.key,
+      selectedModelName: selected.label,
+    });
+  },
+
+  onModelChange(e) {
+    if (this.data.sending) {
+      this.onShowToast('#t-toast', '请等待当前回复完成');
+      return;
+    }
+    const selectedModelIndex = Number(e.detail.value || 0);
+    const selected = this.data.modelOptions[selectedModelIndex] || DEFAULT_MODEL_OPTIONS[0];
+    saveStoredModelKey(selected.key);
+    this.setData({
+      selectedModelIndex,
+      selectedModelKey: selected.key,
+      selectedModelName: selected.label,
+    });
+    this.onShowToast('#t-toast', `已切换为 ${selected.label}`);
+  },
+
   refreshConversationState() {
-    const messages = loadMessages();
+    const messages = hydrateMessages(loadMessages());
     const conversationId = getActiveConversationId();
     const conv = listConversations().find((c) => c.id === conversationId);
     this.setData({
@@ -176,9 +345,20 @@ Page({
     this.refreshHistoryList();
   },
 
-  refreshHistoryList() {
-    const conversations = listConversations();
-    const activeConversationId = getActiveConversationId();
+  async refreshHistoryList() {
+    let conversations = listConversations();
+    if (hasLoginToken()) {
+      try {
+        const res = await aiApi.listConversations({ page: 1, limit: 30 });
+        const remoteConversations = normalizeRemoteConversations(res);
+        if (remoteConversations.length) {
+          conversations = mergeRemoteConversations(remoteConversations);
+        }
+      } catch (e) {
+        console.warn('[mknow] load remote conversations failed', e);
+      }
+    }
+    const activeConversationId = this.data.conversationId || getActiveConversationId();
     this.setData({
       conversations,
       activeConversationId,
@@ -229,16 +409,40 @@ Page({
     }
   },
 
-  onSelectConversation(e) {
+  async onSelectConversation(e) {
     const { id } = e.currentTarget.dataset;
     if (!id || id === this.data.conversationId) {
       this.setData({ showHistory: false });
       return;
     }
+    const remoteConv = (this.data.conversations || []).find((c) => c.id === id && c.remote);
+    if (remoteConv && hasLoginToken()) {
+      try {
+        const res = await aiApi.getMessages(remoteConv.sessionId || id);
+        const messages = normalizeRemoteMessages(res);
+        const saved = saveRemoteConversation(remoteConv, stripRendered(messages));
+        this.setData({
+          messages: hydrateMessages(saved.messages),
+          sessionId: saved.sessionId,
+          conversationId: saved.conversationId,
+          chatTitle: saved.title || remoteConv.title || '新对话',
+          showHistory: false,
+          input: '',
+          sending: false,
+          anchor: '',
+        });
+        this.refreshHistoryList();
+        wx.nextTick(() => this.scrollToBottom());
+        return;
+      } catch (err) {
+        console.warn('[mknow] load remote messages failed', err);
+        this.onShowToast('#t-toast', '历史消息加载失败，已尝试本地记录');
+      }
+    }
     const result = switchConversation(id);
     if (!result) return;
     this.setData({
-      messages: result.messages,
+      messages: hydrateMessages(result.messages),
       sessionId: result.sessionId,
       conversationId: id,
       chatTitle: result.title || '新对话',
@@ -265,11 +469,21 @@ Page({
     });
   },
 
-  deleteConversationById(id) {
+  async deleteConversationById(id) {
+    const target = (this.data.conversations || []).find((c) => c.id === id);
+    if (target && target.remote && hasLoginToken()) {
+      try {
+        await aiApi.deleteConversation(target.sessionId || id);
+      } catch (err) {
+        console.warn('[mknow] delete remote conversation failed', err);
+        this.onShowToast('#t-toast', '删除失败，请稍后重试');
+        return;
+      }
+    }
     const result = deleteConversation(id);
     if (!result) return;
     this.setData({
-      messages: result.messages,
+      messages: hydrateMessages(result.messages),
       sessionId: result.sessionId,
       conversationId: result.conversationId,
       chatTitle: '新对话',
@@ -293,10 +507,32 @@ Page({
     });
   },
 
-  onNewChat() {
+  async onNewChat() {
     if (this.data.sending) {
       this.onShowToast('#t-toast', '请等待当前回复完成');
       return;
+    }
+
+    if (hasLoginToken()) {
+      try {
+        const res = await aiApi.createConversation({ title: '新对话' });
+        const remote = normalizeRemoteConversations({ data: [res.data] })[0];
+        const saved = saveRemoteConversation(remote, []);
+        this.setData({
+          messages: [],
+          sessionId: saved.sessionId,
+          conversationId: saved.conversationId,
+          chatTitle: '新对话',
+          input: '',
+          anchor: '',
+          showHistory: false,
+        });
+        this.refreshHistoryList();
+        this.onShowToast('#t-toast', '已新建对话');
+        return;
+      } catch (err) {
+        console.warn('[mknow] create remote conversation failed', err);
+      }
     }
 
     const result = createConversation();
@@ -396,13 +632,19 @@ Page({
     this.setData({
       messages: [
         ...messages,
-        createMessage('assistant', '', { pending: true, id: pendingId }),
+        createMessage('assistant', '', {
+          pending: true,
+          streaming: true,
+          id: pendingId,
+          modelName: this.data.selectedModelName,
+        }),
       ],
       input: '',
       sending: true,
+      streaming: true,
       chatTitle,
     });
-    saveMessages(messages);
+    saveMessages(stripRendered(messages));
     this.refreshHistoryList();
     wx.nextTick(() => this.scrollToBottom());
 
@@ -411,31 +653,155 @@ Page({
 
   async requestAiReply(content, pendingId, historyBeforeAssistant) {
     const { sessionId } = this.data;
-
-    try {
-      const res = await aiApi.chat({
+    const payload = {
         content,
         sessionId,
+        modelKey: this.data.selectedModelKey || 'auto',
         messages: historyBeforeAssistant.map((m) => ({
           role: m.role,
           content: m.content,
         })),
-      });
+      };
+
+    try {
+      await this.requestAiReplyStream(payload, pendingId, content);
+    } catch (streamErr) {
+      console.warn('[mknow] ai stream failed, use json chat', streamErr);
+      try {
+        const res = await aiApi.chat(payload);
       const reply = extractReplyText(res) || buildFallbackReply(content);
-      this.finishAssistantMessage(pendingId, reply, false);
-    } catch (err) {
-      console.warn('[mknow] ai chat failed, use fallback', err);
+      const data = res && res.data ? res.data : {};
+      const errorType = extractErrorType(res);
+      if (errorType) {
+        this.onShowToast('#t-toast', data.errorMessage || reply);
+      }
+      this.finishAssistantMessage(pendingId, reply, false, {
+        sessionId: data.sessionId,
+        conversationId: data.conversationId,
+        sources: extractSources(res),
+        errorType,
+        modelKey: data.modelKey,
+        modelName: data.modelName,
+      });
+      } catch (err) {
+        console.warn('[mknow] ai chat failed, use fallback', err);
       this.finishAssistantMessage(pendingId, buildFallbackReply(content), true);
+      }
     }
   },
 
-  finishAssistantMessage(pendingId, content, isFallback) {
+  requestAiReplyStream(payload, pendingId, question) {
+    return new Promise((resolve, reject) => {
+      let reply = '';
+      let meta = {};
+      let settled = false;
+      let received = false;
+      this.streamTask = aiApi.chatStream(payload, {
+        onMeta: (data) => {
+          received = true;
+          meta = data || {};
+          this.updateStreamingAssistant(pendingId, reply, meta);
+        },
+        onToken: (delta) => {
+          received = true;
+          reply += delta || '';
+          this.updateStreamingAssistant(pendingId, reply, meta);
+        },
+        onDone: (data) => {
+          if (settled) return;
+          settled = true;
+          const finalData = { ...meta, ...(data || {}) };
+          this.finishAssistantMessage(pendingId, reply || finalData.reply || buildFallbackReply(question), false, {
+            sessionId: finalData.sessionId,
+            conversationId: finalData.conversationId,
+            sources: finalData.sources || [],
+            modelKey: finalData.modelKey,
+            modelName: finalData.modelName,
+          });
+          resolve(finalData);
+        },
+        onError: (err) => {
+          if (settled) return;
+          settled = true;
+          if (received && err && err.errorMessage) {
+            this.finishAssistantMessage(pendingId, err.errorMessage, true, {
+              sessionId: err.sessionId || meta.sessionId,
+              conversationId: err.conversationId || meta.conversationId,
+              errorType: err.errorType || 'AI_UNAVAILABLE',
+              modelName: err.modelName || meta.modelName,
+            });
+            resolve(err);
+            return;
+          }
+          reject(err);
+        },
+      });
+      if (!this.streamTask || !this.streamTask.onChunkReceived) {
+        reject(new Error('当前环境不支持流式输出'));
+      }
+    });
+  },
+
+  updateStreamingAssistant(pendingId, content, meta = {}) {
+    const now = Date.now();
+    if (this._lastRenderAt && now - this._lastRenderAt < 180) {
+      clearTimeout(this._renderTimer);
+      this._renderTimer = setTimeout(() => {
+        this._lastRenderAt = Date.now();
+        this.updateStreamingAssistant(pendingId, content, meta);
+      }, 180);
+      return;
+    }
+    this._lastRenderAt = now;
+    const messages = this.data.messages.map((m) => {
+      if (m.id !== pendingId) return m;
+      return {
+        ...m,
+        content,
+        pending: false,
+        streaming: true,
+        sources: meta.sources || m.sources || [],
+        modelName: meta.modelName || m.modelName || this.data.selectedModelName,
+        renderedContent: renderMarkdown(content),
+      };
+    });
+    this.setData({ messages });
+    wx.nextTick(() => this.scrollToBottom());
+  },
+
+  finishAssistantMessage(pendingId, content, isFallback, extra = {}) {
     const messages = this.data.messages
       .filter((m) => m.id !== pendingId)
-      .concat(createMessage('assistant', content, { fallback: isFallback }));
+      .concat(createMessage('assistant', content, {
+        fallback: isFallback || extra.errorType === 'AI_UNAVAILABLE',
+        sources: extra.sources || [],
+        errorType: extra.errorType || '',
+        modelName: extra.modelName || this.data.selectedModelName,
+        renderedContent: renderMarkdown(content),
+      }));
 
-    this.setData({ messages, sending: false });
-    saveMessages(messages);
+    if (extra.sessionId || extra.conversationId) {
+      const saved = saveRemoteConversation(
+        {
+          sessionId: extra.sessionId || this.data.sessionId,
+          conversationId: extra.conversationId || extra.sessionId || this.data.conversationId,
+          title: this.data.chatTitle,
+          updatedAt: Date.now(),
+        },
+        stripRendered(messages),
+      );
+      this.setData({
+        messages,
+        sending: false,
+        streaming: false,
+        sessionId: saved.sessionId,
+        conversationId: saved.conversationId,
+        activeConversationId: saved.conversationId,
+      });
+    } else {
+      this.setData({ messages, sending: false, streaming: false });
+    }
+    saveMessages(stripRendered(messages));
     this.refreshHistoryList();
     wx.nextTick(() => this.scrollToBottom());
   },

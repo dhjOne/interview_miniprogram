@@ -14,6 +14,10 @@ function createConversationId() {
   return `conv_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
+function resolveRemoteId(conv = {}) {
+  return conv.conversationId || conv.id || conv.sessionId || createConversationId();
+}
+
 function deriveTitle(messages) {
   const firstUser = (messages || []).find((m) => m.role === 'user' && m.content);
   if (!firstUser) return '新对话';
@@ -250,11 +254,22 @@ export function deleteConversation(conversationId) {
   store.conversations.splice(idx, 1);
 
   if (!store.conversations.length) {
-    const created = createConversation();
+    const id = createConversationId();
+    const conv = {
+      id,
+      title: '新对话',
+      updatedAt: Date.now(),
+      updatedAtText: formatTime(Date.now()),
+      sessionId: createSessionId(),
+      messages: [],
+    };
+    store.conversations.push(conv);
+    store.activeId = id;
+    saveStore(store);
     return {
-      messages: created.messages,
-      sessionId: created.sessionId,
-      conversationId: created.conversationId,
+      messages: [],
+      sessionId: conv.sessionId,
+      conversationId: id,
     };
   }
 
@@ -269,6 +284,75 @@ export function deleteConversation(conversationId) {
     sessionId: active ? active.sessionId : createSessionId(),
     conversationId: store.activeId,
   };
+}
+
+export function saveRemoteConversation(remoteConv = {}, messages) {
+  const store = ensureActiveConversation(loadStore());
+  const id = resolveRemoteId(remoteConv);
+  const sessionId = remoteConv.sessionId || remoteConv.conversationId || id;
+  const idx = store.conversations.findIndex((c) => c.id === id || c.sessionId === sessionId);
+  const now = Date.now();
+  const existing = idx >= 0 ? store.conversations[idx] : null;
+  const nextMessages = Array.isArray(messages)
+    ? messages.slice(-MAX_MESSAGES_PER_CONV)
+    : existing && Array.isArray(existing.messages)
+      ? existing.messages
+      : [];
+  const conv = {
+    ...(existing || {}),
+    id,
+    sessionId,
+    title: remoteConv.title || deriveTitle(nextMessages),
+    preview: remoteConv.preview,
+    updatedAt: remoteConv.updatedAt || now,
+    updatedAtText: formatTime(remoteConv.updatedAt || now),
+    messages: nextMessages,
+    remote: true,
+  };
+
+  if (idx >= 0) {
+    store.conversations[idx] = conv;
+  } else {
+    store.conversations.unshift(conv);
+  }
+  store.activeId = id;
+  store.conversations.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  saveStore(store);
+  return {
+    messages: conv.messages,
+    sessionId: conv.sessionId,
+    conversationId: conv.id,
+    title: conv.title,
+  };
+}
+
+export function mergeRemoteConversations(remoteConversations = []) {
+  const store = ensureActiveConversation(loadStore());
+  remoteConversations.forEach((remoteConv) => {
+    const id = resolveRemoteId(remoteConv);
+    const sessionId = remoteConv.sessionId || remoteConv.conversationId || id;
+    const idx = store.conversations.findIndex((c) => c.id === id || c.sessionId === sessionId);
+    const existing = idx >= 0 ? store.conversations[idx] : {};
+    const conv = {
+      ...existing,
+      id,
+      sessionId,
+      title: remoteConv.title || existing.title || '新对话',
+      preview: remoteConv.preview || existing.preview,
+      updatedAt: remoteConv.updatedAt || existing.updatedAt || Date.now(),
+      updatedAtText: formatTime(remoteConv.updatedAt || existing.updatedAt || Date.now()),
+      messages: Array.isArray(existing.messages) ? existing.messages : [],
+      remote: true,
+    };
+    if (idx >= 0) {
+      store.conversations[idx] = conv;
+    } else {
+      store.conversations.push(conv);
+    }
+  });
+  store.conversations.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  saveStore(store);
+  return listConversations();
 }
 
 export function messagesToMarkdown(messages, options = {}) {

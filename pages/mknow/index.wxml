@@ -16,6 +16,27 @@
   </nav>
 
   <view class="mknow-page__body">
+    <view class="mknow-topbar">
+      <view class="mknow-topbar__title">
+        <text class="mknow-topbar__main">{{messages.length ? chatTitle : 'm知道'}}</text>
+        <text class="mknow-topbar__sub">AI 搜索 · 面试知识库</text>
+      </view>
+      <picker
+        mode="selector"
+        range="{{modelOptions}}"
+        range-key="label"
+        value="{{selectedModelIndex}}"
+        disabled="{{sending}}"
+        bindchange="onModelChange"
+      >
+        <view class="mknow-model {{sending ? 'mknow-model--disabled' : ''}}" hover-class="mknow-model--active">
+          <t-icon name="layers" size="28rpx" />
+          <text>{{selectedModelName}}</text>
+          <t-icon name="chevron-down" size="26rpx" />
+        </view>
+      </picker>
+    </view>
+
     <view wx:if="{{!messages.length}}" class="mknow-welcome">
       <view class="mknow-brand">
         <view class="mknow-brand__glow" aria-hidden="true" />
@@ -48,7 +69,7 @@
 
       <view class="mknow-welcome__tips">
         <t-icon name="info-circle" size="28rpx" />
-        <text>对话保存在本地；可整理为 Markdown 发布到文档</text>
+        <text>当前模型：{{selectedModelName}} · 登录后同步历史，可整理为 Markdown 发布到文档</text>
       </view>
     </view>
 
@@ -78,7 +99,25 @@
                 <text>正在思考…</text>
               </view>
               <block wx:else>
-                <text user-select>{{item.content}}</text>
+                <towxml
+                  wx:if="{{item.renderedContent}}"
+                  nodes="{{item.renderedContent}}"
+                  type="markdown"
+                  class="mknow-markdown"
+                />
+                <text wx:else user-select>{{item.content}}</text>
+                <view wx:if="{{item.streaming}}" class="mknow-streaming">
+                  <t-loading theme="dots" size="28rpx" />
+                  <text>正在生成</text>
+                </view>
+                <text wx:if="{{item.modelName}}" class="mknow-bubble__model">由 {{item.modelName}} 生成</text>
+                <view wx:if="{{item.sources && item.sources.length}}" class="mknow-sources">
+                  <text class="mknow-sources__title">参考题库</text>
+                  <view wx:for="{{item.sources}}" wx:key="id" wx:for-item="source" class="mknow-source">
+                    <text class="mknow-source__name">{{source.title}}</text>
+                    <text class="mknow-source__snippet">{{source.snippet}}</text>
+                  </view>
+                </view>
                 <text wx:if="{{item.fallback}}" class="mknow-bubble__tag">预览模式</text>
               </block>
             </view>
@@ -93,6 +132,19 @@
   <view class="mknow-composer" style="margin-bottom: {{keyboardHeight}}px">
     <view class="mknow-composer__card">
       <view class="mknow-composer__actions">
+        <picker
+          mode="selector"
+          range="{{modelOptions}}"
+          range-key="label"
+          value="{{selectedModelIndex}}"
+          disabled="{{sending}}"
+          bindchange="onModelChange"
+        >
+          <view class="mknow-action-chip mknow-action-chip--model {{sending ? 'mknow-action-chip--disabled' : ''}}">
+            <t-icon name="layers" size="32rpx" />
+            <text>{{selectedModelName}}</text>
+          </view>
+        </picker>
         <view
           class="mknow-action-chip {{messages.length && !sending ? '' : 'mknow-action-chip--disabled'}}"
           hover-class="{{messages.length && !sending ? 'mknow-action-chip--active' : ''}}"
@@ -209,13 +261,16 @@
         >
           <text class="mknow-drawer-item__title">{{conv.title}}</text>
           <view wx:if="{{conv.id === activeConversationId}}" class="mknow-drawer-item__dot" />
+          <view class="mknow-drawer-item__delete" data-id="{{conv.id}}" catchtap="onDeleteConversation">
+            <t-icon name="delete" size="30rpx" color="rgba(0,0,0,0.35)" />
+          </view>
         </view>
       </block>
     </scroll-view>
 
     <view class="mknow-drawer__foot">
       <t-icon name="info-circle" size="28rpx" color="rgba(0,0,0,0.35)" />
-      <text>长按对话可删除 · 本地保存</text>
+      <text>长按或点击删除 · 登录后同步</text>
     </view>
   </view>
 </t-popup>

@@ -26,11 +26,17 @@ export const socialApi = {
     }),
 
   /** 关注 / 取消关注用户 */
-  toggleFollow: (params) =>
-    http.post('/repository/user/social/follow', params, {
+  toggleFollow: (params) => {
+    // http.request expects param objects to expose toRequestData(),
+    // wrap plain objects so calls like toggleFollow({ userId, follow }) work.
+    const payload = params && typeof params.toRequestData === 'function'
+      ? params
+      : { toRequestData: () => (params || {}) };
+    return http.post('/repository/user/social/follow', payload, {
       showLoading: true,
       loadingText: '操作中...'
-    }),
+    })
+  },
 
   /** 用户个人主页资料 */
   getUserProfile: (params) =>

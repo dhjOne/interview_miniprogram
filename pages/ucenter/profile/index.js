@@ -1,12 +1,8 @@
 import { socialApi } from '~/api/request/api_social';
 import {
   DEFAULT_AVATAR,
-  DEMO_AUTHOR_ID,
   fetchUserProfile,
   fetchUserQuestions,
-  getDemoProfile,
-  getDemoQuestions,
-  isDemoProfileEnabled,
   normalizeProfileRow
 } from '~/utils/userProfile';
 
@@ -50,8 +46,7 @@ Page({
   },
 
   onLoad(options) {
-    const useDemo = options.demo === '1' || isDemoProfileEnabled();
-    const userId = options.userId || options.id || (useDemo ? DEMO_AUTHOR_ID : '');
+    const userId = options.userId || options.id;
     if (!userId) {
       wx.showToast({ title: '用户不存在', icon: 'none' });
       setTimeout(() => wx.navigateBack(), 1500);
@@ -66,28 +61,10 @@ Page({
     const patch = {
       userId,
       isSelf: selfId && String(userId) === selfId,
-      fromDemo: useDemo
+      fromDemo: false
     };
 
-    if (useDemo) {
-      const { profile } = getDemoProfile(userId);
-      const { list, total } = getDemoQuestions(1, this.data.pageSize);
-      patch.profile = nickname || avatar
-        ? normalizeProfileRow(
-            { ...profile, nickname: nickname || profile.nickname, avatar: avatar || profile.avatar },
-            userId
-          )
-        : profile;
-      patch.allArticleList = list;
-      patch.articleList = list;
-      patch.totalCount = total;
-      patch.hasMore = list.length < total;
-      patch.page = 1;
-      patch.pageLoading = false;
-      patch.listDone = true;
-      patch.listLoading = false;
-      patch.categories = this.updateCategoryCounts(list, this.data.categories);
-    } else if (nickname || avatar) {
+    if (nickname || avatar) {
       patch.profile = normalizeProfileRow(
         {
           userId,
@@ -99,11 +76,8 @@ Page({
     }
 
     this.setData(patch);
-
-    if (!useDemo) {
-      this.loadProfile();
-      this.loadArticles(true);
-    }
+    this.loadProfile();
+    this.loadArticles(true);
   },
 
   onReachBottom() {

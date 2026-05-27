@@ -36,7 +36,6 @@
       <t-cell
         wx:if="{{!isLoad}}"
         title="请先登录 / 注册"
-        description="登录后可同步收藏、发布与刷题排行"
         bordered="{{false}}"
         t-class-title="my-page__login-title"
         t-class-center="my-page__login-center"

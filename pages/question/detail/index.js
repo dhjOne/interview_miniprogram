@@ -13,11 +13,6 @@ import {
   resolveAuthorFollowing,
   resolveAuthorId
 } from '~/utils/author';
-import {
-  DEMO_AUTHOR_ID,
-  getDemoProfile,
-  isDemoProfileEnabled
-} from '~/utils/userProfile';
 import { recordQuestionBrowse } from '~/utils/questionBrowseHistory';
 
 // 引入 towxml 解析器
@@ -164,15 +159,8 @@ Page({
         // 判断内容类型
         const isMarkdownContent = questionDetail.contentType === 'markdown';
         
-        let authorId = resolveAuthorId(questionDetail);
+        const authorId = resolveAuthorId(questionDetail);
         let authorDisplayName = resolveAuthorDisplayName(questionDetail, '题目作者');
-        if (!authorId && isDemoProfileEnabled()) {
-          const demo = getDemoProfile(DEMO_AUTHOR_ID).profile;
-          authorId = demo.userId;
-          if (authorDisplayName === '题目作者') {
-            authorDisplayName = demo.nickname;
-          }
-        }
         const patch = {
           questionDetail,
           loading: false,
@@ -528,13 +516,6 @@ Page({
     let { authorId, authorDisplayName } = this.data;
     let avatar = resolveAuthorAvatar(questionDetail);
 
-    if (!authorId && isDemoProfileEnabled()) {
-      const demo = getDemoProfile(DEMO_AUTHOR_ID).profile;
-      authorId = demo.userId;
-      authorDisplayName = demo.nickname;
-      avatar = demo.avatar;
-    }
-
     if (!authorId) {
       wx.showToast({ title: '暂无作者信息', icon: 'none' });
       return;
@@ -542,8 +523,7 @@ Page({
 
     const qs = [
       `userId=${encodeURIComponent(authorId)}`,
-      `nickname=${encodeURIComponent(authorDisplayName || '')}`,
-      'demo=1'
+      `nickname=${encodeURIComponent(authorDisplayName || '')}`
     ];
     if (avatar) {
       qs.push(`avatar=${encodeURIComponent(avatar)}`);

@@ -4,8 +4,8 @@ export default {
   env: 'develop',
   
   // API 基础配置
-  // baseUrl: 'http://localhost:9991',
-  baseUrl: 'https://demand-tip-extensions-supposed.trycloudflare.com',
+  baseUrl: 'http://localhost:9991',
+  // baseUrl: 'https://demand-tip-extensions-supposed.trycloudflare.com',
   // baseUrl: 'https://175vq12004jn.vicp.fun',
   apiPrefix: '/api',
   
@@ -27,7 +27,7 @@ export default {
     enableDebug: false,
     enableMock: false,
     /** 个人主页、作者跳转等使用本地演示数据（接口未就绪时开启） */
-    useDemoProfile: true,
+    useDemoProfile: false,
     logLevel: 'debug'
   },
   

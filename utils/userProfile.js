@@ -152,35 +152,29 @@ export function getDemoQuestions(page = 1, pageSize = 20) {
 }
 
 export async function fetchUserProfile(userId) {
-  if (isDemoProfileEnabled()) {
-    return getDemoProfile(userId);
-  }
   try {
     const res = await socialApi.getUserProfile({ userId });
     const data = pickPayload(res);
     if (!data) throw new Error('empty profile');
     return { profile: normalizeProfileRow(data, userId), fromDemo: false };
   } catch (e) {
-    console.warn('[userProfile] 资料加载失败，使用演示数据', e);
-    const demo = DEMO_PROFILES[userId] || {
+    console.warn('[userProfile] 资料加载失败', e);
+    const fallback = {
       userId,
-      nickname: '题库用户',
+      nickname: '用户',
       avatar: DEFAULT_AVATAR,
-      bio: '这位同学很低调，还没有写简介',
+      bio: '',
       followingCount: 0,
       followerCount: 0,
-      publishCount: DEMO_QUESTIONS.length,
+      publishCount: 0,
       likeCount: 0,
       isFollowing: false
     };
-    return { profile: normalizeProfileRow(demo, userId), fromDemo: true };
+    return { profile: normalizeProfileRow(fallback, userId), fromDemo: false };
   }
 }
 
 export async function fetchUserQuestions(userId, page = 1, pageSize = 20) {
-  if (isDemoProfileEnabled()) {
-    return getDemoQuestions(page, pageSize);
-  }
   try {
     const res = await socialApi.getUserQuestions({ userId, page, limit: pageSize, pageSize });
     const payload = pickPayload(res);
@@ -211,9 +205,7 @@ export async function fetchUserQuestions(userId, page = 1, pageSize = 20) {
     } catch (err2) {
       console.warn('[userProfile] 通用题目接口亦失败', err2);
     }
-    const start = (page - 1) * pageSize;
-    const slice = DEMO_QUESTIONS.slice(start, start + pageSize);
-    return { list: slice.map(normalizeProfileQuestionRow), total: DEMO_QUESTIONS.length, fromDemo: true };
+    return { list: [], total: 0, fromDemo: false };
   }
 }
 

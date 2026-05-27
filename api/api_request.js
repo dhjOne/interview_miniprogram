@@ -96,6 +96,11 @@ class Request {
       requestData = filterEmptyFields(rawData)
     }
 
+    // 支持直接传入普通对象作为 params（兼容多数调用习惯）
+    if ((requestData === null || requestData === undefined) && params && typeof params === 'object' && typeof params.toRequestData !== 'function') {
+      requestData = filterEmptyFields(params)
+    }
+
     // 如果直接传入的data也要过滤空值
     if (requestData && typeof requestData === 'object') {
       requestData = filterEmptyFields(requestData)

@@ -109,12 +109,16 @@ export function normalizeProfileQuestionRow(row) {
   const viewCount = row.viewCount ?? row.view_count ?? 0;
   const commentCount = row.commentCount ?? row.comment_count ?? 0;
   const likeCount = row.likeCount ?? row.like_count ?? 0;
+  const categoryId = row.category ?? row.categoryCode ?? row.category_id ?? row.categoryId ?? 'other';
+  const categoryName = row.categoryName ?? row.category_name ?? row.categoryLabel ?? row.category ?? '其他';
   const rawTime =
     row.updatedAt ?? row.updated_at ?? row.createdAt ?? row.created_at ?? row.createAt;
   return {
     ...row,
     id: row.id ?? row.questionId,
     title: row.title || '无标题',
+    category: String(categoryId || 'other'),
+    categoryName: categoryName || '其他',
     viewCount,
     commentCount,
     likeCount,

@@ -2,6 +2,7 @@
 import createBus from './utils/eventBus';
 import encryption from './utils/encryption';
 import { connectSocket, fetchUnreadNum } from './utils/chatService';
+const { warmupTowxml } = require('./utils/towxmlLoader');
 
 App({
   onLaunch() {
@@ -29,6 +30,8 @@ App({
     this.checkLoginStatus();
     // ECDH：启动后静默预加载会话并挂续期定时器，减少业务首包再暴露交换接口
     encryption.startLifecycle();
+    // 预下载 towxml 分包，供 mknow 等页异步渲染 Markdown
+    warmupTowxml();
 
   },
 

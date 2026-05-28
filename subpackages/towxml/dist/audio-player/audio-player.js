@@ -66,10 +66,14 @@ Component({
 
 		},
 		moved:function(){
+			const _ts = this;
+			_ts.audio.stop();
 			_ts.audio.destroy();
 		},
 		detached:()=>{
-
+			const _ts = this;
+			_ts.audio.stop();
+			_ts.audio.destroy();
 		},
 	},
 	data: {

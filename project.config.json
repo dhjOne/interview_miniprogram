@@ -5,6 +5,30 @@
       {
         "type": "folder",
         "value": "mock"
+      },
+      {
+        "type": "file",
+        "value": "package-lock.json"
+      },
+      {
+        "type": "file",
+        "value": "subpackages/towxml/package-lock.json"
+      },
+      {
+        "type": "file",
+        "value": "subpackages/towxml/README.md"
+      },
+      {
+        "type": "file",
+        "value": "subpackages/towxml/build"
+      },
+      {
+        "type": "folder",
+        "value": "subpackages/towxml/node_modules"
+      },
+      {
+        "type": "folder",
+        "value": "subpackages/towxml/dist"
       }
     ],
     "include": []

@@ -1,6 +1,6 @@
 import { authApi } from '~/api/request/api_question';
 import { QuestionParams } from '~/api/param/param_question';
-const Towxml = require('../../../subpackages/towxml/index');
+const { renderMarkdown } = require('../../../utils/towxmlLoader');
 
 function unwrapDetail(res) {
   if (!res || typeof res !== 'object') return {};
@@ -69,21 +69,11 @@ Page({
       const md = full && String(full).trim() ? String(full) : 
       buildFullPreviewContent(docTitle, categoryName, markdownContent);
 
-      let renderedContent = null;
-      const renderFn = Towxml;
-      if (renderFn && md) {
-        try {
-          renderedContent = renderFn(md, 'markdown', {
-            theme: 'light',
-            base: '',
-            events: {}
-          });
-        } catch (e) {
-          console.error('towxml', e);
-        }
-      }
-
       const shareTitle = docTitle || '文档预览';
+      const renderedContent = md
+        ? await renderMarkdown(md, { theme: 'light', base: '', events: {} })
+        : null;
+
       this.setData({
         loading: false,
         renderedContent,

@@ -5,7 +5,7 @@ import { QuestionPublishParams } from '~/api/param/param_publish';
 import { QuestionParams } from '~/api/param/param_question';
 // 获取应用实例
 const app = getApp();
-const Towxml = require('../../../subpackages/towxml/index');
+const { renderMarkdown } = require('../../../utils/towxmlLoader');
 
 Page({
   categorySubCache: {},
@@ -474,24 +474,17 @@ Page({
       previewFullContent: fullContent
     });
     
-    // 使用 towxml 渲染
-    if (Towxml && fullContent) {
-      try {
-        const renderData = Towxml(fullContent, 'markdown', {
-          theme: 'light',
-          base: '',
-          events: {}
-        });
-        
-        this.setData({
-          renderedContent: renderData
-        });
-        
-        console.log('预览已更新，内容长度:', fullContent.length);
-      } catch (error) {
+    if (!fullContent) return;
+
+    renderMarkdown(fullContent, { theme: 'light', base: '', events: {} })
+      .then((renderedContent) => {
+        if (renderedContent) {
+          this.setData({ renderedContent });
+        }
+      })
+      .catch((error) => {
         console.error('Markdown 渲染错误:', error);
-      }
-    }
+      });
   },
 
   // 切换工具栏下拉菜单

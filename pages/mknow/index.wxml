@@ -16,7 +16,7 @@
   </nav>
 
   <view class="mknow-page__body">
-    <view class="mknow-topbar">
+    <!-- <view class="mknow-topbar">
       <view class="mknow-topbar__title">
         <text class="mknow-topbar__main">{{messages.length ? chatTitle : 'm知道'}}</text>
         <text class="mknow-topbar__sub">AI 搜索 · 面试知识库</text>
@@ -35,7 +35,7 @@
           <t-icon name="chevron-down" size="26rpx" />
         </view>
       </picker>
-    </view>
+    </view> -->
 
     <view wx:if="{{!messages.length}}" class="mknow-welcome">
       <view class="mknow-brand">

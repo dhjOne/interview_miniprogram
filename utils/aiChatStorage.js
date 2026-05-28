@@ -130,13 +130,19 @@ function getActiveConv(store) {
 
 function decorateConversation(conv) {
   const messages = conv.messages || [];
-  const preview = messages.find((m) => m.role === 'user' && m.content);
+  const localCount = messages.filter((m) => !m.pending).length;
+  const remoteCount = Number(conv.remoteMessageCount) || 0;
+  const previewMsg = messages.find((m) => m.role === 'user' && m.content);
+  const remotePreview =
+    conv.preview && conv.preview !== '暂无消息' ? String(conv.preview).slice(0, 40) : '';
   return {
     ...conv,
     title: conv.title || deriveTitle(messages),
     updatedAtText: formatTime(conv.updatedAt),
-    messageCount: messages.filter((m) => !m.pending).length,
-    preview: preview ? String(preview.content).slice(0, 40) : '暂无消息',
+    messageCount: Math.max(localCount, remoteCount),
+    preview: previewMsg
+      ? String(previewMsg.content).slice(0, 40)
+      : remotePreview || '暂无消息',
   };
 }
 
@@ -333,6 +339,7 @@ export function mergeRemoteConversations(remoteConversations = []) {
     const sessionId = remoteConv.sessionId || remoteConv.conversationId || id;
     const idx = store.conversations.findIndex((c) => c.id === id || c.sessionId === sessionId);
     const existing = idx >= 0 ? store.conversations[idx] : {};
+    const remoteMessageCount = Number(remoteConv.messageCount) || Number(existing.remoteMessageCount) || 0;
     const conv = {
       ...existing,
       id,
@@ -342,6 +349,7 @@ export function mergeRemoteConversations(remoteConversations = []) {
       updatedAt: remoteConv.updatedAt || existing.updatedAt || Date.now(),
       updatedAtText: formatTime(remoteConv.updatedAt || existing.updatedAt || Date.now()),
       messages: Array.isArray(existing.messages) ? existing.messages : [],
+      remoteMessageCount,
       remote: true,
     };
     if (idx >= 0) {

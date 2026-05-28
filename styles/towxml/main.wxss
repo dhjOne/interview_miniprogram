@@ -6,7 +6,8 @@
     line-height: 1.8;
     word-wrap: break-word;
     word-break: normal;
-    text-align:justify;
+    /* 中文 avoid justify：会拉开字距；文章页需两端对齐时在容器上单独设 justify */
+    text-align: left;
 }
 
 .h2w__main {

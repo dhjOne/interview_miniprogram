@@ -15,8 +15,7 @@ import {
 } from '~/utils/author';
 import { recordQuestionBrowse } from '~/utils/questionBrowseHistory';
 
-// 引入 towxml 解析器
-const Towxml = require('../../../subpackages/towxml/index');
+const { renderMarkdown } = require('../../../utils/towxmlLoader');
 
 Page({
   data: {
@@ -236,40 +235,35 @@ Page({
 
   // 使用 towxml 渲染 markdown
   renderMarkdownWithTowxml(questionDetail) {
-    try {
-      // 获取 markdown 内容
-      const markdownContent = questionDetail.content || questionDetail.previewFullContent || '';
-      
-      if (!markdownContent) {
-        console.warn('Markdown 内容为空');
+    const markdownContent = questionDetail.content || questionDetail.previewFullContent || '';
+
+    if (!markdownContent) {
+      console.warn('Markdown 内容为空');
+      this.setData({ contentBlocks: [] });
+      return;
+    }
+
+    console.log('开始解析 markdown 内容，长度:', markdownContent.length);
+
+    renderMarkdown(markdownContent, {
+      theme: this.data.towxmlOptions.theme,
+      events: this.data.towxmlOptions.events,
+      base: 'https://example.com',
+      highlight: true,
+      showImageMenu: true,
+      customizeStyle: true,
+    })
+      .then((towxmlData) => {
+        if (!towxmlData) {
+          throw new Error('towxml 解析结果为空');
+        }
+        console.log('towxml 解析完成:', towxmlData);
         this.setData({
-          contentBlocks: []
+          towxmlData,
+          contentBlocks: [],
         });
-        return;
-      }
-      
-      console.log('开始解析 markdown 内容，长度:', markdownContent.length);
-      
-      // 使用 towxml 解析 markdown
-      const towxmlData = Towxml(markdownContent, 'markdown', {
-        theme: this.data.towxmlOptions.theme,
-        events: this.data.towxmlOptions.events,
-        // 其他配置选项
-        base: 'https://example.com', // 相对路径的基础URL
-        highlight: true, // 代码高亮
-        showImageMenu: true, // 显示图片菜单
-        customizeStyle: true // 自定义样式
-      });
-      
-      console.log('towxml 解析完成:', towxmlData);
-      
-      this.setData({
-        towxmlData: towxmlData,
-        // 清空 contentBlocks，避免冲突
-        contentBlocks: []
-      });
-      
-    } catch (error) {
+      })
+      .catch((error) => {
       console.error('解析 markdown 失败:', error);
       // 如果解析失败，尝试降级使用 contentList
       if (questionDetail.contentList && questionDetail.contentList.length > 0) {
@@ -281,7 +275,7 @@ Page({
           errorMessage: '内容解析失败'
         });
       }
-    }
+      });
   },
 
   // 点击分享按钮

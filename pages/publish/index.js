@@ -6,7 +6,7 @@ import { consumePendingPublish } from '~/utils/aiChatStorage';
 import Message from 'tdesign-miniprogram/message/index';
 // 获取应用实例
 const app = getApp();
-const Towxml = require('../../subpackages/towxml/index');
+const { renderMarkdown } = require('../../utils/towxmlLoader');
 
 Page({
   categorySubCache: {},
@@ -353,34 +353,6 @@ Page({
     return fullContent;
   },
 
-  // 更新预览内容
-  updatePreviewContent() {
-    const fullContent = this.buildFullPreviewContent();
-    
-    this.setData({
-      previewFullContent: fullContent
-    });
-    
-    // 使用 towxml 渲染
-    if (Towxml && fullContent) {
-      try {
-        const renderData = Towxml(fullContent, 'markdown', {
-          theme: 'light',
-          base: '',
-          events: {}
-        });
-        
-        this.setData({
-          renderedContent: renderData
-        });
-        
-        console.log('预览已更新，内容长度:', fullContent.length);
-      } catch (error) {
-        console.error('Markdown 渲染错误:', error);
-      }
-    }
-  },
-
   // 切换工具栏下拉菜单
   toggleToolbarDropdown() {
     this.setData({
@@ -440,29 +412,22 @@ Page({
   // 更新预览内容
   updatePreviewContent() {
     const fullContent = this.buildFullPreviewContent();
-    
+
     this.setData({
-      previewFullContent: fullContent
+      previewFullContent: fullContent,
     });
-    
-    // 使用 towxml 渲染
-    if (Towxml && fullContent) {
-      try {
-        const renderData = Towxml(fullContent, 'markdown', {
-          theme: 'light',
-          base: '',
-          events: {}
-        });
-        
-        this.setData({
-          renderedContent: renderData
-        });
-        
-        console.log('预览已更新，内容长度:', fullContent.length);
-      } catch (error) {
+
+    if (!fullContent) return;
+
+    renderMarkdown(fullContent, { theme: 'light', base: '', events: {} })
+      .then((renderedContent) => {
+        if (renderedContent) {
+          this.setData({ renderedContent });
+        }
+      })
+      .catch((error) => {
         console.error('Markdown 渲染错误:', error);
-      }
-    }
+      });
   },
 
   // 插入 Markdown 语法 - 插入到文档末尾并自动滚动

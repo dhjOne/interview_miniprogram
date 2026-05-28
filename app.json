@@ -96,9 +96,29 @@
       "pages": [
         "index"
       ]
+    },
+    {
+      "root": "subpackages/towxml",
+      "name": "towxml",
+      "pages": [
+        "index"
+      ]
     }
   ],
-  
+  "preloadRule": {
+    "pages/category/index": {
+      "network": "all",
+      "packages": [
+        "towxml"
+      ]
+    },
+    "pages/mknow/index": {
+      "network": "all",
+      "packages": [
+        "towxml"
+      ]
+    }
+  },
   "window": {
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#fff",

@@ -27,11 +27,40 @@ function getTokenHeader() {
   }
 }
 
-function decodeChunk(arrayBuffer) {
-  if (typeof TextDecoder !== 'undefined') {
-    return new TextDecoder('utf-8').decode(new Uint8Array(arrayBuffer));
+function concatUint8(a, b) {
+  if (!a.length) return b;
+  if (!b.length) return a;
+  const out = new Uint8Array(a.length + b.length);
+  out.set(a, 0);
+  out.set(b, a.length);
+  return out;
+}
+
+/** 从尾部截掉未收齐的 UTF-8 多字节序列，避免按 chunk 解码产生 */
+function splitIncompleteUtf8Tail(bytes) {
+  if (!bytes.length) return { complete: bytes, pending: new Uint8Array(0) };
+  const maxCheck = Math.min(4, bytes.length);
+  for (let i = 1; i <= maxCheck; i += 1) {
+    const b = bytes[bytes.length - i];
+    if ((b & 0x80) === 0) break;
+    if ((b & 0xc0) !== 0x80) {
+      const needed =
+        (b & 0xe0) === 0xc0 ? 2 : (b & 0xf0) === 0xe0 ? 3 : (b & 0xf8) === 0xf0 ? 4 : 1;
+      const startIdx = bytes.length - i;
+      const have = bytes.length - startIdx;
+      if (have < needed) {
+        return {
+          complete: bytes.slice(0, startIdx),
+          pending: bytes.slice(startIdx),
+        };
+      }
+      break;
+    }
   }
-  const bytes = new Uint8Array(arrayBuffer);
+  return { complete: bytes, pending: new Uint8Array(0) };
+}
+
+function utf8BytesToString(bytes) {
   let binary = '';
   for (let i = 0; i < bytes.length; i += 1) {
     binary += String.fromCharCode(bytes[i]);
@@ -41,6 +70,35 @@ function decodeChunk(arrayBuffer) {
   } catch (e) {
     return binary;
   }
+}
+
+/** 流式分片解码：跨 chunk 保留未完成的 UTF-8 字节 */
+function createStreamDecoder() {
+  if (typeof TextDecoder !== 'undefined') {
+    const decoder = new TextDecoder('utf-8');
+    return {
+      decode(arrayBuffer) {
+        return decoder.decode(new Uint8Array(arrayBuffer), { stream: true });
+      },
+      flush() {
+        return decoder.decode();
+      },
+    };
+  }
+  let pending = new Uint8Array(0);
+  return {
+    decode(arrayBuffer) {
+      const merged = concatUint8(pending, new Uint8Array(arrayBuffer));
+      const { complete, pending: tail } = splitIncompleteUtf8Tail(merged);
+      pending = tail;
+      return utf8BytesToString(complete);
+    },
+    flush() {
+      const tail = utf8BytesToString(pending);
+      pending = new Uint8Array(0);
+      return tail;
+    },
+  };
 }
 
 function parseSseFrame(frame) {
@@ -129,6 +187,23 @@ export const aiApi = {
 
   chatStream: (params, handlers = {}) => {
     let buffer = '';
+    const streamDecoder = createStreamDecoder();
+
+    const flushSseBuffer = (tail = '') => {
+      buffer += tail;
+      const frames = buffer.split(/\r?\n\r?\n/);
+      buffer = frames.pop() || '';
+      frames.forEach((frame) => {
+        if (!frame.trim()) return;
+        const parsed = parseSseFrame(frame);
+        const data = parseJson(parsed.data);
+        if (parsed.event === 'meta') handlers.onMeta && handlers.onMeta(data);
+        else if (parsed.event === 'token') handlers.onToken && handlers.onToken(data.delta || '');
+        else if (parsed.event === 'done') handlers.onDone && handlers.onDone(data);
+        else if (parsed.event === 'error') handlers.onError && handlers.onError(data);
+      });
+    };
+
     const task = wx.request({
       url: buildUrl('/ai/chat/stream'),
       method: 'POST',
@@ -140,6 +215,7 @@ export const aiApi = {
         Authorization: getTokenHeader(),
       },
       success: (res) => {
+        flushSseBuffer(streamDecoder.flush());
         if (res.statusCode !== 200) {
           handlers.onError && handlers.onError({ message: `请求失败：${res.statusCode}` });
         }
@@ -151,18 +227,7 @@ export const aiApi = {
 
     if (task && task.onChunkReceived) {
       task.onChunkReceived((res) => {
-        buffer += decodeChunk(res.data);
-        const frames = buffer.split(/\r?\n\r?\n/);
-        buffer = frames.pop() || '';
-        frames.forEach((frame) => {
-          if (!frame.trim()) return;
-          const parsed = parseSseFrame(frame);
-          const data = parseJson(parsed.data);
-          if (parsed.event === 'meta') handlers.onMeta && handlers.onMeta(data);
-          else if (parsed.event === 'token') handlers.onToken && handlers.onToken(data.delta || '');
-          else if (parsed.event === 'done') handlers.onDone && handlers.onDone(data);
-          else if (parsed.event === 'error') handlers.onError && handlers.onError(data);
-        });
+        flushSseBuffer(streamDecoder.decode(res.data));
       });
     }
     return task;

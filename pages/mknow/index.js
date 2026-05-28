@@ -16,7 +16,7 @@ import {
 } from '~/utils/aiChatStorage';
 
 const app = getApp();
-const Towxml = require('../../subpackages/towxml/index');
+const { renderMarkdown: renderMarkdownAsync } = require('../../utils/towxmlLoader');
 
 const SUGGESTIONS = [
   { id: 1, text: '帮我梳理一道二叉树的中序遍历思路', icon: 'chart-bubble' },
@@ -38,24 +38,14 @@ function createMessage(role, content, extra = {}) {
   };
 }
 
-function renderMarkdown(content) {
-  if (!content) return null;
-  try {
-    return Towxml(content, 'markdown', {
-      theme: 'light',
-      events: {},
-    });
-  } catch (e) {
-    console.warn('[mknow] render markdown failed', e);
-    return null;
-  }
-}
-
 function hydrateMessages(messages = []) {
-  return messages.map((m) => {
-    if (m.role !== 'assistant' || !m.content || m.renderedContent) return m;
-    return { ...m, renderedContent: renderMarkdown(m.content) };
-  });
+  return Promise.all(
+    (messages || []).map(async (m) => {
+      if (m.role !== 'assistant' || !m.content || m.renderedContent) return m;
+      const renderedContent = await renderMarkdownAsync(m.content);
+      return { ...m, renderedContent };
+    }),
+  );
 }
 
 function stripRendered(messages = []) {
@@ -104,36 +94,64 @@ function parseRemoteTime(value) {
 function pickRows(res) {
   const data = res && res.data != null ? res.data : res;
   if (Array.isArray(data)) return data;
-  if (Array.isArray(data && data.rows)) return data.rows;
-  return [];
+  if (!data || typeof data !== 'object') return [];
+  const nested = data.data;
+  if (Array.isArray(nested)) return nested;
+  return (
+    data.rows ||
+    data.list ||
+    data.items ||
+    data.records ||
+    data.conversations ||
+    []
+  );
 }
 
 function normalizeRemoteConversations(res) {
   return pickRows(res).map((conv) => {
-    const sessionId = conv.sessionId || conv.conversationId || String(conv.id || '');
+    const sessionId =
+      conv.sessionId ||
+      conv.session_id ||
+      conv.conversationId ||
+      conv.conversation_id ||
+      String(conv.id || '');
+    const conversationId =
+      conv.conversationId || conv.conversation_id || sessionId;
+    const messageCount =
+      Number(conv.messageCount ?? conv.message_count ?? conv.msgCount ?? conv.msg_count) || 0;
+    const previewText =
+      conv.preview ||
+      conv.lastMessage ||
+      conv.last_message ||
+      conv.summary ||
+      '';
     return {
-      id: conv.conversationId || sessionId,
-      conversationId: conv.conversationId || sessionId,
+      id: conversationId || sessionId,
+      conversationId,
       sessionId,
-      title: conv.title || '新对话',
-      preview: conv.preview || '暂无消息',
-      updatedAt: parseRemoteTime(conv.updatedAt || conv.createdAt),
-      messageCount: conv.messageCount || 0,
+      title: conv.title || conv.name || '新对话',
+      preview: previewText || (messageCount > 0 ? '点击查看历史消息' : '暂无消息'),
+      updatedAt: parseRemoteTime(
+        conv.updatedAt || conv.updated_at || conv.createdAt || conv.created_at,
+      ),
+      messageCount,
       remote: true,
     };
   });
 }
 
-function normalizeRemoteMessages(res) {
-  return pickRows(res)
-    .filter((m) => m && m.content)
-    .map((m) =>
+async function normalizeRemoteMessages(res) {
+  const rows = pickRows(res).filter((m) => m && m.content);
+  return Promise.all(
+    rows.map(async (m) =>
       createMessage(m.role === 'assistant' ? 'assistant' : 'user', m.content, {
         id: `remote_${m.id || Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
         time: parseRemoteTime(m.createdAt),
-        renderedContent: m.role === 'assistant' ? renderMarkdown(m.content) : null,
+        renderedContent:
+          m.role === 'assistant' ? await renderMarkdownAsync(m.content) : null,
       }),
-    );
+    ),
+  );
 }
 
 function normalizeModelOptions(res) {
@@ -203,6 +221,7 @@ function buildHistoryGroups(conversations, keyword, activeId) {
   const kw = (keyword || '').trim().toLowerCase();
   const list = (conversations || []).filter((c) => {
     if (c.messageCount > 0) return true;
+    if (c.remote) return true;
     return c.id === activeId;
   });
 
@@ -288,7 +307,6 @@ Page({
 
   onShow() {
     this.initModelSelector();
-    this.refreshHistoryList();
   },
 
   async initModelSelector() {
@@ -331,8 +349,8 @@ Page({
     this.onShowToast('#t-toast', `已切换为 ${selected.label}`);
   },
 
-  refreshConversationState() {
-    const messages = hydrateMessages(loadMessages());
+  async refreshConversationState() {
+    const messages = await hydrateMessages(loadMessages());
     const conversationId = getActiveConversationId();
     const conv = listConversations().find((c) => c.id === conversationId);
     this.setData({
@@ -342,19 +360,24 @@ Page({
       chatTitle: conv ? conv.title : '新对话',
       activeConversationId: conversationId,
     });
-    this.refreshHistoryList();
   },
 
-  async refreshHistoryList() {
+  /**
+   * @param {{ fetchRemote?: boolean }} [options]
+   * fetchRemote 为 true 时请求 ai/conversations（打开历史抽屉时使用）
+   */
+  async refreshHistoryList(options = {}) {
+    const { fetchRemote = false } = options;
     let conversations = listConversations();
-    if (hasLoginToken()) {
+    if (fetchRemote && hasLoginToken()) {
+      const reqId = (this._historyFetchId = (this._historyFetchId || 0) + 1);
       try {
         const res = await aiApi.listConversations({ page: 1, limit: 30 });
+        if (reqId !== this._historyFetchId) return;
         const remoteConversations = normalizeRemoteConversations(res);
-        if (remoteConversations.length) {
-          conversations = mergeRemoteConversations(remoteConversations);
-        }
+        conversations = mergeRemoteConversations(remoteConversations);
       } catch (e) {
+        if (reqId !== this._historyFetchId) return;
         console.warn('[mknow] load remote conversations failed', e);
       }
     }
@@ -388,8 +411,8 @@ Page({
   },
 
   onOpenHistory() {
-    this.refreshHistoryList();
     this.setData({ showHistory: true, historySearchFocus: false });
+    this.refreshHistoryList({ fetchRemote: true });
   },
 
   onCloseHistory(e) {
@@ -419,10 +442,10 @@ Page({
     if (remoteConv && hasLoginToken()) {
       try {
         const res = await aiApi.getMessages(remoteConv.sessionId || id);
-        const messages = normalizeRemoteMessages(res);
+        const messages = await normalizeRemoteMessages(res);
         const saved = saveRemoteConversation(remoteConv, stripRendered(messages));
         this.setData({
-          messages: hydrateMessages(saved.messages),
+          messages: await hydrateMessages(saved.messages),
           sessionId: saved.sessionId,
           conversationId: saved.conversationId,
           chatTitle: saved.title || remoteConv.title || '新对话',
@@ -442,7 +465,7 @@ Page({
     const result = switchConversation(id);
     if (!result) return;
     this.setData({
-      messages: hydrateMessages(result.messages),
+      messages: await hydrateMessages(result.messages),
       sessionId: result.sessionId,
       conversationId: id,
       chatTitle: result.title || '新对话',
@@ -483,7 +506,7 @@ Page({
     const result = deleteConversation(id);
     if (!result) return;
     this.setData({
-      messages: hydrateMessages(result.messages),
+      messages: await hydrateMessages(result.messages),
       sessionId: result.sessionId,
       conversationId: result.conversationId,
       chatTitle: '新对话',
@@ -753,23 +776,26 @@ Page({
       return;
     }
     this._lastRenderAt = now;
-    const messages = this.data.messages.map((m) => {
-      if (m.id !== pendingId) return m;
-      return {
-        ...m,
-        content,
-        pending: false,
-        streaming: true,
-        sources: meta.sources || m.sources || [],
-        modelName: meta.modelName || m.modelName || this.data.selectedModelName,
-        renderedContent: renderMarkdown(content),
-      };
+    renderMarkdownAsync(content).then((renderedContent) => {
+      const messages = this.data.messages.map((m) => {
+        if (m.id !== pendingId) return m;
+        return {
+          ...m,
+          content,
+          pending: false,
+          streaming: true,
+          sources: meta.sources || m.sources || [],
+          modelName: meta.modelName || m.modelName || this.data.selectedModelName,
+          renderedContent: renderedContent || m.renderedContent,
+        };
+      });
+      this.setData({ messages });
+      wx.nextTick(() => this.scrollToBottom());
     });
-    this.setData({ messages });
-    wx.nextTick(() => this.scrollToBottom());
   },
 
-  finishAssistantMessage(pendingId, content, isFallback, extra = {}) {
+  async finishAssistantMessage(pendingId, content, isFallback, extra = {}) {
+    const renderedContent = await renderMarkdownAsync(content);
     const messages = this.data.messages
       .filter((m) => m.id !== pendingId)
       .concat(createMessage('assistant', content, {
@@ -777,7 +803,7 @@ Page({
         sources: extra.sources || [],
         errorType: extra.errorType || '',
         modelName: extra.modelName || this.data.selectedModelName,
-        renderedContent: renderMarkdown(content),
+        renderedContent,
       }));
 
     if (extra.sessionId || extra.conversationId) {

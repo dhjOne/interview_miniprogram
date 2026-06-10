@@ -132,19 +132,14 @@
   <view class="mknow-composer" style="margin-bottom: {{keyboardHeight}}px">
     <view class="mknow-composer__card">
       <view class="mknow-composer__actions">
-        <picker
-          mode="selector"
-          range="{{modelOptions}}"
-          range-key="label"
-          value="{{selectedModelIndex}}"
-          disabled="{{sending}}"
-          bindchange="onModelChange"
+        <view
+          class="mknow-action-chip mknow-action-chip--model {{sending ? 'mknow-action-chip--disabled' : ''}}"
+          hover-class="{{sending ? '' : 'mknow-action-chip--active'}}"
+          bindtap="onOpenModelPicker"
         >
-          <view class="mknow-action-chip mknow-action-chip--model {{sending ? 'mknow-action-chip--disabled' : ''}}">
-            <t-icon name="layers" size="32rpx" />
-            <text>{{selectedModelName}}</text>
-          </view>
-        </picker>
+          <t-icon name="layers" size="32rpx" />
+          <text>{{selectedModelName}}</text>
+        </view>
         <view
           class="mknow-action-chip {{messages.length && !sending ? '' : 'mknow-action-chip--disabled'}}"
           hover-class="{{messages.length && !sending ? 'mknow-action-chip--active' : ''}}"
@@ -272,5 +267,61 @@
       <t-icon name="info-circle" size="28rpx" color="rgba(0,0,0,0.35)" />
       <text>长按或点击删除 · 登录后同步</text>
     </view>
+  </view>
+</t-popup>
+
+<t-popup
+  visible="{{showModelPicker}}"
+  placement="bottom"
+  bind:visible-change="onCloseModelPicker"
+>
+  <view class="mknow-model-sheet">
+    <view class="mknow-model-sheet__head">
+      <text class="mknow-model-sheet__title">选择模型</text>
+      <view class="mknow-model-sheet__close" bindtap="onCloseModelPicker">
+        <t-icon name="close" size="36rpx" color="rgba(0,0,0,0.55)" />
+      </view>
+    </view>
+
+    <view wx:if="{{modelOptions.length > 6}}" class="mknow-model-sheet__search">
+      <t-icon name="search" size="32rpx" color="rgba(0,0,0,0.4)" />
+      <input
+        class="mknow-model-sheet__search-input"
+        value="{{modelSearchKeyword}}"
+        placeholder="搜索模型名称或提供商"
+        placeholder-class="mknow-model-sheet__search-placeholder"
+        bindinput="onModelSearch"
+      />
+    </view>
+
+    <scroll-view class="mknow-model-sheet__list" scroll-y show-scrollbar="{{false}}">
+      <view wx:if="{{!filteredModelOptions.length}}" class="mknow-model-sheet__empty">
+        <text>未找到匹配模型</text>
+      </view>
+
+      <block wx:for="{{modelGroups}}" wx:key="key" wx:for-item="group">
+        <text class="mknow-model-sheet__group">{{group.label}}</text>
+        <view
+          wx:for="{{group.items}}"
+          wx:for-item="model"
+          wx:key="key"
+          class="mknow-model-item {{model.key === selectedModelKey ? 'mknow-model-item--active' : ''}}"
+          hover-class="mknow-model-item--hover"
+          data-key="{{model.key}}"
+          bindtap="onSelectModel"
+        >
+          <view class="mknow-model-item__main">
+            <text class="mknow-model-item__name">{{model.label}}</text>
+            <text wx:if="{{model.description}}" class="mknow-model-item__desc">{{model.description}}</text>
+          </view>
+          <t-icon
+            wx:if="{{model.key === selectedModelKey}}"
+            name="check"
+            size="32rpx"
+            color="#0052d9"
+          />
+        </view>
+      </block>
+    </scroll-view>
   </view>
 </t-popup>

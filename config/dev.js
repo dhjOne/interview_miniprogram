@@ -5,7 +5,7 @@ export default {
   
   // API 基础配置
   // baseUrl: 'http://localhost:9991',
-  baseUrl: 'https://observed-upon-institutes-billy.trycloudflare.com',
+  baseUrl: 'https://valve-afford-marshall-preserve.trycloudflare.com',
   // baseUrl: 'https://175vq12004jn.vicp.fun',
   apiPrefix: '/api',
   

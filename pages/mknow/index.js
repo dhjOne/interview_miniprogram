@@ -164,10 +164,46 @@ function normalizeModelOptions(res) {
       key: item.key,
       label: item.label || item.key,
       provider: item.provider || '',
+      description: item.description || '',
       auto: !!item.auto,
     });
   });
   return merged;
+}
+
+function groupModelOptions(modelOptions = []) {
+  const providerLabels = {
+    auto: '智能选择',
+    ollama: '本地模型',
+    openai: '云端模型',
+  };
+  const groups = [];
+  const bucket = {};
+  (modelOptions || []).forEach((item) => {
+    const provider = item.provider || 'other';
+    if (!bucket[provider]) bucket[provider] = [];
+    bucket[provider].push(item);
+  });
+  Object.keys(bucket).forEach((provider) => {
+    groups.push({
+      key: provider,
+      label: providerLabels[provider] || provider,
+      items: bucket[provider],
+    });
+  });
+  return groups;
+}
+
+function filterModelOptions(modelOptions = [], keyword = '') {
+  const kw = (keyword || '').trim().toLowerCase();
+  if (!kw) return modelOptions;
+  return modelOptions.filter((item) => {
+    const label = String(item.label || '').toLowerCase();
+    const provider = String(item.provider || '').toLowerCase();
+    const description = String(item.description || '').toLowerCase();
+    const key = String(item.key || '').toLowerCase();
+    return label.includes(kw) || provider.includes(kw) || description.includes(kw) || key.includes(kw);
+  });
 }
 
 function getStoredModelKey() {
@@ -290,6 +326,10 @@ Page({
     activeConversationId: '',
     popupNavBarHeight: 44,
     modelOptions: DEFAULT_MODEL_OPTIONS,
+    modelGroups: groupModelOptions(DEFAULT_MODEL_OPTIONS),
+    filteredModelOptions: DEFAULT_MODEL_OPTIONS,
+    showModelPicker: false,
+    modelSearchKeyword: '',
     selectedModelIndex: 0,
     selectedModelKey: 'auto',
     selectedModelName: 'Auto',
@@ -327,10 +367,58 @@ Page({
     const selected = options[selectedModelIndex] || options[0];
     this.setData({
       modelOptions: options,
+      modelGroups: groupModelOptions(options),
+      filteredModelOptions: options,
+      modelSearchKeyword: '',
       selectedModelIndex,
       selectedModelKey: selected.key,
       selectedModelName: selected.label,
     });
+  },
+
+  onOpenModelPicker() {
+    if (this.data.sending) {
+      this.onShowToast('#t-toast', '请等待当前回复完成');
+      return;
+    }
+    this.setData({
+      showModelPicker: true,
+      modelSearchKeyword: '',
+      filteredModelOptions: this.data.modelOptions,
+      modelGroups: groupModelOptions(this.data.modelOptions),
+    });
+  },
+
+  onCloseModelPicker(e) {
+    if (e && e.detail && e.detail.visible) {
+      return;
+    }
+    this.setData({ showModelPicker: false, modelSearchKeyword: '' });
+  },
+
+  onModelSearch(e) {
+    const modelSearchKeyword = (e.detail.value || '').trim();
+    const filteredModelOptions = filterModelOptions(this.data.modelOptions, modelSearchKeyword);
+    this.setData({
+      modelSearchKeyword,
+      filteredModelOptions,
+      modelGroups: groupModelOptions(filteredModelOptions),
+    });
+  },
+
+  onSelectModel(e) {
+    const { key } = e.currentTarget.dataset;
+    if (!key) return;
+    const selected = this.data.modelOptions.find((item) => item.key === key) || DEFAULT_MODEL_OPTIONS[0];
+    saveStoredModelKey(selected.key);
+    this.setData({
+      showModelPicker: false,
+      modelSearchKeyword: '',
+      selectedModelKey: selected.key,
+      selectedModelName: selected.label,
+      selectedModelIndex: Math.max(0, this.data.modelOptions.findIndex((item) => item.key === selected.key)),
+    });
+    this.onShowToast('#t-toast', `已切换为 ${selected.label}`);
   },
 
   onModelChange(e) {

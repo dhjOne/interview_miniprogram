@@ -4,18 +4,16 @@ const STORAGE_KEY = 'ecdh_session_info';
 /** 与后端 ECDHSessionManager.SessionInfo.SESSION_EXPIRY 一致（30 分钟） */
 const SESSION_TTL_MS = 30 * 60 * 1000;
 
-/**
- * 保存会话信息到本地存储
- */
 function saveSession(sessionInfo) {
   try {
+    const now = Date.now();
     const data = {
       sessionId: sessionInfo.sessionId,
       sharedKeyHex: sessionInfo.sharedKeyHex,
-      createTime: Date.now(),
+      createTime: sessionInfo.createTime || now,
+      lastActiveTime: now,
       expireTime: SESSION_TTL_MS
     };
-    
     wx.setStorageSync(STORAGE_KEY, JSON.stringify(data));
     console.log('✅ 会话信息已保存');
   } catch (error) {
@@ -23,26 +21,32 @@ function saveSession(sessionInfo) {
   }
 }
 
-/**
- * 从本地存储加载会话信息
- */
+function touchSession() {
+  try {
+    const raw = wx.getStorageSync(STORAGE_KEY);
+    if (!raw) return;
+    const sessionInfo = JSON.parse(raw);
+    sessionInfo.lastActiveTime = Date.now();
+    wx.setStorageSync(STORAGE_KEY, JSON.stringify(sessionInfo));
+  } catch (error) {
+    console.warn('⚠️ 更新会话活跃时间失败:', error);
+  }
+}
+
 function loadSession() {
   try {
     const data = wx.getStorageSync(STORAGE_KEY);
     if (!data) {
       return null;
     }
-    
     const sessionInfo = JSON.parse(data);
     const now = Date.now();
-    
-    // 检查是否过期
-    if (now - sessionInfo.createTime > (sessionInfo.expireTime || SESSION_TTL_MS)) {
+    const lastActive = sessionInfo.lastActiveTime || sessionInfo.createTime;
+    if (now - lastActive > (sessionInfo.expireTime || SESSION_TTL_MS)) {
       console.log('⚠️ 会话已过期，清除本地缓存');
       clearSession();
       return null;
     }
-    
     console.log('✅ 会话信息已加载');
     return sessionInfo;
   } catch (error) {
@@ -51,9 +55,6 @@ function loadSession() {
   }
 }
 
-/**
- * 清除本地会话信息
- */
 function clearSession() {
   try {
     wx.removeStorageSync(STORAGE_KEY);
@@ -63,9 +64,6 @@ function clearSession() {
   }
 }
 
-/**
- * 检查会话是否有效
- */
 function isSessionValid() {
   const session = loadSession();
   return session !== null && session.sessionId && session.sharedKeyHex;
@@ -76,5 +74,6 @@ module.exports = {
   saveSession,
   loadSession,
   clearSession,
+  touchSession,
   isSessionValid
 };

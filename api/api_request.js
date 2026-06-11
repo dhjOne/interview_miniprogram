@@ -38,6 +38,32 @@ class Request {
     return config.encryption?.disabled !== true
   }
 
+  /** 加密会话失效码 C111，与登录 C105 无关 */
+  _getSessionExpiredCode() {
+    return (config.encryption && config.encryption.sessionExpiredCode) || 'C111'
+  }
+
+  _needsEncryptionSessionRenewal(responseData, responseHeader) {
+    const expiredCode = this._getSessionExpiredCode()
+    const code = responseData && responseData.code != null ? String(responseData.code).trim() : ''
+    if (code === expiredCode) {
+      return true
+    }
+    const headers = responseHeader || {}
+    const renewal = headers['X-Require-Session-Renewal'] || headers['x-require-session-renewal']
+    return renewal === 'true' || renewal === true
+  }
+
+  _wxRequestRaw(wxOptions) {
+    return new Promise((resolve, reject) => {
+      wx.request({
+        ...wxOptions,
+        success: (res) => resolve(res),
+        fail: (err) => reject(new BusinessError(-1, (err && err.errMsg) || '网络请求失败'))
+      })
+    })
+  }
+
   /**
    * 发送请求
    * @param {Object} options 请求选项
@@ -50,141 +76,134 @@ class Request {
    * @param {boolean} options.encrypt 兼容保留，无实际作用（是否加密由服务端配置决定，客户端按响应体自动解密）
    * @param {boolean} options.checkBusinessCode 是否检查业务状态码
    */
-  async request(options) {
-    const { 
-      url, 
-      method = 'GET', 
+  async request(options, internal = {}) {
+    const {
+      url,
+      method = 'GET',
       params = null,
       data = null,
       header = {},
-      showLoading = true,
-      loadingText = '加载中...',
-      checkBusinessCode = true,
-      encrypt = false
+      showLoading = options.showLoading !== false,
+      loadingText = options.loadingText || '加载中...',
+      checkBusinessCode = true
     } = options
 
+    const retryCount = internal.retryCount || 0
     const cryptoOn = this._isEncryptionPipelineEnabled()
 
-    // 未禁用时始终保证 ECDH 会话并携带 X-Session-Id，与后端库表「是否加密响应」无关；避免服务端退化为 RSA 导致小程序无法解密
     if (cryptoOn) {
-      await encryption.ensureSession({ silent: true })
-    }
-    
-    // 显示加载提示
-    if (showLoading) {
-      wx.showLoading({
-        title: loadingText,
-        mask: true
-      })
-    }
-    
-    // 构建请求数据
-    let requestData = data
-    if (params && typeof params.toRequestData === 'function') {
-      // 验证参数
-      const validation = params.validate ? params.validate() : { isValid: true, errors: [] }
-      if (!validation.isValid) {
-        wx.hideLoading()
-        return Promise.reject({
-          code: 400,
-          message: validation.errors.join(', '),
-          type: 'PARAMS_VALIDATION_ERROR'
-        })
+      encryption.syncSessionFromStorage()
+      try {
+        await encryption.ensureSession({ silent: true })
+      } catch (e) {
+        console.warn('[ECDH] 预建会话失败，将在 C111 时自动重建:', (e && e.message) || e)
       }
-      // 转换参数并过滤空值
-      const rawData = params.toRequestData()
-      requestData = filterEmptyFields(rawData)
     }
 
-    // 支持直接传入普通对象作为 params（兼容多数调用习惯）
-    if ((requestData === null || requestData === undefined) && params && typeof params === 'object' && typeof params.toRequestData !== 'function') {
-      requestData = filterEmptyFields(params)
+    if (showLoading) {
+      wx.showLoading({ title: loadingText, mask: true })
     }
 
-    // 如果直接传入的data也要过滤空值
-    if (requestData && typeof requestData === 'object') {
-      requestData = filterEmptyFields(requestData)
-    }
-    
-    // 构建完整URL
-    const fullUrl = this._buildUrl(url)
+    try {
+      let requestData = data
+      if (params && typeof params.toRequestData === 'function') {
+        const validation = params.validate ? params.validate() : { isValid: true, errors: [] }
+        if (!validation.isValid) {
+          const errText = (validation.errors || [])
+            .map((item) => (typeof item === 'string' ? item : (item && item.message) || '参数错误'))
+            .join(', ')
+          throw new BusinessError(400, errText || '参数校验失败')
+        }
+        requestData = filterEmptyFields(params.toRequestData())
+      }
+      if ((requestData == null) && params && typeof params === 'object' && typeof params.toRequestData !== 'function') {
+        requestData = filterEmptyFields(params)
+      }
+      if (requestData && typeof requestData === 'object') {
+        requestData = filterEmptyFields(requestData)
+      }
 
-    // 构建请求头
-    const requestHeader = {
-      'Content-Type': 'application/json',
-      'Authorization': this._getToken(),
-      ...header
-    }
-    if (cryptoOn && encryption.sessionId) {
-      requestHeader['X-Session-Id'] = encryption.sessionId
-    }
-    
-    console.group(`🌐 网络请求: ${method} ${url}`)
-    console.log('请求参数:', requestData)
-    console.log('完整URL:', fullUrl)
-    
-    return new Promise((resolve, reject) => {
-      wx.request({
+      const fullUrl = this._buildUrl(url)
+      const requestHeader = {
+        'Content-Type': 'application/json',
+        'Authorization': this._getToken(),
+        ...header
+      }
+      if (cryptoOn && encryption.sessionId) {
+        requestHeader['X-Session-Id'] = encryption.sessionId
+      }
+
+      console.group(`🌐 网络请求: ${method} ${url}`)
+      console.log('请求参数:', requestData)
+      console.log('完整URL:', fullUrl)
+
+      const res = await this._wxRequestRaw({
         url: fullUrl,
         method: method.toUpperCase(),
         data: requestData,
         header: requestHeader,
-        timeout: config.timeout || 10000,
-        success: async (res) => {
-          console.log('响应数据:', res)
-          console.groupEnd()
-          
-          // 统一处理HTTP状态码异常
-          if (res.statusCode !== 200) {
-            const error = this._handleHttpError(res)
-            reject(error)
-            return
-          }
-
-          // 按响应体自动识别：密文信封则解密（与后端 DB/API 是否开启加密一致）；明文 JSON 则直接使用
-          let responseData = res.data
-          const secureEnvelope = encryption.pickSecureEnvelope(responseData)
-          if (secureEnvelope) {
-            if (!cryptoOn) {
-              reject(new BusinessError(-3, '收到加密响应但已在 config 中关闭加密链路（encryption.disabled）'))
-              return
-            }
-            if (secureEnvelope.encryptedAesKey && secureEnvelope.encryptedIv) {
-              reject(new BusinessError(-3, '响应为 RSA 混合加密，请保证未设置 encryption.disabled 且请求已带有效 X-Session-Id（先完成 ECDH）'))
-              return
-            }
-            console.log('🔐 检测到加密响应，开始解密...')
-            try {
-              responseData = await encryption.decryptResponse(secureEnvelope)
-            } catch (decryptError) {
-              console.error('❌ 响应解密失败:', decryptError)
-              reject(new BusinessError(-3, '响应解密失败，请重试'))
-              return
-            }
-          }
-          
-          // 统一处理业务状态码异常
-          if (checkBusinessCode && !this._isBusinessSuccess(responseData)) {
-            const error = this._handleBusinessError(responseData)
-            reject(error)
-            return
-          }
-          console.log("请求成功")
-          // 请求成功
-          resolve(responseData)
-        },
-        fail: (error) => {
-          console.error('请求失败:', error)
-          console.groupEnd()
-          reject(this._handleNetworkError(error))
-        },
-        complete: () => {
-          if (showLoading) {
-            wx.hideLoading()
-          }
-        }
+        timeout: config.timeout || 10000
       })
-    })
+
+      console.log('响应数据:', res)
+      console.groupEnd()
+
+      if (res.statusCode !== 200) {
+        throw this._handleHttpError(res)
+      }
+
+      let responseData = res.data
+
+      // C111：加密会话失效 → 静默 re-exchange + 重试（不跳登录）
+      if (cryptoOn && this._needsEncryptionSessionRenewal(responseData, res.header)) {
+        if (retryCount >= 1) {
+          throw new BusinessError(this._getSessionExpiredCode(), '加密会话重建后仍失败，请稍后重试')
+        }
+        console.warn('[ECDH] 收到 C111，静默重建会话并重试:', url)
+        await encryption.renewSession()
+        return this.request({ ...options, showLoading: false }, { retryCount: retryCount + 1 })
+      }
+
+      const secureEnvelope = encryption.pickSecureEnvelope(responseData)
+      if (secureEnvelope) {
+        if (!cryptoOn) {
+          throw new BusinessError(-3, '收到加密响应但已关闭加密链路')
+        }
+        if (secureEnvelope.encryptedAesKey && secureEnvelope.encryptedIv) {
+          throw new BusinessError(-3, '响应为 RSA 加密，请先完成 ECDH 密钥交换')
+        }
+        console.log('🔐 检测到加密响应，开始解密...')
+        try {
+          responseData = await encryption.decryptResponse(secureEnvelope)
+        } catch (decryptError) {
+          console.error('❌ 响应解密失败:', decryptError)
+          if (retryCount < 1) {
+            console.warn('[ECDH] 解密失败，重建会话并重试:', url)
+            await encryption.renewSession()
+            return this.request({ ...options, showLoading: false }, { retryCount: retryCount + 1 })
+          }
+          throw new BusinessError(-3, '响应解密失败，请重试')
+        }
+      }
+
+      if (checkBusinessCode && !this._isBusinessSuccess(responseData)) {
+        throw this._handleBusinessError(responseData)
+      }
+
+      if (cryptoOn && encryption.sessionId) {
+        encryption.touchSession()
+      }
+
+      console.log('请求成功')
+      return responseData
+    } catch (error) {
+      try { console.groupEnd() } catch (ignored) { /* noop */ }
+      if (error instanceof BusinessError) throw error
+      if (error instanceof Error) throw new BusinessError(-1, error.message || '请求失败')
+      throw new BusinessError(-1, '请求失败，请稍后重试')
+    } finally {
+      if (showLoading) wx.hideLoading()
+    }
   }
 
   // 构建完整URL
@@ -219,9 +238,12 @@ class Request {
 
   // 判断业务是否成功
   _isBusinessSuccess(responseData) {
-    // 根据你的业务返回结构判断
-    // 这里假设返回结构为 { code: '0000', data: ..., message: ... }
-    return responseData && responseData.code === this.successCode
+    return (
+      responseData &&
+      typeof responseData === 'object' &&
+      !Array.isArray(responseData) &&
+      responseData.code === this.successCode
+    )
   }
 
   // 处理HTTP错误
@@ -252,37 +274,19 @@ class Request {
 
   // 处理业务错误
   _handleBusinessError(responseData) {
-    const { code, message, data } = responseData
-      console.log("🔍 处理业务问题 - 开始")
-    console.log("完整responseData:", responseData)
-    console.log("code值:", code)
-    console.log("code类型:", typeof code)
-    console.log("code长度:", code.length)
-    console.log("code字符代码:", code.charCodeAt ? code.charCodeAt(0) : '无charCodeAt')
-    
-    // 临时调试：直接比较
-    if (code === 'C015') {
-      console.log("✅ 直接比较匹配 C015")
-    } else {
-      console.log("❌ 直接比较不匹配，期望:'C015'，实际:", code)
+    if (!responseData || typeof responseData !== 'object' || Array.isArray(responseData)) {
+      return new BusinessError('UNKNOWN', '响应格式异常')
     }
-     // 使用trim去除可能的空格
-    const trimmedCode = code ? code.trim() : code
-    console.log("trim后code:", trimmedCode)
-    // 可以根据不同的业务错误码进行特殊处理
-    switch(trimmedCode) {
-      case 'C105': // 示例：token过期
-        console.log("token过期: ",trimmedCode)
-        this._handleUnauthorized()
-        break
-      case '1002': // 示例：权限不足
-        // 特殊处理逻辑
-        break
-      default:
-        // 默认处理
-        break
+    const code = responseData.code != null ? String(responseData.code).trim() : 'UNKNOWN'
+    const message = responseData.message || '请求失败'
+    const data = responseData.data
+
+    if (code === 'C105') {
+      this._handleUnauthorized()
+    } else if (code === this._getSessionExpiredCode()) {
+      console.warn('[ECDH] C111 重试仍失败，不跳登录')
     }
-    
+
     return new BusinessError(code, message, data)
   }
 

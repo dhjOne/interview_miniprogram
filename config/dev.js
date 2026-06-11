@@ -5,7 +5,7 @@ export default {
   
   // API 基础配置
   // baseUrl: 'http://localhost:9991',
-  baseUrl: 'https://valve-afford-marshall-preserve.trycloudflare.com',
+  baseUrl: 'https://logged-sticks-panel-possible.trycloudflare.com',
   // baseUrl: 'https://175vq12004jn.vicp.fun',
   apiPrefix: '/api',
   
@@ -36,6 +36,8 @@ export default {
   // 加密：不设 disabled 则预建 ECDH、按响应体自动解密密文；仅调试用 disabled:true 可全关
   encryption: {
     exchange: '/api/encryption/exchange',
-    destroy_session: '/api/encryption/session'
+    destroy_session: '/api/encryption/session',
+    /** 与后端 ENCRYPTION_SESSION_EXPIRED 一致，加密会话失效（非登录 Token） */
+    sessionExpiredCode: 'C111',
   },
 }

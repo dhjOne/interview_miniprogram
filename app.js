@@ -36,6 +36,7 @@ App({
   },
 
   onShow() {
+    encryption.syncSessionFromStorage()
     encryption.onAppShow();
   },
   globalData: {

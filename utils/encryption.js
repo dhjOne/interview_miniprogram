@@ -4,7 +4,8 @@ const CryptoJS = require('../lib/crypto-js.min.js');
 const { gcm } = require('../lib/noble-ciphers/aes.js');
 const { hexToBytes, bytesToUtf8 } = require('../lib/noble-ciphers/utils.js');
 const storage = require('./storage.js');
-const config = require('../config/index.js').default;
+const configModule = require('../config/index.js');
+const config = (configModule && configModule.default) ? configModule.default : configModule;
 const EC = require('../lib/elliptic.min.js');
 
 /** 在会话过期前提前续期，略小于 storage 的 TTL，与后端 30min 窗口对齐 */
@@ -44,7 +45,7 @@ class ECDHManager {
   }
 
   _isEncryptionDisabled() {
-    return config.encryption?.disabled === true
+    return !!(config && config.encryption && config.encryption.disabled === true)
   }
 
   /**
@@ -67,9 +68,9 @@ class ECDHManager {
 
   _shouldRenewSession() {
     const s = storage.loadSession()
-    if (!s || !s.createTime) return false
-    const age = Date.now() - s.createTime
-    return age >= storage.SESSION_TTL_MS - RENEW_BEFORE_EXPIRY_MS
+    if (!s) return false
+    const lastActive = s.lastActiveTime || s.createTime
+    return Date.now() - lastActive >= storage.SESSION_TTL_MS - RENEW_BEFORE_EXPIRY_MS
   }
 
   _clearRenewTimer() {
@@ -86,8 +87,9 @@ class ECDHManager {
     this._clearRenewTimer()
     if (this._isEncryptionDisabled()) return
     const s = storage.loadSession()
-    if (!s || !s.createTime) return
-    const renewAt = s.createTime + storage.SESSION_TTL_MS - RENEW_BEFORE_EXPIRY_MS
+    if (!s) return
+    const lastActive = s.lastActiveTime || s.createTime
+    const renewAt = lastActive + storage.SESSION_TTL_MS - RENEW_BEFORE_EXPIRY_MS
     const delay = Math.max(renewAt - Date.now(), 10 * 1000)
     this._renewTimer = setTimeout(() => {
       this.ensureSession({ silent: true }).catch((e) => {
@@ -107,21 +109,23 @@ class ECDHManager {
     if (this._isEncryptionDisabled()) {
       return Promise.resolve()
     }
-    if (this._exchangePromise) {
+    if (this._exchangePromise && !force) {
       return this._exchangePromise
     }
     if (this.isSessionValid() && !force && !this._shouldRenewSession()) {
       this._scheduleNextRenewal()
       return Promise.resolve()
     }
-    this._exchangePromise = this._performKeyExchange({ silent })
-      .then(() => {
-        this._scheduleNextRenewal()
-      })
-      .finally(() => {
-        this._exchangePromise = null
-      })
-    return this._exchangePromise
+    const startExchange = () => {
+      this._exchangePromise = this._performKeyExchange({ silent })
+        .then(() => { this._scheduleNextRenewal() })
+        .finally(() => { this._exchangePromise = null })
+      return this._exchangePromise
+    }
+    if (this._exchangePromise && force) {
+      return this._exchangePromise.catch(function () {}).then(function () { return startExchange() })
+    }
+    return startExchange()
   }
 
   /**
@@ -505,10 +509,37 @@ class ECDHManager {
           }
         },
         fail: (err) => {
-          reject(err);
+          reject(new Error((err && err.errMsg) || '网络请求失败'))
         }
       });
     });
+  }
+
+  /** C111 时强制重建加密会话（与登录 Token 无关） */
+  async renewSession() {
+    this.clearSession()
+    return this.ensureSession({ silent: true, force: true })
+  }
+
+  syncSessionFromStorage() {
+    const session = storage.loadSession()
+    if (!session) {
+      if (this.sessionId || this.sharedKeyHex) {
+        this.sessionId = null
+        this.sharedKeyHex = null
+        this.clientKeyPair = null
+      }
+      return false
+    }
+    this.sessionId = session.sessionId
+    this.sharedKeyHex = session.sharedKeyHex
+    return true
+  }
+
+  touchSession() {
+    if (this.sessionId) {
+      storage.touchSession()
+    }
   }
 
   /**

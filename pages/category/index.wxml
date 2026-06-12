@@ -1,110 +1,79 @@
-<nav nav-type="search" />
-<view class="home-container">
-  <view class="home-content">
-    <view wx:if="{{loading}}" class="loading-container">
+<view class="category-page">
+  <image class="category-page__nav-bg" src="/static/bg_navbar.png" mode="aspectFill" />
+  <nav nav-type="search" />
+
+  <view class="category-page__body">
+    <view wx:if="{{loading}}" class="category-loading">
       <t-loading size="48rpx" text="加载中..." />
     </view>
 
-    <view wx:else class="home-category-body">
-      <view wx:if="{{categories.length}}" class="category-page-layout">
-        <!-- 左侧分类：固定栏，不随右侧列表滚动 -->
-        <view class="category-rail">
-          <block wx:for="{{categories}}" wx:key="id">
-            <view
-              class="category-rail-item {{currentCategoryId == item.id ? 'is-active' : ''}}"
-              bindtap="switchCategory"
-              data-id="{{item.id}}"
-              hover-class="category-rail-item--hover"
-            >
-              <text class="category-rail-text">{{item.name}}</text>
-            </view>
-          </block>
-        </view>
+    <view wx:elif="{{categories.length}}" class="category-layout">
+      <scroll-view class="category-rail" scroll-y show-scrollbar="{{false}}">
+        <block wx:for="{{categories}}" wx:key="id">
+          <view
+            class="category-rail-item {{currentCategoryId == item.id ? 'is-active' : ''}}"
+            bindtap="switchCategory"
+            data-id="{{item.id}}"
+            hover-class="category-rail-item--hover"
+          >
+            <text class="category-rail-text">{{item.name}}</text>
+          </view>
+        </block>
+      </scroll-view>
 
-        <!-- 右侧：独立滚动区（下拉刷新、触底加载更多） -->
-        <scroll-view
-          class="category-main-scroll"
-          scroll-y
-          enable-flex="{{true}}"
-          bindscrolltolower="onScrollToLower"
-          refresher-enabled
-          refresher-triggered="{{enable}}"
-          bindrefresherrefresh="onRefresh"
-          lower-threshold="120"
-          show-scrollbar="{{false}}"
-        >
-          <view class="category-main">
-            <view class="category-hero">
-              <block wx:for="{{categories}}" wx:key="id">
-                <view wx:if="{{item.id == currentCategoryId}}" class="category-hero-inner">
-                  <text class="hero-name">{{item.name}}</text>
-                  <text class="hero-count accent-coral">{{total > 0 ? total : item.count}}</text>
-                  <text class="hero-suffix"> 道精选面试题</text>
+      <scroll-view
+        class="category-main-scroll"
+        scroll-y
+        enable-flex
+        bindscrolltolower="onScrollToLower"
+        refresher-enabled
+        refresher-triggered="{{enable}}"
+        bindrefresherrefresh="onRefresh"
+        lower-threshold="120"
+        show-scrollbar="{{false}}"
+      >
+        <view class="category-main">
+          <view class="category-hero">
+            <text class="category-hero__name">{{currentCategoryName}}</text>
+            <text class="category-hero__meta">共 {{total > 0 ? total : (currentCategoryCount || 0)}} 题</text>
+          </view>
+
+          <view wx:if="{{currentCategoryId}}" class="questions-section {{categoryLoading ? 'questions-section--loading' : ''}}">
+            <view wx:if="{{currentQuestions.length > 0}}" class="questions-list">
+              <block wx:for="{{currentQuestions}}" wx:key="id">
+                <view
+                  class="question-row"
+                  hover-class="question-row--hover"
+                  bindtap="onQuestionClick"
+                  data-id="{{item.id}}"
+                >
+                  <view class="question-row__icon" style="background: {{item.listIconBg}};">
+                    <t-icon name="{{item.listIconName}}" size="34rpx" color="{{item.listIconColor}}" />
+                  </view>
+                  <text class="question-row__title">{{item.name}}</text>
                 </view>
               </block>
-            </view>
 
-            <view wx:if="{{currentCategoryId}}" class="questions-section">
-              <view wx:if="{{currentQuestions.length > 0}}" class="questions-list-wrap">
-                <view wx:if="{{total > 0}}" class="list-subbar">
-                  <text class="list-subbar-text">本分类共 {{total}} 题</text>
-                </view>
-                <view class="questions-list">
-                  <block wx:for="{{currentQuestions}}" wx:key="id">
-                    <view class="question-item">
-                      <t-cell
-                        title="{{item.name}}"
-                        description="{{item.description}}"
-                        hover
-                        arrow
-                        bindtap="onQuestionClick"
-                        data-id="{{item.id}}"
-                      >
-                        <t-icon
-                          slot="left-icon"
-                          name="{{item.listIconName}}"
-                          size="32rpx"
-                          color="{{item.listIconColor}}"
-                          class="avatar"
-                        ></t-icon>
-
-                        <view slot="right-icon" class="question-meta">
-                          <text class="question-difficulty {{item.difficulty}}">
-                            {{item.difficulty === 'easy' ? '简单' : item.difficulty === 'medium' ? '中等' : '困难'}}
-                          </text>
-                        </view>
-                      </t-cell>
-                    </view>
-                  </block>
-
-                  <view wx:if="{{isLoadingMore}}" class="loading-more">
-                    <t-loading size="32rpx" text="正在加载更多..." />
-                  </view>
-
-                  <view wx:if="{{!hasMore && currentQuestions.length > 0}}" class="no-more">
-                    <text>没有更多数据了</text>
-                  </view>
-                </view>
+              <view wx:if="{{isLoadingMore}}" class="list-footer">
+                <t-loading size="32rpx" text="加载中..." />
               </view>
-
-              <view wx:else class="empty-content">
-                <t-icon name="info-circle-filled" size="120rpx" color="#e2e8f0" />
-                <text class="empty-title">暂无题目</text>
-                <text class="empty-text">该分类下还没有题目</text>
+              <view wx:elif="{{!hasMore}}" class="list-footer list-footer--end">
+                <text>— 已加载全部 —</text>
               </view>
             </view>
-          </view>
-        </scroll-view>
-      </view>
 
-      <view wx:else class="category-page-layout category-page-layout--empty">
-        <view class="category-main category-main--only-empty">
-          <view class="empty-inline empty-inline--block">
-            <text class="empty-inline-title">暂无分类</text>
-            <text class="empty-inline-desc">请稍后再试</text>
+            <view wx:else class="empty-state">
+              <t-icon name="file-unknown" size="72rpx" color="#cbd5e1" />
+              <text class="empty-state__title">暂无题目</text>
+            </view>
           </view>
         </view>
-      </view>
+      </scroll-view>
+    </view>
+
+    <view wx:else class="empty-state empty-state--page">
+      <t-icon name="folder-open" size="72rpx" color="#cbd5e1" />
+      <text class="empty-state__title">暂无分类</text>
     </view>
   </view>
 </view>

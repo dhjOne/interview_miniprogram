@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'float_release_fab_fixed_v1';
+const STORAGE_KEY = 'float_release_fab_fixed_v3';
 
 function getWindowMetrics() {
   if (wx.getWindowInfo) {
@@ -31,7 +31,7 @@ Component({
     },
     buttonIcon: {
       type: String,
-      value: 'add'
+      value: 'edit-1'
     },
     buttonShape: {
       type: String,
@@ -66,7 +66,9 @@ Component({
     fabLeft: 0,
     fabTop: 0,
     viewW: 130,
-    viewH: 48
+    viewH: 48,
+    docked: '',
+    isDragging: false
   },
 
   lifetimes: {
@@ -99,6 +101,27 @@ Component({
       return Math.max(min, Math.min(max, n));
     },
 
+    _getLayoutMetrics(w) {
+      const rpx = (n) => this._rpxToPx(n, w);
+      return {
+        viewW: Math.max(56, Math.ceil(rpx(104))),
+        viewH: Math.max(96, Math.ceil(rpx(148))),
+        edgeThreshold: Math.ceil(rpx(48)),
+        peekW: Math.ceil(rpx(32)),
+        edgeMargin: Math.ceil(rpx(16))
+      };
+    },
+
+    _dockLeft(side, metrics) {
+      const { viewW, peekW } = metrics;
+      return side === 'left' ? -(viewW - peekW) : metrics.winW - peekW;
+    },
+
+    _expandedLeft(side, metrics, winW) {
+      const { viewW, edgeMargin } = metrics;
+      return side === 'left' ? edgeMargin : winW - viewW - edgeMargin;
+    },
+
     _initLayout() {
       const win = getWindowMetrics();
       let w = Number(win.windowWidth) || 0;
@@ -110,21 +133,20 @@ Component({
         h = Number(s.windowHeight) || 667;
       }
 
-      const rpx = (n) => this._rpxToPx(n, w);
-
-      const viewW = Math.max(120, Math.ceil(rpx(204)));
-      const viewH = Math.max(48, Math.ceil(rpx(88)));
-      const marginR = Math.ceil(rpx(24));
-      const marginB = Math.ceil(rpx(200));
+      const metrics = this._getLayoutMetrics(w);
+      metrics.winW = w;
+      const { viewW, viewH } = metrics;
+      const marginR = Math.ceil(this._rpxToPx(24, w));
+      const marginB = Math.ceil(this._rpxToPx(200, w));
 
       let fabLeft = Math.round(w - viewW - marginR);
       let fabTop = Math.round(h - viewH - marginB);
+      let docked = '';
 
       try {
         const saved = wx.getStorageSync(STORAGE_KEY);
         if (
           saved &&
-          typeof saved.left === 'number' &&
           typeof saved.top === 'number' &&
           typeof saved.w === 'number' &&
           typeof saved.h === 'number'
@@ -132,16 +154,21 @@ Component({
           const sameSize =
             Math.abs(saved.w - viewW) < 12 && Math.abs(saved.h - viewH) < 12;
           if (sameSize) {
-            fabLeft = this._clamp(
-              Math.round(saved.left),
-              0,
-              Math.max(0, w - viewW)
-            );
             fabTop = this._clamp(
               Math.round(saved.top),
               0,
               Math.max(0, h - viewH)
             );
+            if (saved.docked === 'left' || saved.docked === 'right') {
+              docked = saved.docked;
+              fabLeft = this._dockLeft(docked, { ...metrics, winW: w });
+            } else if (typeof saved.left === 'number') {
+              fabLeft = this._clamp(
+                Math.round(saved.left),
+                0,
+                Math.max(0, w - viewW)
+              );
+            }
           }
         }
       } catch (e) {
@@ -155,8 +182,62 @@ Component({
         viewW,
         viewH,
         fabLeft,
-        fabTop
+        fabTop,
+        docked
       });
+    },
+
+    _savePosition() {
+      try {
+        wx.setStorageSync(STORAGE_KEY, {
+          left: this.data.fabLeft,
+          top: this.data.fabTop,
+          w: this.data.viewW,
+          h: this.data.viewH,
+          docked: this.data.docked || ''
+        });
+      } catch (err) {
+        // ignore
+      }
+    },
+
+    _dockTo(side) {
+      const metrics = this._getLayoutMetrics(this.data.winW);
+      metrics.winW = this.data.winW;
+      this.setData({
+        docked: side,
+        fabLeft: this._dockLeft(side, metrics)
+      });
+      this._savePosition();
+    },
+
+    _expandFromDock() {
+      const { docked, winW } = this.data;
+      if (!docked) return;
+      const metrics = this._getLayoutMetrics(winW);
+      this.setData({
+        docked: '',
+        fabLeft: this._expandedLeft(docked, metrics, winW)
+      });
+      this._savePosition();
+    },
+
+    _tryDockAfterDrag() {
+      const { fabLeft, winW, viewW } = this.data;
+      const { edgeThreshold } = this._getLayoutMetrics(winW);
+
+      if (fabLeft <= edgeThreshold) {
+        this._dockTo('left');
+        return true;
+      }
+      if (fabLeft >= winW - viewW - edgeThreshold) {
+        this._dockTo('right');
+        return true;
+      }
+
+      this.setData({ docked: '' });
+      this._savePosition();
+      return false;
     },
 
     onDragStart(e) {
@@ -167,8 +248,10 @@ Component({
         startX: t.clientX,
         startY: t.clientY,
         originLeft: this.data.fabLeft,
-        originTop: this.data.fabTop
+        originTop: this.data.fabTop,
+        wasDocked: !!this.data.docked
       };
+      this.setData({ isDragging: true });
     },
 
     onDragMove(e) {
@@ -180,36 +263,43 @@ Component({
       if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
         this._dragMoved = true;
       }
+
       const { winW, winH, viewW, viewH } = this.data;
+      const metrics = this._getLayoutMetrics(winW);
+      const minLeft = -(viewW - metrics.peekW);
+      const maxLeft = winW - metrics.peekW;
+
       const left = this._clamp(
         Math.round(this._dragSession.originLeft + dx),
-        0,
-        Math.max(0, winW - viewW)
+        minLeft,
+        maxLeft
       );
       const top = this._clamp(
         Math.round(this._dragSession.originTop + dy),
         0,
         Math.max(0, winH - viewH)
       );
-      this.setData({ fabLeft: left, fabTop: top });
+
+      const patch = { fabLeft: left, fabTop: top };
+      if (this._dragSession.wasDocked && this._dragMoved) {
+        patch.docked = '';
+      }
+      this.setData(patch);
     },
 
     onDragEnd() {
       const session = this._dragSession;
       this._dragSession = null;
+      this.setData({ isDragging: false });
       if (!session) return;
 
       if (this._dragMoved) {
-        try {
-          wx.setStorageSync(STORAGE_KEY, {
-            left: this.data.fabLeft,
-            top: this.data.fabTop,
-            w: this.data.viewW,
-            h: this.data.viewH
-          });
-        } catch (err) {
-          // ignore
-        }
+        this._tryDockAfterDrag();
+        return;
+      }
+
+      if (this.data.docked) {
+        this._expandFromDock();
         return;
       }
 

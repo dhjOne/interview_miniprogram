@@ -5,67 +5,79 @@ import { QuestionParams } from '~/api/param/param_category';
 
 const app = getApp();
 
-/** 与 TDesign 图标名一致；可按后端 type 字段扩展 */
-const QUESTION_TYPE_ICON_MAP = {
-  coding: 'code',
-  code: 'code',
-  algorithm: 'chart-bubble',
-  network: 'wifi',
-  database: 'server',
-  system: 'system-sum',
-  frontend: 'logo-miniprogram',
-  backend: 'server',
-  devops: 'layers',
-  mobile: 'mobile',
-  interview: 'chat',
-  behavioral: 'user',
-  theory: 'book'
-};
+const LIST_ICON_NAMES = [
+  'code',
+  'book',
+  'chart-bubble',
+  'wifi',
+  'server',
+  'layers',
+  'mobile',
+  'chat',
+  'user',
+  'file',
+  'cpu',
+  'logo-miniprogram',
+  'system-sum',
+  'root-list',
+  'secured',
+  'cloud'
+];
 
-const DEFAULT_LIST_ICON_COLOR = 'var(--td-brand-color)';
+const LIST_ICON_COLORS = [
+  '#0052d9',
+  '#366ef4',
+  '#00a870',
+  '#7c3aed',
+  '#0891b2',
+  '#ea580c',
+  '#db2777',
+  '#059669'
+];
 
-function normalizeDifficulty(d) {
-  if (d === 'easy' || d === 'EASY' || Number(d) === 1) return 'easy';
-  if (d === 'medium' || d === 'MEDIUM' || Number(d) === 2) return 'medium';
-  if (d === 'hard' || d === 'HARD' || Number(d) === 3) return 'hard';
-  return null;
+const LIST_ICON_BGS = [
+  'rgba(0, 82, 217, 0.08)',
+  'rgba(54, 110, 244, 0.08)',
+  'rgba(0, 168, 112, 0.08)',
+  'rgba(124, 58, 237, 0.08)',
+  'rgba(8, 145, 178, 0.08)',
+  'rgba(234, 88, 12, 0.08)',
+  'rgba(219, 39, 119, 0.08)',
+  'rgba(5, 150, 105, 0.08)'
+];
+
+function hashSeed(value) {
+  const str = String(value ?? '');
+  let hash = 0;
+  for (let i = 0; i < str.length; i += 1) {
+    hash = (hash * 31 + str.charCodeAt(i)) >>> 0;
+  }
+  return hash;
 }
 
-/**
- * 列表左侧图标：icon 字段 > type / questionType 映射 > 难度 > 默认 file
- * @param {Record<string, any>} row
- * @returns {{ name: string, color: string }}
- */
+/** 按题目 id 稳定分配随机图标（同题刷新不变） */
 function resolveQuestionListIcon(row) {
-  const custom = (row.icon || '').toString().trim();
-  if (custom && /^[a-z0-9-]+$/i.test(custom)) {
-    return { name: custom, color: DEFAULT_LIST_ICON_COLOR };
-  }
-  const typeKey = (row.type || row.questionType || '')
-    .toString()
-    .trim()
-    .toLowerCase();
-  if (typeKey && QUESTION_TYPE_ICON_MAP[typeKey]) {
-    return { name: QUESTION_TYPE_ICON_MAP[typeKey], color: DEFAULT_LIST_ICON_COLOR };
-  }
-  const diff = normalizeDifficulty(row.difficulty ?? row.difficultyLevel);
-  if (diff === 'easy') {
-    return { name: 'check-circle-filled', color: '#05945c' };
-  }
-  if (diff === 'medium') {
-    return { name: 'chart-bubble', color: '#c65f16' };
-  }
-  if (diff === 'hard') {
-    return { name: 'error-circle-filled', color: '#c9362e' };
-  }
-  return { name: 'file', color: DEFAULT_LIST_ICON_COLOR };
+  const seed = hashSeed(row.id ?? row.name ?? 0);
+  return {
+    name: LIST_ICON_NAMES[seed % LIST_ICON_NAMES.length],
+    color: LIST_ICON_COLORS[seed % LIST_ICON_COLORS.length],
+    bg: LIST_ICON_BGS[seed % LIST_ICON_BGS.length]
+  };
 }
 
 function decorateQuestionRows(rows) {
   return (rows || []).map((q) => {
-    const { name, color } = resolveQuestionListIcon(q);
-    return { ...q, listIconName: name, listIconColor: color };
+    const { name, color, bg } = resolveQuestionListIcon(q);
+    return { ...q, listIconName: name, listIconColor: color, listIconBg: bg };
   });
+}
+
+function pickCategoryMeta(categories, categoryId) {
+  const row = (categories || []).find((c) => c.id == categoryId);
+  return {
+    currentCategoryName: row?.name || '',
+    currentCategoryCount: row?.count || 0
+  };
 }
 
 Page({
@@ -85,8 +97,10 @@ Page({
     hasMore: true,
     isLoadingMore: false,
     total: 0,
-    scrollTop: 0,
-    isScrolling: false
+    isScrolling: false,
+    currentCategoryName: '',
+    currentCategoryCount: 0,
+    categoryLoading: false
   },
 
   onLoad() {
@@ -191,7 +205,8 @@ Page({
 
       this.setData({
         categories,
-        currentCategoryId
+        currentCategoryId,
+        ...pickCategoryMeta(categories, currentCategoryId)
       });
 
       this.resetPagination();
@@ -347,11 +362,20 @@ Page({
     }
 
     this.setData({
-      currentCategoryId: categoryId
+      currentCategoryId: categoryId,
+      categoryLoading: true,
+      page: 1,
+      hasMore: true,
+      isLoadingMore: false,
+      total: 0,
+      ...pickCategoryMeta(this.data.categories, categoryId)
     });
 
-    this.resetPagination();
-    await this.loadQuestions();
+    try {
+      await this.loadQuestions();
+    } finally {
+      this.setData({ categoryLoading: false });
+    }
   },
 
   previewImage(e) {
@@ -377,10 +401,6 @@ Page({
   },
 
   onPageScroll(e) {
-    this.setData({
-      scrollTop: e.detail.scrollTop
-    });
-
     if (this.data.isScrolling) return;
 
     this.setData({

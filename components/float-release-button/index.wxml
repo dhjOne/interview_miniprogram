@@ -1,17 +1,34 @@
 <view
   wx:if="{{innerShow && fabReady}}"
-  class="fab-root {{customClass}}"
+  class="fab-root {{customClass}} {{docked ? 'fab-root--docked fab-root--docked-' + docked : ''}} {{isDragging ? 'fab-root--dragging' : ''}}"
   style="left: {{fabLeft}}px; top: {{fabTop}}px; width: {{viewW}}px; height: {{viewH}}px; {{customStyle}}"
   bindtouchstart="onDragStart"
   catchtouchmove="onDragMove"
   bindtouchend="onDragEnd"
   bindtouchcancel="onDragEnd"
 >
-  <view class="fab-inner">
-    <view class="fab-icon-slot">
-      <text class="fab-icon-char">+</text>
+  <view class="fab-stack" hover-class="{{docked ? 'fab-stack--peek' : 'fab-stack--active'}}">
+    <view class="fab-btn">
+      <view class="fab-btn__ring" aria-hidden="true" />
+      <t-icon
+        wx:if="{{!docked}}"
+        name="{{buttonIcon || 'edit-1'}}"
+        size="44rpx"
+        color="#ffffff"
+      />
+      <t-icon
+        wx:elif="{{docked === 'left'}}"
+        name="chevron-right"
+        size="32rpx"
+        color="#ffffff"
+      />
+      <t-icon
+        wx:else
+        name="chevron-left"
+        size="32rpx"
+        color="#ffffff"
+      />
     </view>
-    <view class="fab-divider" aria-hidden="true" />
-    <text class="fab-text">{{buttonText || '发布'}}</text>
+    <text wx:if="{{!docked}}" class="fab-label">{{buttonText || '发布'}}</text>
   </view>
 </view>

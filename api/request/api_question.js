@@ -34,17 +34,38 @@ export const authApi = {
     },
   
     // 获取题目评论
-    getQuestionComments: (params) => {
-      return http.get('/repository/questions/comments', params, {
+    getQuestionComments: (questionId) => {
+      return http.get(`/comments/question/${questionId}`, null, {
+        showLoading: false
+      })
+    },
+
+    // 统计题目评论总数
+    getQuestionCommentCount: (questionId) => {
+      return http.get(`/comments/question/${questionId}/count`, null, {
+        showLoading: false
+      })
+    },
+
+    // 获取评论回复
+    getCommentReplies: (parentId) => {
+      return http.get(`/comments/replies/${parentId}`, null, {
         showLoading: false
       })
     },
   
-    // 提交评论
+    // 发布评论
     submitComment: (params) => {
-      return http.post('/repository/questions/comments', params, {
+      return http.post('/comments/publish', params, {
         showLoading: true,
         loadingText: '发布中...'
+      })
+    },
+
+    // 点赞/取消点赞评论
+    likeComment: (params) => {
+      return http.post('/comments/like', params, {
+        showLoading: false
       })
     },
   

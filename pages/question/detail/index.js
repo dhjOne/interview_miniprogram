@@ -17,6 +17,101 @@ import { recordQuestionBrowse } from '~/utils/questionBrowseHistory';
 
 const { renderMarkdown } = require('../../../utils/towxmlLoader');
 
+function formatCommentTime(value) {
+  if (!value) return '';
+  const normalized = String(value).replace('T', ' ');
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) {
+    return normalized.slice(0, 16);
+  }
+  const diff = Date.now() - date.getTime();
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+  if (diff < minute) return '刚刚';
+  if (diff < hour) return `${Math.floor(diff / minute)}分钟前`;
+  if (diff < day) return `${Math.floor(diff / hour)}小时前`;
+  if (diff < 7 * day) return `${Math.floor(diff / day)}天前`;
+  return `${date.getMonth() + 1}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function truncateText(text, maxLen = 36) {
+  const value = (text || '').trim();
+  if (!value) return '';
+  return value.length > maxLen ? `${value.slice(0, maxLen)}…` : value;
+}
+
+function normalizeComment(row, extra = {}) {
+  if (!row) return row;
+  return {
+    ...row,
+    ...extra,
+    likeCount: row.likeCount ?? 0,
+    timeText: formatCommentTime(row.createdAt || row.createTime),
+    userName: row.userName || row.nickname || (row.userId ? `用户${row.userId}` : '匿名用户'),
+    replies: Array.isArray(row.replies) ? row.replies : []
+  };
+}
+
+async function fetchReplyThread(rootComment) {
+  const replies = [];
+  const commentById = { [String(rootComment.id)]: rootComment };
+
+  async function walk(parentId) {
+    try {
+      const res = await authApi.getCommentReplies(parentId);
+      if (res.code !== '0000') return;
+      const rows = Array.isArray(res.data) ? res.data : [];
+      for (const row of rows) {
+        const parent = commentById[String(parentId)];
+        const normalized = normalizeComment(row, {
+          rootId: rootComment.id,
+          replyToName: parent?.userName || '匿名用户',
+          replyToId: parentId
+        });
+        commentById[String(row.id)] = normalized;
+        replies.push(normalized);
+        await walk(row.id);
+      }
+    } catch (err) {
+      console.warn('加载子回复失败', parentId, err);
+    }
+  }
+
+  await walk(rootComment.id);
+  replies.sort((a, b) => {
+    const ta = new Date(String(a.createdAt || a.createTime || '').replace('T', ' ')).getTime() || 0;
+    const tb = new Date(String(b.createdAt || b.createTime || '').replace('T', ' ')).getTime() || 0;
+    return ta - tb;
+  });
+  return replies;
+}
+
+function patchCommentLike(list, commentId, nextLiked) {
+  const delta = nextLiked ? 1 : -1;
+  return list.map((item) => {
+    if (String(item.id) === String(commentId)) {
+      return {
+        ...item,
+        likeCount: Math.max(0, (item.likeCount || 0) + delta)
+      };
+    }
+    if (item.replies?.length) {
+      const replies = item.replies.map((reply) => {
+        if (String(reply.id) === String(commentId)) {
+          return {
+            ...reply,
+            likeCount: Math.max(0, (reply.likeCount || 0) + delta)
+          };
+        }
+        return reply;
+      });
+      return { ...item, replies };
+    }
+    return item;
+  });
+}
+
 Page({
   data: {
     questionId: null,
@@ -41,6 +136,14 @@ Page({
     authorFollowing: false,
 
     showCommentPanel: false,
+    replyParentId: null,
+    replyRootId: null,
+    replyTargetName: '',
+    replyTargetContent: '',
+    replyHighlightId: null,
+    commentPlaceholder: '说点什么...',
+    likedCommentIds: {},
+    expandedReplyIds: {},
 
     // 新增状态字段
     loading: true, // 加载中
@@ -167,7 +270,8 @@ Page({
           authorId,
           authorDisplayName,
           authorFollowing: resolveAuthorFollowing(questionDetail),
-          catalogLoaded: false
+          catalogLoaded: false,
+          commentCount: questionDetail.commentCount ?? questionDetail.comment_count ?? 0
         };
         if (!this.data.categoryId && questionDetail.categoryId) {
           patch.categoryId = questionDetail.categoryId;
@@ -413,18 +517,52 @@ Page({
     });
   },
 
+  async loadCommentCount() {
+    try {
+      const response = await authApi.getQuestionCommentCount(this.data.questionId);
+      if (response.code !== '0000') return;
+      const count = Number(response.data ?? 0);
+      this.setData({
+        commentCount: count,
+        'questionDetail.commentCount': count
+      });
+    } catch (e) {
+      console.warn('加载评论统计失败', e);
+    }
+  },
+
   async loadComments() {
     try {
-      const response = await authApi.getQuestionComments({
-        questionId: this.data.questionId
-      });
-      const rows = response.data?.rows ?? response.data?.list ?? response.data ?? [];
-      this.setData({
-        comments: Array.isArray(rows) ? rows : []
-      });
+      const response = await authApi.getQuestionComments(this.data.questionId);
+      if (response.code !== '0000') {
+        throw new Error(response.message || '加载评论失败');
+      }
+      const rows = response.data ?? [];
+      const topLevel = Array.isArray(rows) ? rows.map((row) => normalizeComment(row)) : [];
+      const comments = await Promise.all(
+        topLevel.map(async (comment) => {
+          const replies = await fetchReplyThread(comment);
+          return { ...comment, replies };
+        })
+      );
+      this.setData({ comments });
+      this.loadCommentCount();
     } catch (e) {
       console.warn('加载评论失败', e);
     }
+  },
+
+  onToggleReplies(event) {
+    const commentId = event.currentTarget.dataset.id;
+    if (!commentId) return;
+
+    const expandedReplyIds = { ...(this.data.expandedReplyIds || {}) };
+    if (expandedReplyIds[commentId]) {
+      delete expandedReplyIds[commentId];
+    } else {
+      expandedReplyIds[commentId] = true;
+    }
+    this.setData({ expandedReplyIds });
   },
 
   async loadCatalog() {
@@ -570,12 +708,25 @@ Page({
   },
 
   onCloseComments() {
+    this.clearReplyState();
     this.setData({ showCommentPanel: false });
+  },
+
+  clearReplyState() {
+    this.setData({
+      replyParentId: null,
+      replyRootId: null,
+      replyTargetName: '',
+      replyTargetContent: '',
+      replyHighlightId: null,
+      commentPlaceholder: '说点什么...'
+    });
   },
 
   onCommentPanelVisibleChange(e) {
     const visible = e.detail?.visible ?? e.detail;
     if (!visible) {
+      this.clearReplyState();
       this.setData({ showCommentPanel: false });
     }
   },
@@ -587,40 +738,108 @@ Page({
       return;
     }
 
+    const payload = {
+      questionId: Number(this.data.questionId),
+      content
+    };
+    if (this.data.replyParentId) {
+      payload.parentId = Number(this.data.replyParentId);
+    }
+
+    const replyRootId = this.data.replyRootId;
+    const expandedReplyIds = { ...(this.data.expandedReplyIds || {}) };
+    if (replyRootId) {
+      expandedReplyIds[replyRootId] = true;
+    }
+
     try {
-      const response = await authApi.submitComment({
-        questionId: this.data.questionId,
-        content
-      });
+      const response = await authApi.submitComment(payload);
       if (response.code === '0000') {
         Message.success({ content: '评论发布成功', duration: 2000 });
-        const count = (this.data.questionDetail.commentCount || 0) + 1;
+        const newCommentId = response.data;
         this.setData({
           commentText: '',
-          'questionDetail.commentCount': count
+          expandedReplyIds
         });
-        this.loadComments();
+        this.clearReplyState();
+        await this.loadComments();
+        if (newCommentId) {
+          this.setData({ replyHighlightId: newCommentId });
+        }
         return;
       }
       throw new Error(response.message || '发布失败');
     } catch (e) {
       console.warn('提交评论失败', e);
-      Message.success({ content: '评论发布成功', duration: 2000 });
-      this.setData({
-        commentText: '',
-        'questionDetail.commentCount': (this.data.questionDetail.commentCount || 0) + 1
-      });
+      Message.error({ content: e.message || '评论发布失败', duration: 2000 });
     }
   },
 
-  onLikeComment(event) {
+  async onLikeComment(event) {
     const commentId = event.currentTarget.dataset.id;
-    console.log('点赞评论:', commentId);
+    if (!commentId) return;
+
+    const likedCommentIds = { ...(this.data.likedCommentIds || {}) };
+    const currentLiked = !!likedCommentIds[commentId];
+    const nextLiked = !currentLiked;
+
+    if (nextLiked) {
+      likedCommentIds[commentId] = true;
+    } else {
+      delete likedCommentIds[commentId];
+    }
+
+    const comments = patchCommentLike(this.data.comments, commentId, nextLiked);
+    this.setData({ likedCommentIds, comments });
+
+    try {
+      const response = await authApi.likeComment({
+        commentId: Number(commentId),
+        like: nextLiked
+      });
+      if (response.code !== '0000') {
+        throw new Error(response.message || '操作失败');
+      }
+    } catch (e) {
+      console.warn('点赞评论失败', e);
+      const revertLikedIds = { ...(this.data.likedCommentIds || {}) };
+      if (currentLiked) {
+        revertLikedIds[commentId] = true;
+      } else {
+        delete revertLikedIds[commentId];
+      }
+      this.setData({
+        likedCommentIds: revertLikedIds,
+        comments: patchCommentLike(this.data.comments, commentId, currentLiked)
+      });
+      Message.info({ content: e.message || '操作失败', duration: 2000 });
+    }
   },
 
   onReplyComment(event) {
-    const commentId = event.currentTarget.dataset.id;
-    console.log('回复评论:', commentId);
+    const { id, name, rootId, content } = event.currentTarget.dataset;
+    if (!id) return;
+
+    const targetName = name || '匿名用户';
+    const threadRootId = rootId || id;
+    const expandedReplyIds = { ...(this.data.expandedReplyIds || {}) };
+    if (threadRootId) {
+      expandedReplyIds[threadRootId] = true;
+    }
+
+    this.setData({
+      replyParentId: id,
+      replyRootId: threadRootId,
+      replyTargetName: targetName,
+      replyTargetContent: truncateText(content, 40),
+      replyHighlightId: id,
+      expandedReplyIds,
+      commentPlaceholder: `回复 @${targetName}`
+    });
+  },
+
+  onCancelReply() {
+    this.clearReplyState();
   },
 
   // 点赞/取消点赞

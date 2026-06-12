@@ -223,7 +223,7 @@
         <view class="bottom-nav-item bottom-nav-item--comment" bindtap="onOpenComments">
           <t-icon name="chat" size="40rpx" color="#333"></t-icon>
           <text>评论</text>
-          <text wx:if="{{questionDetail.commentCount}}" class="bottom-nav-badge">{{questionDetail.commentCount}}</text>
+          <text wx:if="{{commentCount}}" class="bottom-nav-badge">{{commentCount}}</text>
         </view>
       </view>
 
@@ -296,53 +296,128 @@
 >
   <view class="comment-panel">
     <view class="comment-panel__head">
-      <text class="comment-panel__title">评论 {{questionDetail.commentCount || 0}}</text>
+      <view class="comment-panel__handle"></view>
+      <view class="comment-panel__head-main">
+        <text class="comment-panel__title">{{commentCount || 0}} 条评论</text>
+        <text wx:if="{{comments.length}}" class="comment-panel__stats">{{comments.length}} 条主评论 · {{commentCount || 0}} 条总计</text>
+      </view>
       <view class="comment-panel__close" bindtap="onCloseComments">
-        <t-icon name="close" size="40rpx" color="#999"></t-icon>
+        <t-icon name="close" size="36rpx" color="#999"></t-icon>
       </view>
     </view>
 
     <scroll-view class="comment-panel__list" scroll-y show-scrollbar="{{false}}">
       <view wx:if="{{!comments.length}}" class="comment-panel__empty">
-        <t-icon name="chat" size="80rpx" color="#ddd"></t-icon>
+        <t-icon name="chat" size="64rpx" color="#ddd"></t-icon>
         <text>还没有评论，来抢沙发吧</text>
       </view>
 
       <block wx:for="{{comments}}" wx:key="id">
-        <view class="comment-item">
-          <view class="comment-header">
-            <image class="comment-avatar" src="{{item.avatar || '/static/avatar1.png'}}"></image>
-            <view class="comment-user">
-              <text class="user-name">{{item.userName || item.nickname || '匿名用户'}}</text>
-              <text class="comment-time">{{item.createTime || item.timeText}}</text>
+        <view class="comment-row {{replyHighlightId == item.id ? 'comment-row--highlight' : ''}}">
+          <image class="comment-row__avatar" src="{{item.avatar || '/static/avatar1.png'}}" mode="aspectFill"></image>
+          <view class="comment-row__main">
+            <text class="comment-row__name">{{item.userName || item.nickname || '匿名用户'}}</text>
+            <text class="comment-row__content">{{item.content}}</text>
+            <view class="comment-row__meta">
+              <text class="comment-row__time">{{item.createTime || item.timeText}}</text>
+              <text
+                class="comment-row__reply {{replyHighlightId == item.id ? 'comment-row__reply--active' : ''}}"
+                bindtap="onReplyComment"
+                data-id="{{item.id}}"
+                data-root-id="{{item.id}}"
+                data-name="{{item.userName || item.nickname || '匿名用户'}}"
+                data-content="{{item.content}}"
+              >回复</text>
+            </view>
+
+            <view wx:if="{{item.replies.length}}" class="comment-replies-toggle" bindtap="onToggleReplies" data-id="{{item.id}}">
+              <view class="comment-replies-toggle__line"></view>
+              <text class="comment-replies-toggle__text">
+                {{expandedReplyIds[item.id] ? '收起回复' : '展开 ' + item.replies.length + ' 条回复'}}
+              </text>
+              <t-icon name="{{expandedReplyIds[item.id] ? 'chevron-up' : 'chevron-down'}}" size="28rpx" color="#999"></t-icon>
+            </view>
+
+            <view wx:if="{{expandedReplyIds[item.id] && item.replies.length}}" class="comment-row__replies">
+              <block wx:for="{{item.replies}}" wx:for-item="reply" wx:key="id">
+                <view class="comment-row comment-row--reply {{replyHighlightId == reply.id ? 'comment-row--highlight' : ''}}">
+                  <image class="comment-row__avatar comment-row__avatar--small" src="{{reply.avatar || '/static/avatar1.png'}}" mode="aspectFill"></image>
+                  <view class="comment-row__main">
+                    <text class="comment-row__name">{{reply.userName || reply.nickname || '匿名用户'}}</text>
+                    <view class="comment-row__content">
+                      <text class="comment-row__reply-to">回复 </text>
+                      <text class="comment-row__reply-target">@{{reply.replyToName || '匿名用户'}}</text>
+                      <text class="comment-row__content-text">：{{reply.content}}</text>
+                    </view>
+                    <view class="comment-row__meta">
+                      <text class="comment-row__time">{{reply.createTime || reply.timeText}}</text>
+                      <text
+                        class="comment-row__reply {{replyHighlightId == reply.id ? 'comment-row__reply--active' : ''}}"
+                        bindtap="onReplyComment"
+                        data-id="{{reply.id}}"
+                        data-root-id="{{item.id}}"
+                        data-name="{{reply.userName || reply.nickname || '匿名用户'}}"
+                        data-content="{{reply.content}}"
+                      >回复</text>
+                    </view>
+                  </view>
+                  <view
+                    class="comment-row__like {{likedCommentIds[reply.id] ? 'comment-row__like--active' : ''}}"
+                    bindtap="onLikeComment"
+                    data-id="{{reply.id}}"
+                  >
+                    <t-icon
+                      name="{{likedCommentIds[reply.id] ? 'thumb-up-filled' : 'thumb-up'}}"
+                      size="28rpx"
+                      color="{{likedCommentIds[reply.id] ? '#ff6b6b' : '#999'}}"
+                    ></t-icon>
+                    <text>{{reply.likeCount || 0}}</text>
+                  </view>
+                </view>
+              </block>
             </view>
           </view>
-          <view class="comment-content">{{item.content}}</view>
-          <view class="comment-actions">
-            <view class="action-item" bindtap="onLikeComment" data-id="{{item.id}}">
-              <t-icon name="thumb-up" size="24rpx"></t-icon>
-              <text>{{item.likeCount || 0}}</text>
-            </view>
-            <view class="action-item" bindtap="onReplyComment" data-id="{{item.id}}">
-              <t-icon name="chat" size="24rpx"></t-icon>
-              <text>回复</text>
-            </view>
+          <view
+            class="comment-row__like {{likedCommentIds[item.id] ? 'comment-row__like--active' : ''}}"
+            bindtap="onLikeComment"
+            data-id="{{item.id}}"
+          >
+            <t-icon
+              name="{{likedCommentIds[item.id] ? 'thumb-up-filled' : 'thumb-up'}}"
+              size="28rpx"
+              color="{{likedCommentIds[item.id] ? '#ff6b6b' : '#999'}}"
+            ></t-icon>
+            <text>{{item.likeCount || 0}}</text>
           </view>
         </view>
       </block>
     </scroll-view>
 
-    <view class="comment-panel__input">
-      <t-textarea
-        value="{{commentText}}"
-        placeholder="写下你的评论…"
-        maxlength="200"
-        autosize
-        bind:change="onCommentChange"
-      />
-      <t-button theme="primary" size="small" bindtap="onSubmitComment" class="comment-panel__submit">
-        发布
-      </t-button>
+    <view class="comment-panel__footer">
+      <view wx:if="{{replyParentId}}" class="comment-reply-bar">
+        <view class="comment-reply-bar__main">
+          <view class="comment-reply-bar__head">
+            <text class="comment-reply-bar__label">正在回复</text>
+            <text class="comment-reply-bar__name">@{{replyTargetName}}</text>
+            <view class="comment-reply-bar__cancel" bindtap="onCancelReply">
+              <t-icon name="close" size="28rpx" color="#999"></t-icon>
+            </view>
+          </view>
+          <text wx:if="{{replyTargetContent}}" class="comment-reply-bar__preview">{{replyTargetContent}}</text>
+        </view>
+      </view>
+      <view class="comment-input-bar">
+        <input
+          class="comment-input-bar__field"
+          value="{{commentText}}"
+          placeholder="{{commentPlaceholder}}"
+          maxlength="200"
+          confirm-type="send"
+          bindinput="onCommentChange"
+          bindconfirm="onSubmitComment"
+        />
+        <text class="comment-input-bar__send {{commentText ? 'comment-input-bar__send--active' : ''}}" bindtap="onSubmitComment">发送</text>
+      </view>
     </view>
   </view>
 </t-popup>

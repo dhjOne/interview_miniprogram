@@ -83,6 +83,10 @@
       "pages": [
         "favorite/index",
         "ranking/index",
+        "points/index",
+        "points/redeem/index",
+        "points/appeals/index",
+        "points/invite/index",
         "history/index",
         "following/index",
         "followers/index",

@@ -16,6 +16,12 @@
   </nav>
 
   <view class="mknow-page__body">
+    <view wx:if="{{showAiQuota}}" class="mknow-ai-quota">
+      <view wx:for="{{aiQuotaList}}" wx:key="quotaType" wx:if="{{item.remaining > 0}}" class="mknow-ai-quota__item">
+        <text class="mknow-ai-quota__label">{{item.label}}</text>
+        <text class="mknow-ai-quota__value">剩余 {{item.remaining}} 次</text>
+      </view>
+    </view>
     <!-- <view class="mknow-topbar">
       <view class="mknow-topbar__title">
         <text class="mknow-topbar__main">{{messages.length ? chatTitle : 'm知道'}}</text>

@@ -1,7 +1,7 @@
 import http from '../api_request';
 
 /**
- * 用户社交统计（关注 / 粉丝 / 主页访问 / 排名摘要）
+ * 用户社交统计（关注 / 粉丝 / 主页访问）
  * 后端建议路径：/repository/user/social/*
  */
 export const socialApi = {

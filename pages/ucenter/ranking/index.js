@@ -1,4 +1,4 @@
-import { authApi } from '~/api/request/api_question';
+import { practiceApi } from '~/api/request/api_practice';
 import { PracticeRankingParams } from '~/api/param/param_question';
 
 const app = getApp();
@@ -28,7 +28,7 @@ function pickMyRankInfo(payload, appUser) {
     const u = appUser || {};
     return {
       rank: payload.myRank,
-      count: payload.myPracticeCount ?? payload.myAnswerCount ?? 0,
+      count: payload.myPracticeCount ?? payload.myAnswerCount ?? self.practiceCount ?? 0,
       avatar: u.avatar || u.headImg,
       nickname: u.nickname || u.name || '我'
     };
@@ -106,7 +106,7 @@ Page({
 
     try {
       const params = new PracticeRankingParams(nextPage, this.data.pageSize);
-      const resBody = await authApi.getPracticeRanking(params);
+      const resBody = await practiceApi.getRanking(params);
       const data = resBody && resBody.data !== undefined && resBody.data !== null ? resBody.data : resBody;
       const rawList = pickRows(data);
       const appUser = app.getUserInfo();

@@ -1,5 +1,6 @@
 import { aiApi } from '~/api/request/api_ai';
 import useToastBehavior from '~/behaviors/useToast';
+import { fetchAiQuota } from '~/utils/points';
 import {
   clearMessages,
   createConversation,
@@ -333,6 +334,8 @@ Page({
     selectedModelIndex: 0,
     selectedModelKey: 'auto',
     selectedModelName: 'Auto',
+    aiQuotaList: [],
+    showAiQuota: false
   },
 
   onLoad() {
@@ -347,6 +350,21 @@ Page({
 
   onShow() {
     this.initModelSelector();
+    this.loadAiQuota();
+  },
+
+  async loadAiQuota() {
+    if (!hasLoginToken()) {
+      this.setData({ aiQuotaList: [], showAiQuota: false });
+      return;
+    }
+    try {
+      const aiQuotaList = await fetchAiQuota();
+      const showAiQuota = aiQuotaList.some((item) => item.remaining > 0);
+      this.setData({ aiQuotaList, showAiQuota });
+    } catch (e) {
+      console.warn('[mknow] ai quota load failed', e);
+    }
   },
 
   async initModelSelector() {

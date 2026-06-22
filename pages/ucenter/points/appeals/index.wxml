@@ -1,0 +1,27 @@
+<view class="uc-appeals">
+  <t-navbar left-arrow title="我的申诉" fixed safe-area-inset-top />
+  <view class="uc-appeals__content">
+    <view class="uc-appeals__tip">如对「已追回」的积分有异议，可在积分明细中发起申诉，处理结果将显示在此。</view>
+
+    <view wx:if="{{loading && appealList.length === 0}}" class="uc-appeals__loading">
+      <t-loading size="48rpx" text="加载中…" />
+    </view>
+
+    <view wx:elif="{{appealList.length === 0}}" class="uc-appeals__empty">暂无申诉记录</view>
+
+    <view wx:else class="uc-appeals__list">
+      <view wx:for="{{appealList}}" wx:key="id" class="uc-appeals__row">
+        <view class="uc-appeals__row-main">
+          <text class="uc-appeals__reason">{{item.reason}}</text>
+          <text class="uc-appeals__meta">流水号 {{item.ledgerId}} · {{item.timeText}}</text>
+          <text wx:if="{{item.adminRemark}}" class="uc-appeals__remark">处理说明：{{item.adminRemark}}</text>
+        </view>
+        <t-tag size="small" variant="light" theme="{{item.statusTheme}}">{{item.statusLabel}}</t-tag>
+      </view>
+    </view>
+
+    <view wx:if="{{appealList.length > 0 && !hasMore}}" class="uc-appeals__foot">
+      <t-divider align="center" content="没有更多了" />
+    </view>
+  </view>
+</view>

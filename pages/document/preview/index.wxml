@@ -25,6 +25,16 @@
     </scroll-view>
 
     <view class="doc-preview-footer">
+      <t-button
+        wx:if="{{showSelfQuiz}}"
+        theme="light"
+        size="large"
+        block
+        loading="{{selfQuizSubmitting}}"
+        bindtap="onSelfQuizComplete"
+      >
+        完成自测领积分
+      </t-button>
       <t-button theme="primary" size="large" block bindtap="onGoEdit" wx:if="{{docId}}">
         编辑
       </t-button>

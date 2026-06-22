@@ -1,5 +1,9 @@
 import { authApi } from '~/api/request/api_question';
 import { QuestionParams } from '~/api/param/param_question';
+import { resolveAuthorId } from '~/utils/author';
+import { completeSelfQuiz } from '~/utils/points';
+
+const app = getApp();
 const { renderMarkdown } = require('../../../utils/towxmlLoader');
 
 function unwrapDetail(res) {
@@ -24,8 +28,18 @@ function buildFullPreviewContent(docTitle, categoryName, markdownContent) {
     fullContent += `</div>\n\n`;
   }
   fullContent += markdownContent || '';
-  // console.log('fullContent:',fullContent)
   return fullContent;
+}
+
+function resolveCurrentUserId() {
+  const user = app.getUserInfo && app.getUserInfo();
+  if (!user) return '';
+  return String(user.id ?? user.userId ?? user.user_id ?? '');
+}
+
+function isPublishedStatus(row) {
+  const status = row.status ?? row.docStatus ?? row.doc_status;
+  return Number(status) === 2;
 }
 
 Page({
@@ -33,7 +47,9 @@ Page({
     loading: true,
     docId: '',
     shareTitle: '',
-    renderedContent: null
+    renderedContent: null,
+    showSelfQuiz: false,
+    selfQuizSubmitting: false
   },
 
   onLoad(options) {
@@ -55,17 +71,14 @@ Page({
   async _load(id) {
     this.setData({ loading: true });
     try {
-      const questionDetail = new QuestionParams(null, null, id)
-
+      const questionDetail = new QuestionParams(null, null, id);
       const res = await authApi.getQuestionDetail(questionDetail);
-      console.log('res-----:',res)
       const row = unwrapDetail(res);
       const docTitle = row.title || '';
       const markdownContent = row.content || row.markdownContent || '';
       const categoryName =
         row.categoryName || row.category_name || row.categoryLabel || '';
       const full = row.previewFullContent || row.preview_full_content || '';
-      // console.log('full-----:',full)
       const md = full && String(full).trim() ? String(full) : 
       buildFullPreviewContent(docTitle, categoryName, markdownContent);
 
@@ -74,12 +87,16 @@ Page({
         ? await renderMarkdown(md, { theme: 'light', base: '', events: {} })
         : null;
 
+      const authorId = resolveAuthorId(row);
+      const currentUserId = resolveCurrentUserId();
+      const showSelfQuiz = !!(currentUserId && authorId && currentUserId === authorId && isPublishedStatus(row));
+
       this.setData({
         loading: false,
         renderedContent,
-        shareTitle
+        shareTitle,
+        showSelfQuiz
       });
-      // wx.setNavigationBarTitle({ title: shareTitle.slice(0, 18) + (shareTitle.length > 18 ? '…' : '') });
     } catch (e) {
       console.error(e);
       this.setData({ loading: false });
@@ -98,6 +115,20 @@ Page({
         console.log('跳转失败', res);
       }
     });
+  },
+
+  async onSelfQuizComplete() {
+    const id = this.data.docId;
+    if (!id || this.data.selfQuizSubmitting) return;
+    this.setData({ selfQuizSubmitting: true });
+    try {
+      await completeSelfQuiz(id);
+      wx.showToast({ title: '自测完成，积分已发放', icon: 'success' });
+    } catch (e) {
+      wx.showToast({ title: (e && e.message) || '提交失败', icon: 'none' });
+    } finally {
+      this.setData({ selfQuizSubmitting: false });
+    }
   },
 
   onShareAppMessage() {

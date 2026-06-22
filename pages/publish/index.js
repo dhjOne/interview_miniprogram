@@ -950,9 +950,9 @@ Page({
 
       wx.removeStorageSync('markdown_draft');
       wx.showToast({
-        title: '文档发布成功！',
+        title: '已提交审核，过审后将获得积分',
         icon: 'success',
-        duration: 2000
+        duration: 2500
       });
 
       this.setData({

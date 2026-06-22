@@ -6,6 +6,7 @@ import {
   fetchSocialSummary,
   formatStatCount
 } from '~/utils/userSocial';
+import { fetchPointAccount } from '~/utils/points';
 
 const app = getApp();
 Page({
@@ -34,7 +35,7 @@ Page({
       },
       {
         name: '刷题排行',
-        icon: 'trend-chart',
+        icon: 'leaderboard',
         type: 'ranking',
         url: '/pages/ucenter/ranking/index'
       },
@@ -87,6 +88,21 @@ Page({
     ]
   },
 
+  onLoad() {
+    this._onPointsChanged = () => {
+      if (wx.getStorageSync('access_token')) {
+        this.loadSocialStats();
+      }
+    };
+    app.on('points-changed', this._onPointsChanged);
+  },
+
+  onUnload() {
+    if (this._onPointsChanged) {
+      app.off('points-changed', this._onPointsChanged);
+    }
+  },
+
   async onShow() {
     const historyCount = getQuestionBrowseHistoryCount();
     this.setData({ historyCount });
@@ -117,11 +133,14 @@ Page({
       following: 'followingCount',
       followers: 'followerCount',
       visits: 'visitCount',
-      ranking: 'myRank'
+      points: 'availablePoints'
     };
     return SOCIAL_STAT_ITEMS.map((item) => {
       const key = item.countKey || countKeyMap[item.type];
-      const count = summary && key ? Number(summary[key]) || 0 : 0;
+      let count = summary && key ? Number(summary[key]) || 0 : 0;
+      if (item.type === 'points' && summary && summary.availablePoints != null) {
+        count = Number(summary.availablePoints) || 0;
+      }
       return {
         ...item,
         count,
@@ -131,9 +150,16 @@ Page({
   },
 
   async loadSocialStats() {
-    const summary = await fetchSocialSummary();
+    const [summary, account] = await Promise.all([
+      fetchSocialSummary(),
+      fetchPointAccount().catch(() => null)
+    ]);
+    const merged = {
+      ...(summary || {}),
+      ...(account ? { availablePoints: account.availablePoints } : {})
+    };
     this.setData({
-      socialStats: this._buildSocialStatsDisplay(summary)
+      socialStats: this._buildSocialStatsDisplay(merged)
     });
   },
 

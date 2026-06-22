@@ -15,7 +15,7 @@ const DEMO_SUMMARY = {
   followingCount: 12,
   followerCount: 38,
   visitCount: 156,
-  myRank: 28
+  availablePoints: 1280
 };
 
 function pickPayload(res) {
@@ -124,7 +124,9 @@ export async function fetchSocialSummary() {
       followingCount: Number(data.followingCount ?? data.following ?? data.followCount ?? 0),
       followerCount: Number(data.followerCount ?? data.followers ?? data.fansCount ?? 0),
       visitCount: Number(data.visitCount ?? data.visits ?? data.profileViews ?? 0),
-      myRank: Number(data.myRank ?? data.rank ?? data.ranking ?? 0),
+      availablePoints: Number(
+        data.availablePoints ?? data.available_points ?? data.points ?? 0
+      ),
       fromDemo: false
     };
   } catch (e) {
@@ -144,5 +146,5 @@ export const SOCIAL_STAT_ITEMS = [
   { type: 'following', label: '关注', url: '/pages/ucenter/following/index' },
   { type: 'followers', label: '粉丝', url: '/pages/ucenter/followers/index' },
   { type: 'visits', label: '访问', url: '/pages/ucenter/visits/index' },
-  { type: 'ranking', label: '排名', url: '/pages/ucenter/ranking/index', countKey: 'myRank' }
+  { type: 'points', label: '积分', url: '/pages/ucenter/points/index', countKey: 'availablePoints' }
 ];

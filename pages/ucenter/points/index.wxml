@@ -1,0 +1,148 @@
+<view class="uc-points">
+  <t-navbar left-arrow title="我的积分" fixed safe-area-inset-top />
+  <view class="uc-points__content">
+    <view class="uc-points__hero">
+      <view class="uc-points__hero-label">可用积分</view>
+      <view class="uc-points__hero-value">{{displayAvailable}}</view>
+      <view class="uc-points__hero-sub">发布题目、获得互动即可赚取积分</view>
+    </view>
+
+    <view class="uc-points__stats">
+      <view class="uc-points__stat">
+        <text class="uc-points__stat-num">{{displayPending}}</text>
+        <text class="uc-points__stat-label">待结算</text>
+      </view>
+      <view class="uc-points__stat-divider" />
+      <view class="uc-points__stat">
+        <text class="uc-points__stat-num">{{displayEarned}}</text>
+        <text class="uc-points__stat-label">累计获得</text>
+      </view>
+      <view class="uc-points__stat-divider" />
+      <view class="uc-points__stat">
+        <text class="uc-points__stat-num">{{displaySpent}}</text>
+        <text class="uc-points__stat-label">累计消耗</text>
+      </view>
+    </view>
+
+    <view class="uc-points__actions">
+      <view class="uc-points__action" hover-class="uc-points__action--active" bindtap="goRedeem">
+        <t-icon name="shop" size="40rpx" />
+        <text>兑换商城</text>
+      </view>
+      <view class="uc-points__action" hover-class="uc-points__action--active" bindtap="goAppeals">
+        <t-icon name="edit-1" size="40rpx" />
+        <text>我的申诉</text>
+      </view>
+      <view class="uc-points__action" hover-class="uc-points__action--active" bindtap="goInvite">
+        <t-icon name="user-add" size="40rpx" />
+        <text>邀请码</text>
+      </view>
+    </view>
+
+    <view class="uc-points__rules">
+      <view class="uc-points__rules-head" bindtap="toggleRules">
+        <view>
+          <text class="uc-points__section-title">如何获得积分</text>
+          <text class="uc-points__section-desc">当前生效规则 {{ruleList.length}} 条</text>
+        </view>
+        <t-icon name="{{rulesExpanded ? 'chevron-up' : 'chevron-down'}}" size="36rpx" color="#999" />
+      </view>
+      <view wx:if="{{rulesExpanded}}" class="uc-points__rules-body">
+        <view wx:if="{{rulesLoading}}" class="uc-points__rules-loading">
+          <t-loading size="36rpx" text="加载规则…" />
+        </view>
+        <view wx:elif="{{ruleList.length === 0}}" class="uc-points__rules-empty">暂无规则说明</view>
+        <view wx:else>
+          <view wx:for="{{ruleList}}" wx:key="ruleCode" class="uc-points__rule-row">
+            <view class="uc-points__rule-main">
+              <text class="uc-points__rule-name">{{item.ruleName}}</text>
+              <text class="uc-points__rule-meta" wx:if="{{item.cooldownHours > 0}}">到账周期约 {{item.cooldownHours}} 小时</text>
+            </view>
+            <text class="uc-points__rule-points">+{{item.basePoints}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="uc-points__section-head">
+      <text class="uc-points__section-title">积分明细</text>
+      <text class="uc-points__section-desc">最近变动记录</text>
+    </view>
+
+    <scroll-view
+      class="uc-points__scroll"
+      scroll-y
+      enhanced
+      show-scrollbar="{{false}}"
+      bindscrolltolower="onReachBottom"
+      lower-threshold="100"
+    >
+      <view wx:if="{{loading && ledgerList.length === 0 && !loadError}}" class="uc-points__loading">
+        <t-loading size="48rpx" text="加载中…" />
+      </view>
+
+      <view class="uc-points__list">
+        <view wx:for="{{ledgerList}}" wx:key="id" class="uc-points__row">
+          <view class="uc-points__row-main">
+            <text class="uc-points__row-title">{{item.bizLabel}}</text>
+            <text class="uc-points__row-time">{{item.timeText}}</text>
+            <view class="uc-points__row-meta" wx:if="{{item.status === 0 && item.settleText}}">
+              <text class="uc-points__row-settle">预计到账 {{item.settleText}}</text>
+            </view>
+            <view wx:if="{{item.canAppeal}}" class="uc-points__row-appeal">
+              <text class="uc-points__appeal-link" data-id="{{item.ledgerId}}" bindtap="onAppealTap">积分被追回？去申诉</text>
+            </view>
+          </view>
+          <view class="uc-points__row-right">
+            <text class="uc-points__amount uc-points__amount--{{item.amountClass}}">{{item.amountText}}</text>
+            <t-tag size="small" variant="light" theme="{{item.statusTheme}}">{{item.statusLabel}}</t-tag>
+          </view>
+        </view>
+      </view>
+
+      <view class="uc-points__foot" wx:if="{{ledgerList.length > 0}}">
+        <view wx:if="{{loading}}">
+          <t-loading size="36rpx" text="加载中…" />
+        </view>
+        <t-divider wx:elif="{{!hasMore}}" align="center" content="没有更多了" />
+      </view>
+
+      <view wx:if="{{!loading && loadDone && ledgerList.length === 0 && !loadError}}" class="uc-points__empty">
+        <t-icon name="wallet" size="120rpx" color="#ddd" />
+        <text class="uc-points__empty-t">暂无积分记录</text>
+        <text class="uc-points__empty-d">发布题目、获得互动即可赚取积分</text>
+        <t-button class="uc-points__empty-btn" theme="primary" size="medium" shape="round" bind:tap="goCategory">
+          去题库看看
+        </t-button>
+      </view>
+
+      <view wx:if="{{!loading && loadError}}" class="uc-points__empty">
+        <t-icon name="error-circle" size="100rpx" color="#f5a524" />
+        <text class="uc-points__empty-t">积分明细暂不可用</text>
+        <text class="uc-points__empty-d">{{errorMessage || '服务升级中，请稍后再试'}}</text>
+        <t-button theme="light" size="medium" shape="round" bind:tap="reload">重试</t-button>
+      </view>
+    </scroll-view>
+  </view>
+
+  <t-dialog
+    visible="{{showAppealDialog}}"
+    title="积分申诉"
+    confirm-btn="{{appealSubmitting ? '提交中…' : '提交'}}"
+    cancel-btn="取消"
+    bind:confirm="onAppealConfirm"
+    bind:cancel="onAppealDialogClose"
+    bind:close="onAppealDialogClose"
+  >
+    <view slot="content" class="uc-points__appeal-form">
+      <text class="uc-points__appeal-tip">流水号：{{appealLedgerId}}</text>
+      <t-textarea
+        value="{{appealReason}}"
+        placeholder="请说明申诉原因，例如误判、系统异常等"
+        maxlength="200"
+        indicator
+        bind:change="onAppealReasonChange"
+      />
+    </view>
+  </t-dialog>
+</view>

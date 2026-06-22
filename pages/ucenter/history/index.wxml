@@ -5,7 +5,7 @@
   <view class="uc-history__inner question-list-container">
     <view class="question-list-sticky">
       <view class="uc-history__tip-bar">
-        <text class="uc-history__tip">仅保存在本机，最多保留 100 条</text>
+        <text class="uc-history__tip">{{tipText}}</text>
         <t-button
           wx:if="{{list.length > 0}}"
           theme="light"
@@ -48,6 +48,10 @@
                     <text class="question-title">{{item.title}}</text>
                   </view>
                   <view class="question-meta">
+                    <text class="meta-item" wx:if="{{item.categoryName}}">
+                      <t-icon name="folder-open" size="24rpx" />
+                      {{item.categoryName}}
+                    </text>
                     <text class="meta-item">
                       <t-icon name="time" size="24rpx" />
                       {{item.timeText}}

@@ -13,7 +13,7 @@ import {
   resolveAuthorFollowing,
   resolveAuthorId
 } from '~/utils/author';
-import { recordQuestionBrowse } from '~/utils/questionBrowseHistory';
+import { trackQuestionBrowse } from '~/utils/practiceBrowse';
 
 const { renderMarkdown } = require('../../../utils/towxmlLoader');
 
@@ -283,12 +283,12 @@ Page({
         this.setData(patch);
 
         try {
-          recordQuestionBrowse({
+          trackQuestionBrowse({
             id: questionDetail.id ?? this.data.questionId,
             title: questionDetail.title
           });
         } catch (e) {
-          // 本地浏览记录失败不影响详情页
+          // 浏览记录失败不影响详情页
         }
 
         this.loadComments();

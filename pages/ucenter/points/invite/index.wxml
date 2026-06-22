@@ -1,0 +1,38 @@
+<view class="uc-invite">
+  <t-navbar left-arrow title="邀请码" fixed safe-area-inset-top />
+  <view class="uc-invite__content">
+    <view class="uc-invite__card">
+      <text class="uc-invite__label">我的邀请码</text>
+      <view wx:if="{{loading}}" class="uc-invite__loading">
+        <t-loading size="40rpx" text="加载中…" />
+      </view>
+      <block wx:else>
+        <text class="uc-invite__code">{{inviteCode}}</text>
+        <text class="uc-invite__desc">邀请创作者注册并首题过审，双方均可获得积分奖励</text>
+        <t-button theme="light" size="medium" shape="round" bind:tap="onCopyCode">复制邀请码</t-button>
+      </block>
+    </view>
+
+    <view class="uc-invite__card">
+      <text class="uc-invite__label">绑定他人邀请码</text>
+      <text class="uc-invite__desc uc-invite__desc--block">注册后 7 天内可绑定一次，被邀请人首题过审后触发奖励</text>
+      <t-input
+        value="{{bindCode}}"
+        placeholder="请输入邀请码"
+        clearable
+        bind:change="onBindInput"
+      />
+      <t-button
+        class="uc-invite__bind-btn"
+        theme="primary"
+        size="medium"
+        block
+        shape="round"
+        loading="{{binding}}"
+        bind:tap="onBindSubmit"
+      >
+        确认绑定
+      </t-button>
+    </view>
+  </view>
+</view>

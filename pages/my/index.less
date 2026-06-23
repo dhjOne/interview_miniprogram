@@ -188,6 +188,10 @@
     gap: 16rpx;
     padding: 0 20rpx 20rpx;
     box-sizing: border-box;
+
+    &--settings {
+      justify-content: flex-start;
+    }
   }
 }
 
@@ -318,6 +322,14 @@
   &--contact .my-service-tile__icon t-icon,
   &--contact .my-service-tile__icon svg {
     color: var(--td-success-color, #2ba471) !important;
+  }
+
+  &--setting .my-service-tile__icon {
+    background: rgba(237, 123, 47, 0.1);
+  }
+  &--setting .my-service-tile__icon t-icon,
+  &--setting .my-service-tile__icon svg {
+    color: #ed7b2f !important;
   }
 
   &--btn {

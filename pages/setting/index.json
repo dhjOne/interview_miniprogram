@@ -4,6 +4,10 @@
     "t-navbar": "/miniprogram_npm/tdesign-miniprogram/navbar/navbar",
     "t-cell-group": "/miniprogram_npm/tdesign-miniprogram/cell-group/cell-group",
     "t-cell": "/miniprogram_npm/tdesign-miniprogram/cell/cell",
-    "t-icon": "/miniprogram_npm/tdesign-miniprogram/icon/icon"
+    "t-icon": "/miniprogram_npm/tdesign-miniprogram/icon/icon",
+    "t-switch": "/miniprogram_npm/tdesign-miniprogram/switch/switch",
+    "t-picker": "/miniprogram_npm/tdesign-miniprogram/picker/picker",
+    "t-picker-item": "/miniprogram_npm/tdesign-miniprogram/picker-item/picker-item",
+    "t-toast": "/miniprogram_npm/tdesign-miniprogram/toast/toast"
   }
 }

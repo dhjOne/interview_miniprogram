@@ -123,5 +123,31 @@
         </block>
       </view>
     </view>
+
+    <!-- 设置入口 -->
+    <view class="my-page__card my-page__card--tools" wx:if="{{isLoad}}">
+      <view class="my-page__section-head my-page__section-head--row">
+        <view class="my-page__section-head-main">
+          <text class="my-page__section-title">账号与设置</text>
+          <text class="my-page__section-desc">编辑资料、偏好与账号安全</text>
+        </view>
+      </view>
+      <view class="my-page__service-row my-page__service-row--settings">
+        <view
+          wx:for="{{settingList}}"
+          wx:key="type"
+          wx:for-item="item"
+          class="my-service-tile my-service-tile--setting"
+          hover-class="my-service-tile--active"
+          data-item="{{item}}"
+          bindtap="onSettingTap"
+        >
+          <view class="my-service-tile__icon">
+            <t-icon name="{{item.icon}}" size="44rpx" />
+          </view>
+          <text class="my-service-tile__text">{{item.name}}</text>
+        </view>
+      </view>
+    </view>
   </view>
 </view>

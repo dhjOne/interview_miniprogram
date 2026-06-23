@@ -1,21 +1,62 @@
 <t-navbar title="设置" left-arrow />
 <view class="setting">
-  <t-cell-group wx:for="{{menuData}}" wx:for-item="item" wx:key="index" t-class="cell-group-class" theme="card">
-    <t-cell
-      wx:for="{{item}}"
-      wx:for-item="carditem"
-      wx:key="cardkey"
-      title="{{carditem.title}}"
-      hover
-      arrow
-      left-icon="app"
-      url="{{carditem.url}}"
-      bordered="true"
-      leftIcon="{{carditem.icon}}"
-      data-data="{{carditem}}"
-      bindclick="onEleClick"
-    />
+  <t-cell-group wx:for="{{menuData}}" wx:for-item="group" wx:key="index" t-class="cell-group-class" theme="card">
+    <block wx:for="{{group}}" wx:for-item="item" wx:key="type">
+      <t-cell
+        wx:if="{{item.switchable}}"
+        title="{{item.title}}"
+        bordered="{{true}}"
+        leftIcon="{{item.icon}}"
+      >
+        <t-switch
+          slot="note"
+          value="{{settings[item.switchKey]}}"
+          data-key="{{item.switchKey}}"
+          bind:change="onSwitchChange"
+        />
+      </t-cell>
+
+      <t-cell
+        wx:else
+        title="{{item.title}}"
+        note="{{item.noteKey ? (item.noteKey === 'darkMode' ? (settings.darkMode === 'system' ? '跟随系统' : (settings.darkMode === 'light' ? '浅色模式' : '深色模式')) : (settings.fontScale === 'small' ? '小' : (settings.fontScale === 'large' ? '大' : '标准'))) : ''}}"
+        hover
+        arrow="{{item.type !== 'logout'}}"
+        leftIcon="{{item.icon}}"
+        data-item="{{item}}"
+        bind:click="onMenuTap"
+        t-class-title="{{item.theme === 'danger' ? 'setting__danger-title' : ''}}"
+      />
+    </block>
   </t-cell-group>
 </view>
+
+<t-picker
+  visible="{{darkModeVisible}}"
+  title="深色模式"
+  cancelBtn="取消"
+  confirmBtn="确认"
+  data-mode="darkMode"
+  bind:cancel="hidePicker"
+  bind:close="hidePicker"
+  bind:change="onDarkModePick"
+  value="{{[settings.darkMode]}}"
+>
+  <t-picker-item options="{{darkModeOptions}}" />
+</t-picker>
+
+<t-picker
+  visible="{{fontScaleVisible}}"
+  title="字体大小"
+  cancelBtn="取消"
+  confirmBtn="确认"
+  data-mode="fontScale"
+  bind:cancel="hidePicker"
+  bind:close="hidePicker"
+  bind:change="onFontScalePick"
+  value="{{[settings.fontScale]}}"
+>
+  <t-picker-item options="{{fontScaleOptions}}" />
+</t-picker>
 
 <t-toast id="t-toast" />

@@ -1,4 +1,3 @@
-import request from '~/api/request';
 import useToastBehavior from '~/behaviors/useToast';
 import { getQuestionBrowseHistoryCount } from '~/utils/questionBrowseHistory';
 import {
@@ -7,6 +6,7 @@ import {
   formatStatCount
 } from '~/utils/userSocial';
 import { fetchPointAccount } from '~/utils/points';
+import { fetchPersonalInfo, syncCachedUserInfo } from '~/utils/userProfile';
 
 const app = getApp();
 Page({
@@ -109,15 +109,19 @@ Page({
 
     const Token = wx.getStorageSync('access_token');
     if (Token) {
-      let personalInfo = app.getUserInfo();
-
-      if (!personalInfo) {
-        personalInfo = await this.getPersonalInfo();
+      try {
+        const personalInfo = await this.getPersonalInfo();
+        this.setData({
+          isLoad: true,
+          personalInfo
+        });
+      } catch (e) {
+        const cached = app.getUserInfo() || {};
+        this.setData({
+          isLoad: true,
+          personalInfo: cached
+        });
       }
-      this.setData({
-        isLoad: true,
-        personalInfo
-      });
       this.loadSocialStats();
     } else {
       this.setData({
@@ -170,7 +174,8 @@ Page({
   },
 
   async getPersonalInfo() {
-    const info = await request('/genPersonalInfo').then((res) => res.data.data);
+    const info = await fetchPersonalInfo();
+    syncCachedUserInfo(info);
     return info;
   },
 
@@ -181,7 +186,13 @@ Page({
   },
 
   onNavigateTo() {
-    wx.navigateTo({ url: `/pages/my/info-edit/index` });
+    app.navigateToLogin({ url: '/pages/my/info-edit/index' });
+  },
+
+  onSettingTap(e) {
+    const item = e.currentTarget.dataset.item;
+    if (!item || !item.url) return;
+    app.navigateToLogin({ url: item.url });
   },
 
   onEleClick(e) {

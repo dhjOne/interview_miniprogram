@@ -4,6 +4,47 @@ page {
 
 .info-edit {
   --td-input-vertical-padding: 0;
+  padding-bottom: calc(160rpx + env(safe-area-inset-bottom));
+}
+
+.info-edit__avatar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32rpx;
+  background: #fff;
+  border-bottom: 1rpx solid var(--td-component-stroke, #e7e7e7);
+}
+
+.info-edit__avatar-label {
+  font-size: 32rpx;
+  color: var(--td-text-color-primary, rgba(0, 0, 0, 0.9));
+}
+
+.info-edit__avatar-btn {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+
+  &::after {
+    border: none;
+  }
+}
+
+.info-edit__avatar-img {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  background: #f3f3f3;
+}
+
+.info-edit__avatar-tip {
+  font-size: 22rpx;
+  color: var(--td-text-color-placeholder, rgba(0, 0, 0, 0.4));
 }
 
 .info-edit__cell {

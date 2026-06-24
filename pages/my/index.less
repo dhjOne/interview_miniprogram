@@ -35,11 +35,6 @@
     background: var(--td-bg-color-container, #fff);
   }
 
-  &__profile-cell {
-    padding-top: 28rpx !important;
-    padding-bottom: 28rpx !important;
-  }
-
   &__login-title {
     font-weight: 600 !important;
     font-size: 32rpx !important;
@@ -188,10 +183,66 @@
     gap: 16rpx;
     padding: 0 20rpx 20rpx;
     box-sizing: border-box;
+  }
+}
 
-    &--settings {
-      justify-content: flex-start;
-    }
+.my-career-card {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  margin: 0 28rpx 8rpx;
+  padding: 24rpx;
+  border-radius: 20rpx;
+  background: linear-gradient(135deg, rgba(0, 82, 217, 0.06), rgba(54, 110, 244, 0.03));
+  border: 1rpx solid rgba(0, 82, 217, 0.1);
+  box-sizing: border-box;
+
+  &--active {
+    opacity: 0.88;
+  }
+
+  &__icon {
+    width: 72rpx;
+    height: 72rpx;
+    border-radius: 20rpx;
+    background: rgba(255, 255, 255, 0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  &__main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6rpx;
+  }
+
+  &__title {
+    font-size: 28rpx;
+    font-weight: 700;
+    color: rgba(0, 0, 0, 0.9);
+  }
+
+  &__desc {
+    font-size: 23rpx;
+    color: rgba(0, 0, 0, 0.45);
+    line-height: 1.45;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__action {
+    display: flex;
+    align-items: center;
+    gap: 4rpx;
+    flex-shrink: 0;
+    font-size: 24rpx;
+    color: #64748b;
+    font-weight: 500;
   }
 }
 
@@ -234,20 +285,109 @@
 }
 
 .my-profile {
+  flex: 1;
+  min-width: 0;
+  padding-right: 176rpx;
+
   &__name {
     font-size: 34rpx;
     font-weight: 600;
     color: var(--td-text-color-primary, rgba(0, 0, 0, 0.9));
     line-height: 1.35;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &__bio-wrap {
     margin-top: 12rpx;
-    max-width: 420rpx;
+    max-width: 100%;
   }
 
   &__tag {
     max-width: 100%;
+  }
+}
+
+.my-profile-card {
+  position: relative;
+  padding: 30rpx 28rpx 26rpx;
+  box-sizing: border-box;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 88% 12%, rgba(0, 82, 217, 0.14) 0, rgba(0, 82, 217, 0) 168rpx),
+    linear-gradient(135deg, #ffffff 0%, #f7faff 100%);
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: -42rpx;
+    bottom: -72rpx;
+    width: 220rpx;
+    height: 220rpx;
+    border-radius: 50%;
+    background: rgba(0, 82, 217, 0.06);
+    pointer-events: none;
+  }
+
+  &__main {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 22rpx;
+  }
+
+  &__actions {
+    position: absolute;
+    z-index: 2;
+    top: 24rpx;
+    right: 24rpx;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12rpx;
+  }
+
+  &__action,
+  &__setting {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    color: var(--td-brand-color, #0052d9);
+    background: rgba(255, 255, 255, 0.86);
+    border: 1rpx solid rgba(0, 82, 217, 0.12);
+    box-shadow: 0 8rpx 24rpx rgba(0, 82, 217, 0.1);
+    backdrop-filter: blur(12rpx);
+
+    t-icon,
+    svg {
+      color: var(--td-brand-color, #0052d9) !important;
+    }
+  }
+
+  &__action {
+    width: 64rpx;
+    height: 64rpx;
+    border-radius: 50%;
+  }
+
+  &__setting {
+    height: 64rpx;
+    min-width: 120rpx;
+    gap: 8rpx;
+    padding: 0 20rpx;
+    border-radius: 999rpx;
+    font-size: 24rpx;
+    font-weight: 600;
+  }
+
+  &__action--active,
+  &__setting--active {
+    opacity: 0.82;
+    transform: scale(0.96);
   }
 }
 
@@ -322,14 +462,6 @@
   &--contact .my-service-tile__icon t-icon,
   &--contact .my-service-tile__icon svg {
     color: var(--td-success-color, #2ba471) !important;
-  }
-
-  &--setting .my-service-tile__icon {
-    background: rgba(237, 123, 47, 0.1);
-  }
-  &--setting .my-service-tile__icon t-icon,
-  &--setting .my-service-tile__icon svg {
-    color: #ed7b2f !important;
   }
 
   &--btn {

@@ -29,6 +29,7 @@
   </t-cell>
   <t-cell arrow bind:click="showPicker" data-mode="birth" note="{{personInfo.birth || '请选择'}}" title="生日" />
   <t-cell arrow bind:click="showPicker" data-mode="address" note="{{personInfo.addressText || '请选择'}}" title="地址" />
+  <t-cell arrow bind:click="goProfessionPage" note="{{professionText}}" title="职业方向" />
   <t-cell class="info-edit__cell" title="个人简介">
     <t-textarea
       bind:blur="onBioChange"

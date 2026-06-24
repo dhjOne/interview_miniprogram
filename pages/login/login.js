@@ -193,16 +193,47 @@ Page({
   // 处理登录成功后的跳转
   async handleLoginSuccess(result) {
     try {
+      const app = getApp();
+      if (result.data.userInfo) {
+        app.setUserInfo(result.data.userInfo);
+      }
+
+      const userInfo = result.data.userInfo || {};
+      const needSelectProfession = userInfo.needSelectProfession || !(userInfo.professionCodes || []).length;
+      if (needSelectProfession) {
+        wx.showToast({
+          title: userInfo.newUser ? '注册成功' : '登录成功',
+          icon: 'success',
+          duration: 1200
+        });
+        const returnQ = this.data.returnUrl ? `&return=${encodeURIComponent(this.data.returnUrl)}` : '';
+        setTimeout(() => {
+          wx.redirectTo({
+            url: `/pages/my/profession/index?from=login${returnQ}`,
+            fail: () => {
+              wx.navigateTo({ url: `/pages/my/profession/index?from=login${returnQ}` });
+            }
+          });
+        }, 400);
+        return;
+      }
+
+      await this.finishLoginRedirect(result);
+    } catch (error) {
+      console.error('登录成功处理失败:', error);
+      wx.switchTab({
+        url: '/pages/my/index'
+      });
+    }
+  },
+
+  async finishLoginRedirect(result) {
+    try {
       const { from, returnUrl } = this.data;
       try {
         wx.removeStorageSync('login_referrer');
       } catch (e) {
         // ignore
-      }
-
-      const app = getApp();
-      if (result.data.userInfo) {
-        app.setUserInfo(result.data.userInfo);
       }
 
       wx.showToast({
@@ -229,7 +260,6 @@ Page({
           if (LOGIN_TAB_ROOTS.includes(base)) {
             wx.switchTab({ url: base });
           } else {
-            // 先关掉登录页再 navigateTo 目标页，栈为「来源页 → 发布管理」，原生导航为返回，不会出现「小房子」
             wx.navigateBack({
               delta: 1,
               success: () => {
@@ -257,10 +287,8 @@ Page({
           });
         }
       }, 300);
-      
     } catch (error) {
-      console.error('登录成功处理失败:', error);
-      // 失败时跳转到首页
+      console.error('登录跳转失败:', error);
       wx.switchTab({
         url: '/pages/my/index'
       });

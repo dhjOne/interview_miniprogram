@@ -2,6 +2,9 @@ import Message from 'tdesign-miniprogram/message';
 import { authApi } from '~/api/request/api_category';
 import { CategoryParams } from '~/api/param/param_category';
 import { QuestionParams } from '~/api/param/param_category';
+import { fetchPersonalInfo } from '~/utils/userProfile';
+import { hasProfessionSelected } from '~/utils/profession';
+import { navigateToProfessionPage } from '~/utils/professionNav';
 
 const app = getApp();
 
@@ -100,13 +103,19 @@ Page({
     isScrolling: false,
     currentCategoryName: '',
     currentCategoryCount: 0,
-    categoryLoading: false
+    categoryLoading: false,
+    categoryScope: 'all',
+    hasProfession: false,
+    categoryScopeTabs: [
+      { label: '我的职业', value: 'career' },
+      { label: '全部', value: 'all' }
+    ]
   },
 
   onLoad() {
     console.log('页面加载开始');
     this.calculateNavBarHeight();
-    this.loadCategories();
+    this.initCategoryScope().finally(() => this.loadCategories());
 
     app.on('refreshQuestionBank', this.handleRefresh.bind(this));
   },
@@ -126,6 +135,7 @@ Page({
 
   onShow() {
     console.log('页面显示');
+    this.refreshProfessionScope(false);
     const now = Date.now();
     const shouldRefresh =
       this.data.needRefresh ||
@@ -162,6 +172,41 @@ Page({
     }
   },
 
+  async initCategoryScope() {
+    await this.refreshProfessionScope(true);
+  },
+
+  async refreshProfessionScope(isInit = false) {
+    const token = wx.getStorageSync('access_token');
+    if (!token) {
+      if (this.data.categoryScope !== 'all' || this.data.hasProfession) {
+        this.setData({ categoryScope: 'all', hasProfession: false });
+      }
+      return;
+    }
+
+    try {
+      const info = await fetchPersonalInfo();
+      const hasProfession = hasProfessionSelected(info.professionCodes);
+      const patch = { hasProfession };
+      if (!hasProfession) {
+        patch.categoryScope = 'all';
+      } else if (isInit && this.data.categoryScope === 'all') {
+        patch.categoryScope = 'career';
+      }
+      const scopeChanged = patch.categoryScope !== undefined && patch.categoryScope !== this.data.categoryScope;
+      this.setData(patch);
+      if (scopeChanged && !isInit) {
+        await this.loadCategories();
+      }
+    } catch (error) {
+      console.warn('[category] 读取职业信息失败，默认展示全部分类', error);
+      if (this.data.categoryScope !== 'all') {
+        this.setData({ categoryScope: 'all', hasProfession: false });
+      }
+    }
+  },
+
   resetPagination() {
     this.setData({
       page: 1,
@@ -185,7 +230,7 @@ Page({
         this.setData({ loading: true });
       }
 
-      const categoryParams = new CategoryParams(null, 0);
+      const categoryParams = new CategoryParams(null, 0, this.data.categoryScope);
       categoryParams.sortField = 'sort_order';
       categoryParams.order = 'asc';
       const response = await authApi.getCategories(categoryParams);
@@ -376,6 +421,33 @@ Page({
     } finally {
       this.setData({ categoryLoading: false });
     }
+  },
+
+  async onScopeTap(e) {
+    const scope = e.currentTarget.dataset.scope;
+    if (!scope || scope === this.data.categoryScope) {
+      return;
+    }
+    if (scope === 'career' && !this.data.hasProfession) {
+      wx.showModal({
+        title: '尚未选择职业',
+        content: '设置职业方向后，可查看更匹配的题库分类推荐。',
+        confirmText: '去设置',
+        cancelText: '先看全部',
+        success: (res) => {
+          if (res.confirm) {
+            navigateToProfessionPage();
+          }
+        }
+      });
+      return;
+    }
+    this.setData({
+      categoryScope: scope,
+      currentCategoryId: null,
+      currentQuestions: []
+    });
+    await this.loadCategories();
   },
 
   previewImage(e) {

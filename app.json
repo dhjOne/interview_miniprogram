@@ -43,6 +43,13 @@
       ]
     },
     {
+      "root": "pages/my/profession",
+      "name": "profession",
+      "pages": [
+        "index"
+      ]
+    },
+    {
       "root": "pages/chat",
       "name": "chat",
       "pages": [

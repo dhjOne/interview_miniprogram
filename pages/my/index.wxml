@@ -7,18 +7,42 @@
   <view class="my-page__body">
     <!-- 个人资料 + 内容管理 -->
     <t-cell-group theme="card" bordered="{{false}}" t-class="my-page__card-group">
-      <t-cell wx:if="{{isLoad}}" bordered="{{false}}" t-class="my-page__profile-cell">
-        <t-avatar image="{{personalInfo.avatar || '/static/avatar1.png'}}" slot="left-icon" size="large" />
-        <view class="my-profile" slot="description">
-          <view class="my-profile__name">{{personalInfo.nickname || '微信用户'}}</view>
-          <view class="my-profile__bio-wrap">
-            <t-tag class="my-profile__tag" size="small" variant="light" theme="primary">
-              {{personalInfo.bio || '这个人很懒，什么都没有写'}}
-            </t-tag>
+      <view wx:if="{{isLoad}}" class="my-profile-card">
+        <view class="my-profile-card__main">
+          <t-avatar image="{{personalInfo.avatar || '/static/avatar1.png'}}" size="large" />
+          <view class="my-profile">
+            <view class="my-profile__name">{{personalInfo.nickname || '微信用户'}}</view>
+            <view class="my-profile__bio-wrap">
+              <t-tag class="my-profile__tag" size="small" variant="light" theme="primary">
+                {{personalInfo.bio || '这个人很懒，什么都没有写'}}
+              </t-tag>
+            </view>
           </view>
         </view>
-        <t-icon slot="right-icon" name="edit" size="40rpx" color="var(--td-text-color-primary, rgba(0,0,0,.9))" bindtap="onNavigateTo" />
-      </t-cell>
+        <view class="my-profile-card__actions">
+          <view class="my-profile-card__action" hover-class="my-profile-card__action--active" bindtap="onNavigateTo">
+            <t-icon name="edit" size="34rpx" />
+          </view>
+          <view class="my-profile-card__setting" hover-class="my-profile-card__setting--active" bindtap="onSettingTap">
+            <t-icon name="setting" size="32rpx" />
+            <text>设置</text>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{isLoad}}" class="my-career-card" hover-class="my-career-card--active" bindtap="onProfessionTap">
+        <view class="my-career-card__icon">
+          <t-icon name="user-setting" size="40rpx" color="#0052d9" />
+        </view>
+        <view class="my-career-card__main">
+          <text class="my-career-card__title">职业画像</text>
+          <text class="my-career-card__desc">{{professionText}}</text>
+        </view>
+        <view class="my-career-card__action">
+          <text>{{hasProfession ? '调整' : '去设置'}}</text>
+          <t-icon name="chevron-right" size="32rpx" color="#94a3b8" />
+        </view>
+      </view>
 
       <view class="my-stats" wx:if="{{isLoad}}">
         <view
@@ -121,32 +145,6 @@
             <text class="my-service-tile__text">{{item.name}}</text>
           </view>
         </block>
-      </view>
-    </view>
-
-    <!-- 设置入口 -->
-    <view class="my-page__card my-page__card--tools" wx:if="{{isLoad}}">
-      <view class="my-page__section-head my-page__section-head--row">
-        <view class="my-page__section-head-main">
-          <text class="my-page__section-title">账号与设置</text>
-          <text class="my-page__section-desc">编辑资料、偏好与账号安全</text>
-        </view>
-      </view>
-      <view class="my-page__service-row my-page__service-row--settings">
-        <view
-          wx:for="{{settingList}}"
-          wx:key="type"
-          wx:for-item="item"
-          class="my-service-tile my-service-tile--setting"
-          hover-class="my-service-tile--active"
-          data-item="{{item}}"
-          bindtap="onSettingTap"
-        >
-          <view class="my-service-tile__icon">
-            <t-icon name="{{item.icon}}" size="44rpx" />
-          </view>
-          <text class="my-service-tile__text">{{item.name}}</text>
-        </view>
       </view>
     </view>
   </view>

@@ -9,9 +9,12 @@ export async function fetchPersonalInfo() {
 
 export async function savePersonalInfo(payload) {
   await profileApi.updatePersonalInfo(payload);
-  const info = normalizePersonalInfo(payload);
-  syncCachedUserInfo(info);
-  return info;
+  const cached = normalizePersonalInfo({
+    ...(app.getUserInfo?.() || wx.getStorageSync('user_info') || {}),
+    ...payload
+  });
+  syncCachedUserInfo(cached);
+  return cached;
 }
 
 export function syncCachedUserInfo(info) {
@@ -22,7 +25,8 @@ export function syncCachedUserInfo(info) {
     nickname: info.nickname,
     avatar: info.avatar,
     bio: info.bio,
-    phone: info.phone
+    phone: info.phone,
+    professionCodes: info.professionCodes || []
   };
   if (app.setUserInfo) {
     app.setUserInfo(cached);
@@ -41,7 +45,8 @@ export function toEditForm(info) {
     address: normalized.address || [],
     addressText: normalized.addressText || '',
     bio: normalized.bio || '',
-    photos: normalized.photos || []
+    photos: normalized.photos || [],
+    professionCodes: normalized.professionCodes || []
   };
 }
 
@@ -54,6 +59,7 @@ export function toSavePayload(form) {
     address: form.address,
     addressText: form.addressText,
     bio: form.bio,
-    photos: form.photos
+    photos: form.photos,
+    professionCodes: form.professionCodes || []
   };
 }

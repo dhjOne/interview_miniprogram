@@ -7,6 +7,8 @@ import {
   toEditForm,
   toSavePayload
 } from '~/utils/userProfile';
+import { fetchProfessionOptions, formatProfessionText } from '~/utils/profession';
+import { navigateToProfessionPage } from '~/utils/professionNav';
 import { areaList } from './areaData.js';
 
 Page({
@@ -22,7 +24,10 @@ Page({
       addressText: '',
       bio: '',
       photos: [],
+      professionCodes: [],
     },
+    professionText: '请选择',
+    professionOptions: [],
     genderOptions: [
       { label: '男', value: 0 },
       { label: '女', value: 1 },
@@ -43,20 +48,60 @@ Page({
     saving: false,
   },
 
+  onShow() {
+    this.loadProfessionSummary();
+  },
+
+  async loadProfessionSummary() {
+    try {
+      const info = await fetchPersonalInfo();
+      const professionCodes = info.professionCodes || [];
+      this.setData({
+        'personInfo.professionCodes': professionCodes
+      }, () => this.syncProfessionText());
+    } catch (e) {
+      // ignore
+    }
+  },
+
   onLoad() {
     this.initAreaData();
+    this.loadProfessionOptions();
     this.loadPersonalInfo();
+  },
+
+  async loadProfessionOptions() {
+    try {
+      const professionOptions = await fetchProfessionOptions();
+      this.setData({ professionOptions }, () => this.syncProfessionText());
+    } catch (e) {
+      console.error('[info-edit] 加载职业选项失败', e);
+    }
   },
 
   async loadPersonalInfo() {
     try {
       const info = await fetchPersonalInfo();
       const personInfo = toEditForm(info);
-      this.setData({ personInfo }, () => this.syncAddressText(personInfo));
+      this.setData({ personInfo }, () => {
+        this.syncAddressText(personInfo);
+        this.syncProfessionText();
+      });
     } catch (e) {
       console.error('[info-edit] 加载个人信息失败', e);
       this.onShowToast('#t-toast', e.message || '加载失败');
     }
+  },
+
+  syncProfessionText() {
+    const { personInfo, professionOptions } = this.data;
+    this.setData({
+      professionText: formatProfessionText(personInfo.professionCodes, professionOptions)
+    });
+  },
+
+  goProfessionPage() {
+    navigateToProfessionPage();
   },
 
   syncAddressText(personInfo) {

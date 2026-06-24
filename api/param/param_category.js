@@ -7,10 +7,11 @@ import { SortParams } from './param_base'
  * 分类参数
  */
 export class CategoryParams extends SortParams {
-  constructor(name, categoryId) {
+  constructor(name, categoryId, scope = 'all') {
     super()
     this.name = name
     this.categoryId = categoryId
+    this.scope = scope
   }
   
   // 转换为请求数据
@@ -21,7 +22,8 @@ export class CategoryParams extends SortParams {
       page: this.page,
       limit: this.limit,
       sortField: this.sortField,
-      order: this.order
+      order: this.order,
+      scope: this.scope
     }
   }
 }

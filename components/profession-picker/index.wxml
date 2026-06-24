@@ -1,0 +1,46 @@
+<t-popup
+  visible="{{visible}}"
+  placement="bottom"
+  bind:visible-change="onVisibleChange"
+>
+  <view class="profession-picker">
+    <view class="profession-picker__header">
+      <text class="profession-picker__title">{{title}}</text>
+      <text class="profession-picker__subtitle">{{subtitle}}</text>
+    </view>
+
+    <view wx:if="{{loading}}" class="profession-picker__loading">
+      <t-loading size="40rpx" text="加载职业选项..." />
+    </view>
+
+    <scroll-view wx:else class="profession-picker__list" scroll-y enhanced show-scrollbar="{{false}}">
+      <view
+        wx:for="{{options}}"
+        wx:key="code"
+        class="profession-picker__item {{selectedMap[item.code] ? 'is-active' : ''}}"
+        data-code="{{item.code}}"
+        bindtap="onToggle"
+      >
+        <view class="profession-picker__item-main">
+          <text class="profession-picker__item-label">{{item.label}}</text>
+          <text wx:if="{{item.description}}" class="profession-picker__item-desc">{{item.description}}</text>
+        </view>
+        <t-icon
+          wx:if="{{selectedMap[item.code]}}"
+          name="check-circle-filled"
+          size="40rpx"
+          color="#0052d9"
+        />
+      </view>
+    </scroll-view>
+
+    <view class="profession-picker__footer">
+      <t-button wx:if="{{showSkip}}" variant="outline" theme="default" block bindtap="onSkip">
+        稍后再说
+      </t-button>
+      <t-button theme="primary" block bindtap="onConfirm" disabled="{{!selected.length || saving}}" loading="{{saving}}">
+        确认选择
+      </t-button>
+    </view>
+  </view>
+</t-popup>

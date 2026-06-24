@@ -12,6 +12,11 @@ export const profileApi = {
       loadingText: '保存中...'
     }),
 
+  getProfessionOptions: () =>
+    http.get('/wechat/mini/user/professions', null, {
+      showLoading: false
+    }),
+
   getSettings: () =>
     http.get('/wechat/mini/user/settings', null, {
       showLoading: false
@@ -40,6 +45,7 @@ export function normalizePersonalInfo(raw) {
     birth: raw.birth ?? raw.birthday ?? '',
     address: raw.address || [],
     addressText: raw.addressText ?? '',
-    photos: raw.photos || []
+    photos: raw.photos || [],
+    professionCodes: raw.professionCodes || []
   };
 }

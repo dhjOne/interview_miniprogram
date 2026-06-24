@@ -1,0 +1,90 @@
+<t-toast id="t-toast" />
+
+<view class="profession-page">
+  <image class="profession-page__bg" src="/static/bg_navbar.png" mode="aspectFill" />
+
+  <t-navbar left-arrow title="职业画像" t-class="profession-page__navbar" />
+
+  <view wx:if="{{loading}}" class="profession-page__loading">
+    <t-loading size="48rpx" text="加载中..." />
+  </view>
+
+  <block wx:else>
+    <view class="profession-page__hero">
+      <view class="profession-page__hero-badge">{{fromLogin ? '欢迎加入' : '个性化推荐'}}</view>
+      <text class="profession-page__hero-title">{{fromLogin ? '先认识一下你的方向' : '定义你的职业方向'}}</text>
+      <text class="profession-page__hero-desc">{{summaryText}}</text>
+
+      <view wx:if="{{selectedCount > 0}}" class="profession-page__chips">
+        <view wx:for="{{selectedLabels}}" wx:key="*this" class="profession-page__chip">
+          {{item}}
+        </view>
+        <view class="profession-page__chip profession-page__chip--ghost" bindtap="onClearAll">
+          清空
+        </view>
+      </view>
+    </view>
+
+    <view class="profession-page__panel">
+      <view class="profession-page__panel-head">
+        <text class="profession-page__panel-title">选择方向</text>
+        <text class="profession-page__panel-tip">可多选 · 已选 {{selectedCount}} 项</text>
+      </view>
+
+      <view class="profession-page__grid">
+        <view
+          wx:for="{{options}}"
+          wx:key="code"
+          class="profession-card {{selectedMap[item.code] ? 'is-active' : ''}}"
+          style="--card-color: {{item.color}}; --card-bg: {{item.bg}}; --card-accent: {{item.accent}};"
+          data-code="{{item.code}}"
+          bindtap="onToggle"
+          hover-class="profession-card--hover"
+        >
+          <view class="profession-card__icon-wrap">
+            <t-icon name="{{item.icon}}" size="44rpx" color="{{item.color}}" />
+          </view>
+          <text class="profession-card__label">{{item.label}}</text>
+          <text class="profession-card__desc">{{item.description}}</text>
+          <view wx:if="{{selectedMap[item.code]}}" class="profession-card__check">
+            <t-icon name="check" size="24rpx" color="#fff" />
+          </view>
+        </view>
+      </view>
+
+      <view class="profession-page__hint">
+        <t-icon name="tips" size="32rpx" color="#64748b" />
+        <text>保存后，题库页「我的职业」将按你的方向推荐分类；也可随时回来调整。</text>
+      </view>
+    </view>
+  </block>
+
+  <view class="profession-page__footer">
+    <view class="profession-page__footer-meta">
+      <text class="profession-page__footer-count">{{selectedCount > 0 ? '已选 ' + selectedCount + ' 个方向' : '请选择至少 1 个方向'}}</text>
+    </view>
+    <view class="profession-page__footer-actions">
+      <t-button
+        wx:if="{{fromLogin}}"
+        variant="outline"
+        theme="default"
+        block
+        size="large"
+        disabled="{{saving}}"
+        bindtap="onSkip"
+      >
+        稍后再说
+      </t-button>
+      <t-button
+        theme="primary"
+        block
+        size="large"
+        loading="{{saving}}"
+        disabled="{{saving || selectedCount === 0}}"
+        bindtap="onSave"
+      >
+        保存职业画像
+      </t-button>
+    </view>
+  </view>
+</view>

@@ -22,8 +22,7 @@ export class CategoryParams extends SortParams {
       page: this.page,
       limit: this.limit,
       sortField: this.sortField,
-      order: this.order,
-      scope: this.scope
+      order: this.order
     }
   }
 }

@@ -11,7 +11,7 @@
       <view class="category-scope">
         <view class="category-scope__copy">
           <text class="category-scope__title">题库推荐</text>
-          <text class="category-scope__desc">{{categoryScope === 'career' ? '按你选择的职业展示' : (hasProfession ? '展示全部题库分类' : '未选择职业，展示全部分类')}}</text>
+          <text class="category-scope__desc">{{categoryScope === 'career' ? '按你选择的职业展示' : (isLoggedIn ? (hasProfession ? '展示全部题库分类' : '未选择职业，展示全部分类') : '未登录，展示全部分类')}}</text>
         </view>
         <view class="category-scope__tabs">
           <view

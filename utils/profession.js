@@ -15,6 +15,18 @@ const PROFESSION_META = {
 
 const DEFAULT_META = { icon: 'user', color: '#64748b', bg: 'rgba(100, 116, 139, 0.12)', accent: '#94a3b8' };
 
+function pickText(...values) {
+  const value = values.find((item) => item !== undefined && item !== null && String(item).trim() !== '');
+  return value === undefined ? '' : String(value);
+}
+
+function normalizeProfessionOption(item = {}) {
+  const code = pickText(item.code, item.value, item.professionCode, item.dictValue, item.key, item.id);
+  const label = pickText(item.label, item.name, item.professionName, item.title, item.text, code);
+  const description = pickText(item.description, item.desc, item.remark);
+  return { ...item, code, label, description };
+}
+
 export async function fetchProfessionOptions(forceRefresh = false) {
   if (!forceRefresh && cachedOptions) {
     return cachedOptions;
@@ -26,18 +38,29 @@ export async function fetchProfessionOptions(forceRefresh = false) {
 }
 
 export function decorateProfessionOptions(options) {
-  return (options || []).map((item) => {
-    const meta = PROFESSION_META[item.code] || DEFAULT_META;
-    return { ...item, ...meta };
-  });
+  return (options || [])
+    .map((item) => {
+      const option = normalizeProfessionOption(item);
+      if (!option.code) {
+        return null;
+      }
+      const meta = PROFESSION_META[option.code] || DEFAULT_META;
+      return { ...option, ...meta };
+    })
+    .filter(Boolean);
 }
 
 export function formatProfessionText(codes, options) {
-  const selected = Array.isArray(codes) ? codes : [];
+  const selected = Array.isArray(codes) ? codes.map((code) => pickText(code)).filter(Boolean) : [];
   if (!selected.length) {
     return '请选择';
   }
-  const labelMap = Object.fromEntries((options || []).map((item) => [item.code, item.label]));
+  const labelMap = Object.fromEntries(
+    (options || [])
+      .map((item) => normalizeProfessionOption(item))
+      .filter((item) => item.code)
+      .map((item) => [item.code, item.label])
+  );
   return selected.map((code) => labelMap[code] || code).join('、');
 }
 

@@ -49,6 +49,8 @@ const LIST_ICON_BGS = [
   'rgba(5, 150, 105, 0.08)'
 ];
 
+const CATEGORY_SCOPE_INTENT_KEY = 'category_pending_scope';
+
 function hashSeed(value) {
   const str = String(value ?? '');
   let hash = 0;
@@ -105,6 +107,7 @@ Page({
     currentCategoryCount: 0,
     categoryLoading: false,
     categoryScope: 'all',
+    isLoggedIn: false,
     hasProfession: false,
     categoryScopeTabs: [
       { label: '我的职业', value: 'career' },
@@ -112,10 +115,10 @@ Page({
     ]
   },
 
-  onLoad() {
+  onLoad(options = {}) {
     console.log('页面加载开始');
     this.calculateNavBarHeight();
-    this.initCategoryScope().finally(() => this.loadCategories());
+    this.initCategoryScope(options.scope).finally(() => this.loadCategories());
 
     app.on('refreshQuestionBank', this.handleRefresh.bind(this));
   },
@@ -133,9 +136,9 @@ Page({
     }
   },
 
-  onShow() {
+  async onShow() {
     console.log('页面显示');
-    this.refreshProfessionScope(false);
+    await this.refreshProfessionScope(false);
     const now = Date.now();
     const shouldRefresh =
       this.data.needRefresh ||
@@ -172,15 +175,31 @@ Page({
     }
   },
 
-  async initCategoryScope() {
-    await this.refreshProfessionScope(true);
+  async initCategoryScope(scope) {
+    await this.refreshProfessionScope(true, scope);
   },
 
-  async refreshProfessionScope(isInit = false) {
+  consumePendingCategoryScope(scope) {
+    if (scope === 'career') {
+      return 'career';
+    }
+    try {
+      const pendingScope = wx.getStorageSync(CATEGORY_SCOPE_INTENT_KEY);
+      if (pendingScope) {
+        wx.removeStorageSync(CATEGORY_SCOPE_INTENT_KEY);
+      }
+      return pendingScope === 'career' ? 'career' : '';
+    } catch (error) {
+      return '';
+    }
+  },
+
+  async refreshProfessionScope(isInit = false, scope) {
+    const preferredScope = this.consumePendingCategoryScope(scope);
     const token = wx.getStorageSync('access_token');
     if (!token) {
-      if (this.data.categoryScope !== 'all' || this.data.hasProfession) {
-        this.setData({ categoryScope: 'all', hasProfession: false });
+      if (this.data.categoryScope !== 'all' || this.data.hasProfession || this.data.isLoggedIn) {
+        this.setData({ categoryScope: 'all', isLoggedIn: false, hasProfession: false });
       }
       return;
     }
@@ -188,10 +207,10 @@ Page({
     try {
       const info = await fetchPersonalInfo();
       const hasProfession = hasProfessionSelected(info.professionCodes);
-      const patch = { hasProfession };
+      const patch = { isLoggedIn: true, hasProfession };
       if (!hasProfession) {
         patch.categoryScope = 'all';
-      } else if (isInit && this.data.categoryScope === 'all') {
+      } else if (preferredScope === 'career' || (isInit && this.data.categoryScope === 'all')) {
         patch.categoryScope = 'career';
       }
       const scopeChanged = patch.categoryScope !== undefined && patch.categoryScope !== this.data.categoryScope;
@@ -201,8 +220,8 @@ Page({
       }
     } catch (error) {
       console.warn('[category] 读取职业信息失败，默认展示全部分类', error);
-      if (this.data.categoryScope !== 'all') {
-        this.setData({ categoryScope: 'all', hasProfession: false });
+      if (this.data.categoryScope !== 'all' || this.data.isLoggedIn || this.data.hasProfession) {
+        this.setData({ categoryScope: 'all', isLoggedIn: false, hasProfession: false });
       }
     }
   },
@@ -428,19 +447,30 @@ Page({
     if (!scope || scope === this.data.categoryScope) {
       return;
     }
-    if (scope === 'career' && !this.data.hasProfession) {
-      wx.showModal({
-        title: '尚未选择职业',
-        content: '设置职业方向后，可查看更匹配的题库分类推荐。',
-        confirmText: '去设置',
-        cancelText: '先看全部',
-        success: (res) => {
-          if (res.confirm) {
-            navigateToProfessionPage();
-          }
+    if (scope === 'career') {
+      if (!wx.getStorageSync('access_token')) {
+        try {
+          wx.setStorageSync(CATEGORY_SCOPE_INTENT_KEY, 'career');
+        } catch (error) {
+          // ignore
         }
-      });
-      return;
+        app.navigateToLogin({ url: '/pages/category/index' });
+        return;
+      }
+      if (!this.data.hasProfession) {
+        wx.showModal({
+          title: '尚未选择职业',
+          content: '设置职业方向后，可查看更匹配的题库分类推荐。',
+          confirmText: '去设置',
+          cancelText: '先看全部',
+          success: (res) => {
+            if (res.confirm) {
+              navigateToProfessionPage();
+            }
+          }
+        });
+        return;
+      }
     }
     this.setData({
       categoryScope: scope,

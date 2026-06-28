@@ -178,14 +178,50 @@
   box-sizing: border-box;
 }
 
-.secondary-list {
+.category-hero {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+  padding: 0 4rpx;
+
+  &__name {
+    flex: 1;
+    min-width: 0;
+    font-size: 32rpx;
+    font-weight: 700;
+    color: @cat-ink;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__meta {
+    flex-shrink: 0;
+    font-size: 24rpx;
+    color: @cat-subtle;
+  }
+}
+
+.questions-section {
+  transition: opacity 0.15s ease;
+
+  &--loading {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+}
+
+/* 题目列表：仅图标 + 标题 */
+.questions-list {
   background: #fff;
   border-radius: 16rpx;
   border: 1rpx solid @cat-border;
   overflow: hidden;
 }
 
-.secondary-row {
+.question-row {
   display: flex;
   align-items: center;
   gap: 20rpx;
@@ -223,11 +259,18 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
   }
+}
 
-  &__count {
-    flex-shrink: 0;
-    font-size: 24rpx;
-    color: @cat-subtle;
+.list-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28rpx 0 12rpx;
+  font-size: 24rpx;
+  color: @cat-subtle;
+
+  &--end text {
+    letter-spacing: 1rpx;
   }
 }
 

@@ -26,12 +26,12 @@
         </view>
       </view>
 
-      <view wx:if="{{primaryCategories.length}}" class="category-layout">
+      <view wx:if="{{categories.length}}" class="category-layout">
         <scroll-view class="category-rail" scroll-y show-scrollbar="{{false}}">
-          <block wx:for="{{primaryCategories}}" wx:key="id">
+          <block wx:for="{{categories}}" wx:key="id">
             <view
-              class="category-rail-item {{currentPrimaryId == item.id ? 'is-active' : ''}}"
-              bindtap="switchPrimaryCategory"
+              class="category-rail-item {{currentCategoryId == item.id ? 'is-active' : ''}}"
+              bindtap="switchCategory"
               data-id="{{item.id}}"
               hover-class="category-rail-item--hover"
             >
@@ -44,30 +44,47 @@
           class="category-main-scroll"
           scroll-y
           enable-flex
+          bindscrolltolower="onScrollToLower"
+          refresher-enabled
+          refresher-triggered="{{enable}}"
+          bindrefresherrefresh="onRefresh"
+          lower-threshold="120"
           show-scrollbar="{{false}}"
         >
           <view class="category-main">
-            <view wx:if="{{secondaryCategories.length}}" class="secondary-list">
-              <block wx:for="{{secondaryCategories}}" wx:key="id">
-                <view
-                  class="secondary-row"
-                  bindtap="switchSecondaryCategory"
-                  data-id="{{item.id}}"
-                  data-name="{{item.name}}"
-                  hover-class="secondary-row--hover"
-                >
-                  <view class="secondary-row__icon" style="background: {{item.listIconBg}};">
-                    <t-icon name="{{item.listIconName}}" size="34rpx" color="{{item.listIconColor}}" />
-                  </view>
-                  <text class="secondary-row__title">{{item.name}}</text>
-                  <text wx:if="{{item.count !== undefined && item.count !== null}}" class="secondary-row__count">{{item.count}}</text>
-                </view>
-              </block>
+            <view class="category-hero">
+              <text class="category-hero__name">{{currentCategoryName}}</text>
+              <text class="category-hero__meta">共 {{total > 0 ? total : (currentCategoryCount || 0)}} 题</text>
             </view>
 
-            <view wx:else class="empty-state">
-              <t-icon name="folder-open" size="72rpx" color="#cbd5e1" />
-              <text class="empty-state__title">暂无二级分类</text>
+            <view wx:if="{{currentCategoryId}}" class="questions-section {{categoryLoading ? 'questions-section--loading' : ''}}">
+              <view wx:if="{{currentQuestions.length > 0}}" class="questions-list">
+                <block wx:for="{{currentQuestions}}" wx:key="id">
+                  <view
+                    class="question-row"
+                    hover-class="question-row--hover"
+                    bindtap="onQuestionClick"
+                    data-id="{{item.id}}"
+                  >
+                    <view class="question-row__icon" style="background: {{item.listIconBg}};">
+                      <t-icon name="{{item.listIconName}}" size="34rpx" color="{{item.listIconColor}}" />
+                    </view>
+                    <text class="question-row__title">{{item.name}}</text>
+                  </view>
+                </block>
+
+                <view wx:if="{{isLoadingMore}}" class="list-footer">
+                  <t-loading size="32rpx" text="加载中..." />
+                </view>
+                <view wx:elif="{{!hasMore}}" class="list-footer list-footer--end">
+                  <text>— 已加载全部 —</text>
+                </view>
+              </view>
+
+              <view wx:else class="empty-state">
+                <t-icon name="file-unknown" size="72rpx" color="#cbd5e1" />
+                <text class="empty-state__title">暂无题目</text>
+              </view>
             </view>
           </view>
         </scroll-view>

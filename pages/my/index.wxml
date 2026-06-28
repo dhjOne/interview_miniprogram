@@ -30,20 +30,6 @@
         </view>
       </view>
 
-      <view wx:if="{{isLoad}}" class="my-career-card" hover-class="my-career-card--active" bindtap="onProfessionTap">
-        <view class="my-career-card__icon">
-          <t-icon name="user-setting" size="40rpx" color="#0052d9" />
-        </view>
-        <view class="my-career-card__main">
-          <text class="my-career-card__title">职业画像</text>
-          <text class="my-career-card__desc">{{professionText}}</text>
-        </view>
-        <view class="my-career-card__action">
-          <text>{{hasProfession ? '调整' : '去设置'}}</text>
-          <t-icon name="chevron-right" size="32rpx" color="#94a3b8" />
-        </view>
-      </view>
-
       <view class="my-stats" wx:if="{{isLoad}}">
         <view
           wx:for="{{socialStats}}"

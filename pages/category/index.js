@@ -5,6 +5,7 @@ import { QuestionParams } from '~/api/param/param_category';
 import { fetchPersonalInfo } from '~/utils/userProfile';
 import { hasProfessionSelected } from '~/utils/profession';
 import { navigateToProfessionPage } from '~/utils/professionNav';
+import { getLocalSettings } from '~/utils/userSettings';
 
 const app = getApp();
 
@@ -180,15 +181,15 @@ Page({
   },
 
   consumePendingCategoryScope(scope) {
-    if (scope === 'career') {
-      return 'career';
+    if (scope === 'career' || scope === 'all') {
+      return scope;
     }
     try {
       const pendingScope = wx.getStorageSync(CATEGORY_SCOPE_INTENT_KEY);
       if (pendingScope) {
         wx.removeStorageSync(CATEGORY_SCOPE_INTENT_KEY);
       }
-      return pendingScope === 'career' ? 'career' : '';
+      return pendingScope === 'career' || pendingScope === 'all' ? pendingScope : '';
     } catch (error) {
       return '';
     }
@@ -208,9 +209,9 @@ Page({
       const info = await fetchPersonalInfo();
       const hasProfession = hasProfessionSelected(info.professionCodes);
       const patch = { isLoggedIn: true, hasProfession };
-      if (!hasProfession) {
+      if (!hasProfession || preferredScope === 'all') {
         patch.categoryScope = 'all';
-      } else if (preferredScope === 'career' || (isInit && this.data.categoryScope === 'all')) {
+      } else if (preferredScope === 'career' || (isInit && getLocalSettings().defaultQuestionScope === 'career')) {
         patch.categoryScope = 'career';
       }
       const scopeChanged = patch.categoryScope !== undefined && patch.categoryScope !== this.data.categoryScope;

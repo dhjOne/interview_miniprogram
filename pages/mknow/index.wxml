@@ -135,7 +135,10 @@
   </view>
 
   <view class="mknow-composer-spacer" style="height: {{keyboardHeight}}px" />
-  <view class="mknow-composer" style="margin-bottom: {{keyboardHeight}}px">
+  <view
+    class="mknow-composer {{keyboardHeight ? 'mknow-composer--keyboard' : ''}}"
+    style="margin-bottom: {{keyboardHeight}}px"
+  >
     <view class="mknow-composer__card">
       <view class="mknow-composer__actions">
         <view

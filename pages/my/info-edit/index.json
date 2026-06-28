@@ -2,6 +2,7 @@
   "navigationStyle": "custom",
   "usingComponents": {
     "t-navbar": "/miniprogram_npm/tdesign-miniprogram/navbar/navbar",
+    "t-icon": "/miniprogram_npm/tdesign-miniprogram/icon/icon",
     "t-input": "/miniprogram_npm/tdesign-miniprogram/input/input",
     "t-cell": "/miniprogram_npm/tdesign-miniprogram/cell/cell",
     "t-radio": "/miniprogram_npm/tdesign-miniprogram/radio/radio",
@@ -12,6 +13,7 @@
     "t-picker": "/miniprogram_npm/tdesign-miniprogram/picker/picker",
     "t-picker-item": "/miniprogram_npm/tdesign-miniprogram/picker-item/picker-item",
     "t-date-time-picker": "/miniprogram_npm/tdesign-miniprogram/date-time-picker/date-time-picker",
-    "t-toast": "/miniprogram_npm/tdesign-miniprogram/toast/toast"
+    "t-toast": "/miniprogram_npm/tdesign-miniprogram/toast/toast",
+    "profession-picker": "/components/profession-picker/index"
   }
 }

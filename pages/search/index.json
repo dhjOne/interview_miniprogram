@@ -1,6 +1,7 @@
 {
   "navigationStyle": "custom",
   "usingComponents": {
+    "t-message": "tdesign-miniprogram/message/message",
     "t-navbar": "tdesign-miniprogram/navbar/navbar",
     "t-search": "/miniprogram_npm/tdesign-miniprogram/search/search",
     "t-icon": "/miniprogram_npm/tdesign-miniprogram/icon/icon",

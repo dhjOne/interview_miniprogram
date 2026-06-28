@@ -1,5 +1,6 @@
 <t-navbar title="搜索" left-arrow />
 <view class="page search-page">
+  <t-message id="t-message" />
   <view class="search-input">
     <t-search
       t-class-input-container="t-class__input-container"

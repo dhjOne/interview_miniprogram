@@ -1,107 +1,164 @@
 @login-brand: #2047c9;
 @login-brand-dark: #183899;
-@login-page-bg: #f3f5f9;
+@login-accent: #00b8d9;
+@login-page-bg: #eef4ff;
 @login-text: rgba(0, 0, 0, 0.88);
 @login-muted: rgba(0, 0, 0, 0.45);
+
+page {
+  background-color: @login-page-bg;
+  background:
+    radial-gradient(circle at 82% 10%, rgba(32, 71, 201, 0.12) 0, rgba(32, 71, 201, 0) 260rpx),
+    linear-gradient(180deg, #f8fbff 0%, @login-page-bg 46%, #f5f7fb 100%);
+}
 
 .page.login {
   min-height: 100vh;
   box-sizing: border-box;
-  background: @login-page-bg;
+  position: relative;
+  overflow: hidden;
+  background: transparent;
   padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
 }
 
 .login-navbar {
   --td-navbar-bg-color: transparent;
+  --td-navbar-color: transparent;
+  --td-navbar-border-color: transparent;
+  background: transparent !important;
+  border-bottom: 0 !important;
+  box-shadow: none !important;
 }
 
-/* 导航左侧区域：与状态栏/胶囊按钮对齐，避免贴边、贴顶 */
+.login-navbar::after {
+  display: none !important;
+}
+
+/* 顶部导航与页面背景融合，避免和微信右上角胶囊区形成割裂 */
 .login-navbar-left {
   display: flex !important;
   flex-direction: row !important;
   align-items: center !important;
   justify-content: flex-start !important;
-  padding-left: 12rpx !important;
+  padding-left: 14rpx !important;
   box-sizing: border-box;
 }
 
 .login {
+  &__bg-orb {
+    position: absolute;
+    z-index: 0;
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(2rpx);
+  }
+
+  &__bg-orb--primary {
+    width: 280rpx;
+    height: 280rpx;
+    top: 78rpx;
+    right: -150rpx;
+    background: rgba(0, 184, 217, 0.09);
+  }
+
   &__hero {
-    /* 整体下移：原 24rpx 顶距过紧，与导航区拉开 */
-    padding: 72rpx 40rpx 44rpx;
-    margin-top: 12rpx;
+    position: relative;
+    z-index: 1;
+    padding: 78rpx 40rpx 20rpx;
+    margin-top: 0;
     display: flex;
     flex-direction: row;
-    align-items: center;
+    align-items: flex-end;
+    justify-content: space-between;
     gap: 28rpx;
   }
 
-  /* 首版品牌化：纯 CSS 竖向胶囊条（无图片） */
-  &__brand-mark {
+  &__ai-mark {
     flex-shrink: 0;
-    padding-top: 0;
-    align-self: center;
+    width: 108rpx;
+    height: 108rpx;
+    border-radius: 32rpx;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2rpx;
+    color: #fff;
+    background: linear-gradient(150deg, #4a7df0 0%, @login-brand 56%, @login-brand-dark 100%);
+    box-shadow: 0 16rpx 34rpx rgba(32, 71, 201, 0.2);
   }
 
-  &__brand-pill {
-    width: 88rpx;
-    height: 112rpx;
-    border-radius: 44rpx;
-    background: linear-gradient(165deg, #4a7df0 0%, @login-brand 48%, @login-brand-dark 100%);
-    box-shadow: 0 10rpx 28rpx rgba(32, 71, 201, 0.28);
-    position: relative;
-    overflow: hidden;
+  &__ai-mark-main {
+    font-size: 30rpx;
+    font-weight: 800;
+    letter-spacing: 1rpx;
+    line-height: 1.1;
   }
 
-  &__brand-pill::after {
-    content: '';
-    position: absolute;
-    left: 18%;
-    right: 18%;
-    top: 22%;
-    bottom: 38%;
-    border-radius: 20rpx;
-    background: rgba(255, 255, 255, 0.22);
+  &__ai-mark-sub {
+    font-size: 18rpx;
+    font-weight: 600;
+    opacity: 0.78;
+    line-height: 1.1;
   }
 
-  &__brand-block {
+  &__hero-copy {
     flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 12rpx;
-    padding-top: 0;
-    justify-content: center;
+    gap: 14rpx;
+  }
+
+  &__eyebrow {
+    align-self: flex-start;
+    display: flex;
+    align-items: center;
+    gap: 8rpx;
+    padding: 8rpx 16rpx;
+    border-radius: 999rpx;
+    color: @login-brand;
+    font-size: 22rpx;
+    font-weight: 700;
+    letter-spacing: 1rpx;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1rpx solid rgba(32, 71, 201, 0.12);
+    backdrop-filter: blur(16rpx);
+  }
+
+  &__eyebrow-dot {
+    width: 12rpx;
+    height: 12rpx;
+    border-radius: 50%;
+    background: @login-accent;
+    box-shadow: 0 0 0 7rpx rgba(0, 184, 217, 0.12);
   }
 
   &__brand-name {
-    font-size: 52rpx;
-    font-weight: 700;
+    font-size: 58rpx;
+    font-weight: 800;
     color: @login-text;
     letter-spacing: 2rpx;
-    line-height: 1.2;
-  }
-
-  &__brand-welcome {
-    font-size: 30rpx;
-    font-weight: 500;
-    color: @login-muted;
-    line-height: 1.4;
+    line-height: 1.12;
   }
 
   &__brand-desc {
-    font-size: 24rpx;
-    color: rgba(0, 0, 0, 0.38);
-    line-height: 38rpx;
+    max-width: 500rpx;
+    font-size: 26rpx;
+    color: rgba(0, 0, 0, 0.54);
+    line-height: 42rpx;
   }
 
   &__sheet {
-    margin: 20rpx 28rpx 0;
+    position: relative;
+    z-index: 1;
+    margin: 8rpx 28rpx 0;
     padding: 36rpx 28rpx 40rpx;
-    background: #fff;
-    border-radius: 24rpx;
-    box-shadow: 0 4rpx 32rpx rgba(0, 0, 0, 0.06);
-    border: 1rpx solid rgba(0, 0, 0, 0.04);
+    background: rgba(255, 255, 255, 0.94);
+    border-radius: 28rpx;
+    box-shadow: 0 18rpx 44rpx rgba(32, 71, 201, 0.1);
+    border: 1rpx solid rgba(255, 255, 255, 0.86);
+    backdrop-filter: blur(16rpx);
   }
 
   &__sheet-title {
@@ -284,19 +341,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 76rpx;
-  height: 76rpx;
-  min-width: 76rpx;
-  min-height: 76rpx;
+  width: 68rpx;
+  height: 68rpx;
+  min-width: 68rpx;
+  min-height: 68rpx;
   padding: 0;
   margin: 0;
   box-sizing: border-box;
-  border-radius: 38rpx;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1rpx solid rgba(0, 0, 0, 0.06);
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
+  border-radius: 34rpx;
+  background: rgba(255, 255, 255, 0.42);
+  border: 1rpx solid rgba(32, 71, 201, 0.08);
+  box-shadow: 0 6rpx 18rpx rgba(32, 71, 201, 0.08);
+  backdrop-filter: blur(14rpx);
 }
 
 .login-nav-back:active {
-  opacity: 0.82;
+  background: rgba(255, 255, 255, 0.62);
+  opacity: 0.9;
 }

@@ -1,10 +1,16 @@
 <t-navbar title="设置" left-arrow />
 <view class="setting">
+  <view class="setting__hero">
+    <text class="setting__hero-title">面试助手设置</text>
+    <text class="setting__hero-desc">围绕题库推荐、AI 答疑和练习记录做个性化配置</text>
+  </view>
+
   <t-cell-group wx:for="{{menuData}}" wx:for-item="group" wx:key="index" t-class="cell-group-class" theme="card">
     <block wx:for="{{group}}" wx:for-item="item" wx:key="type">
       <t-cell
         wx:if="{{item.switchable}}"
         title="{{item.title}}"
+        description="{{item.desc}}"
         bordered="{{true}}"
         leftIcon="{{item.icon}}"
       >
@@ -19,7 +25,8 @@
       <t-cell
         wx:else
         title="{{item.title}}"
-        note="{{item.noteKey ? (item.noteKey === 'darkMode' ? (settings.darkMode === 'system' ? '跟随系统' : (settings.darkMode === 'light' ? '浅色模式' : '深色模式')) : (settings.fontScale === 'small' ? '小' : (settings.fontScale === 'large' ? '大' : '标准'))) : ''}}"
+        description="{{item.desc}}"
+        note="{{item.noteKey ? (item.noteKey === 'defaultQuestionScope' ? (settings.defaultQuestionScope === 'all' ? '展示全部题库' : '我的职业优先') : historyCount + ' 条') : ''}}"
         hover
         arrow="{{item.type !== 'logout'}}"
         leftIcon="{{item.icon}}"
@@ -32,31 +39,17 @@
 </view>
 
 <t-picker
-  visible="{{darkModeVisible}}"
-  title="深色模式"
+  visible="{{questionScopeVisible}}"
+  title="题库默认展示"
   cancelBtn="取消"
   confirmBtn="确认"
-  data-mode="darkMode"
+  data-mode="questionScope"
   bind:cancel="hidePicker"
   bind:close="hidePicker"
-  bind:change="onDarkModePick"
-  value="{{[settings.darkMode]}}"
+  bind:change="onQuestionScopePick"
+  value="{{[settings.defaultQuestionScope]}}"
 >
-  <t-picker-item options="{{darkModeOptions}}" />
-</t-picker>
-
-<t-picker
-  visible="{{fontScaleVisible}}"
-  title="字体大小"
-  cancelBtn="取消"
-  confirmBtn="确认"
-  data-mode="fontScale"
-  bind:cancel="hidePicker"
-  bind:close="hidePicker"
-  bind:change="onFontScalePick"
-  value="{{[settings.fontScale]}}"
->
-  <t-picker-item options="{{fontScaleOptions}}" />
+  <t-picker-item options="{{questionScopeOptions}}" />
 </t-picker>
 
 <t-toast id="t-toast" />

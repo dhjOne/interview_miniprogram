@@ -1,18 +1,25 @@
 <t-navbar fixed="{{true}}" t-class="login-navbar" t-class-left="login-navbar-left">
   <view slot="left" class="login-nav-back" catchtap="goBack" aria-role="button" aria-label="返回">
-    <t-icon name="chevron-left" size="40rpx" color="rgba(0,0,0,0.78)" />
+    <t-icon name="chevron-left" size="38rpx" color="rgba(24,56,153,0.86)" />
   </view>
 </t-navbar>
 
 <view class="page login">
+  <view class="login__bg-orb login__bg-orb--primary" />
+
   <view class="login__hero">
-    <view class="login__brand-mark" aria-hidden="true">
-      <view class="login__brand-pill" />
-    </view>
-    <view class="login__brand-block">
+    <view class="login__hero-copy">
+      <view class="login__eyebrow">
+        <view class="login__eyebrow-dot" />
+        <text>AI 面试陪练</text>
+      </view>
       <text class="login__brand-name">面试胶囊</text>
-      <text class="login__brand-welcome">欢迎登录</text>
-      <text class="login__brand-desc">用手机号验证，安全进入你的学习与面试记录</text>
+      <text class="login__brand-desc">登录后，Agent 会结合你的职业方向，陪你练题、追问薄弱点，并给出复盘建议。</text>
+    </view>
+
+    <view class="login__ai-mark" aria-hidden="true">
+      <text class="login__ai-mark-main">AI</text>
+      <text class="login__ai-mark-sub">Agent</text>
     </view>
   </view>
 

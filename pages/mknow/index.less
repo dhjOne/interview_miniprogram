@@ -5,13 +5,15 @@
 @mknow-brand-mid: #366ef4;
 @mknow-brand-end: #00a870;
 @mknow-ink: #0f172a;
+@mknow-composer-reserve: 260rpx;
 
 .mknow-page {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: calc(100vh - @tab-bar-height - constant(safe-area-inset-bottom));
+  height: calc(100vh - @tab-bar-height - env(safe-area-inset-bottom));
+  min-height: 0;
   box-sizing: border-box;
-  padding-bottom: calc(@tab-bar-height + env(safe-area-inset-bottom));
   background: var(--td-bg-color-page, #f5f5f5);
   --td-navbar-bg-color: transparent;
 
@@ -32,7 +34,7 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
-    padding: 0 24rpx 236rpx;
+    padding: 0 24rpx @mknow-composer-reserve;
     box-sizing: border-box;
   }
 }
@@ -41,7 +43,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 12rpx;
-  margin: 12rpx 24rpx 0;
+  margin: 12rpx 0 16rpx;
 }
 
 .mknow-ai-quota__item {
@@ -225,10 +227,13 @@
 
 .mknow-welcome {
   flex: 1;
-  padding-top: 84rpx;
+  min-height: 0;
+  padding-top: 56rpx;
+  overflow: auto;
+  box-sizing: border-box;
 
   &__section {
-    margin-top: 48rpx;
+    margin-top: 40rpx;
   }
 
   &__label {
@@ -243,7 +248,7 @@
     display: flex;
     align-items: flex-start;
     gap: 12rpx;
-    margin-top: 40rpx;
+    margin-top: 32rpx;
     padding: 20rpx 24rpx;
     border-radius: 16rpx;
     background: rgba(0, 82, 217, 0.06);
@@ -336,15 +341,15 @@
 
 .mknow-chat {
   flex: 1;
-  height: calc(100vh - @nav-bar-height - @tab-bar-height - 300rpx);
-  min-height: 320rpx;
+  height: 0;
+  min-height: 0;
 }
 
 .mknow-messages {
   display: flex;
   flex-direction: column;
   gap: 28rpx;
-  padding: 16rpx 0 24rpx;
+  padding: 16rpx 0 32rpx;
 }
 
 .mknow-msg {
@@ -497,11 +502,16 @@
   position: fixed;
   left: 0;
   right: 0;
-  bottom: @tab-bar-height;
-  z-index: 10;
+  bottom: calc(@tab-bar-height + constant(safe-area-inset-bottom));
+  bottom: calc(@tab-bar-height + env(safe-area-inset-bottom));
+  z-index: 100;
   padding: 0 20rpx 12rpx;
   box-sizing: border-box;
   background: linear-gradient(180deg, transparent 0%, rgba(245, 245, 245, 0.96) 28%);
+
+  &--keyboard {
+    bottom: 0;
+  }
 
   &__card {
     padding: 16rpx 16rpx 14rpx;

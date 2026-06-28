@@ -1,6 +1,7 @@
 import { practiceApi } from '~/api/request/api_practice';
 import { authApi } from '~/api/request/api_question';
 import { recordQuestionBrowse } from '~/utils/questionBrowseHistory';
+import { getLocalSettings } from '~/utils/userSettings';
 
 function hasLoginToken() {
   try {
@@ -26,6 +27,7 @@ function pickRows(payload) {
  */
 export async function trackQuestionBrowse(question) {
   if (!question || question.id == null) return;
+  if (getLocalSettings().autoRecordPractice === false) return;
 
   recordQuestionBrowse({
     id: question.id,

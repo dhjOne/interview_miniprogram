@@ -32,7 +32,8 @@
       "root": "pages/search",
       "name": "search",
       "pages": [
-        "index"
+        "index",
+        "result/index"
       ]
     },
     {

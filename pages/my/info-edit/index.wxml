@@ -1,60 +1,78 @@
 <t-navbar left-arrow title="个人信息" />
 <view class="info-edit">
-  <view class="info-edit__avatar-row">
-    <text class="info-edit__avatar-label">头像</text>
+  <view class="info-edit__hero">
     <button class="info-edit__avatar-btn" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">
       <image class="info-edit__avatar-img" src="{{personInfo.avatar || '/static/avatar1.png'}}" mode="aspectFill" />
-      <text class="info-edit__avatar-tip">点击更换</text>
+      <view class="info-edit__avatar-mask">
+        <t-icon name="camera" size="30rpx" color="#fff" />
+      </view>
     </button>
+    <view class="info-edit__hero-main">
+      <text class="info-edit__hero-title">{{personInfo.nickname || '完善个人信息'}}</text>
+      <text class="info-edit__hero-desc">{{professionText === '请选择' ? '补充资料后，主页展示会更完整' : professionText}}</text>
+    </view>
   </view>
 
-  <t-cell class="info-edit__cell" title="昵称">
-    <t-input
-      bind:change="onNicknameChange"
-      borderless
-      placeholder="请输入昵称"
-      slot="note"
-      value="{{personInfo.nickname}}"
-    />
-  </t-cell>
-  <t-cell class="info-edit__cell" title="性别">
-    <t-radio-group
-      bind:change="onGenderChange"
-      borderless
-      options="{{genderOptions}}"
-      slot="note"
-      t-class="info-edit__gender"
-      value="{{personInfo.gender}}"
-    />
-  </t-cell>
-  <t-cell arrow bind:click="showPicker" data-mode="birth" note="{{personInfo.birth || '请选择'}}" title="生日" />
-  <t-cell arrow bind:click="showPicker" data-mode="address" note="{{personInfo.addressText || '请选择'}}" title="地址" />
-  <t-cell arrow bind:click="goProfessionPage" note="{{professionText}}" title="职业方向" />
-  <t-cell class="info-edit__cell" title="个人简介">
-    <t-textarea
-      bind:blur="onBioChange"
-      disableDefaultPadding="{{true}}"
-      indicator
-      maxcharacter="200"
-      placeholder="请输入个人简介"
-      slot="note"
-      t-class="info-edit__introduction"
-      value="{{personInfo.bio}}"
-    />
-  </t-cell>
-  <t-cell bordered="{{false}}" class="info-edit__cell" title="相片墙">
-    <t-upload
-      bind:drop="onPhotosDrop"
-      bind:remove="onPhotosRemove"
-      bind:success="onPhotosSuccess"
-      draggable
-      files="{{personInfo.photos}}"
-      gridConfig="{{gridConfig}}"
-      media-type="{{ ['image'] }}"
-      slot="note"
-      t-class="info-edit__photos"
-    />
-  </t-cell>
+  <view class="info-edit__card">
+    <view class="info-edit__section-head">
+      <text class="info-edit__section-title">基础资料</text>
+      <text class="info-edit__section-desc">头像、昵称会展示在个人主页中</text>
+    </view>
+    <t-cell class="info-edit__cell" title="昵称">
+      <t-input
+        bind:change="onNicknameChange"
+        borderless
+        placeholder="请输入昵称"
+        slot="note"
+        value="{{personInfo.nickname}}"
+      />
+    </t-cell>
+    <t-cell class="info-edit__cell" title="性别">
+      <t-radio-group
+        bind:change="onGenderChange"
+        borderless
+        options="{{genderOptions}}"
+        slot="note"
+        t-class="info-edit__gender"
+        value="{{personInfo.gender}}"
+      />
+    </t-cell>
+    <t-cell arrow bind:click="showPicker" data-mode="birth" note="{{personInfo.birth || '请选择'}}" title="生日" />
+    <t-cell arrow bind:click="showPicker" data-mode="address" note="{{personInfo.addressText || '请选择'}}" title="地址" />
+    <t-cell arrow bordered="{{false}}" bind:click="showProfessionPicker" note="{{professionText}}" title="职业方向" />
+  </view>
+
+  <view class="info-edit__card">
+    <view class="info-edit__section-head">
+      <text class="info-edit__section-title">个人展示</text>
+      <text class="info-edit__section-desc">一句话介绍自己，也可以补充相片墙</text>
+    </view>
+    <t-cell class="info-edit__cell" title="个人简介">
+      <t-textarea
+        bind:blur="onBioChange"
+        disableDefaultPadding="{{true}}"
+        indicator
+        maxcharacter="200"
+        placeholder="请输入个人简介"
+        slot="note"
+        t-class="info-edit__introduction"
+        value="{{personInfo.bio}}"
+      />
+    </t-cell>
+    <t-cell bordered="{{false}}" class="info-edit__cell" title="相片墙">
+      <t-upload
+        bind:drop="onPhotosDrop"
+        bind:remove="onPhotosRemove"
+        bind:success="onPhotosSuccess"
+        draggable
+        files="{{personInfo.photos}}"
+        gridConfig="{{gridConfig}}"
+        media-type="{{ ['image'] }}"
+        slot="note"
+        t-class="info-edit__photos"
+      />
+    </t-cell>
+  </view>
 </view>
 
 <view class="info-edit__save">
@@ -98,5 +116,14 @@
   <t-picker-item options="{{provinces}}" />
   <t-picker-item options="{{cities}}" />
 </t-picker>
+
+<profession-picker
+  visible="{{professionPickerVisible}}"
+  value="{{personInfo.professionCodes}}"
+  title="选择职业方向"
+  subtitle="可多选，保存个人信息时一起更新职业方向"
+  bind:confirm="onProfessionConfirm"
+  bind:close="hideProfessionPicker"
+/>
 
 <t-toast id="t-toast" />

@@ -1,16 +1,55 @@
-import request from '~/api/request';
+import Message from 'tdesign-miniprogram/message/index';
+import { searchApi } from '~/api/request/api_search';
+
+const LOCAL_HISTORY_KEY = 'mini_search_history';
+const MAX_LOCAL_HISTORY = 20;
+
+function isLoggedIn() {
+  try {
+    return !!wx.getStorageSync('access_token');
+  } catch (error) {
+    return false;
+  }
+}
+
+function readLocalHistory() {
+  try {
+    const raw = wx.getStorageSync(LOCAL_HISTORY_KEY);
+    return Array.isArray(raw) ? raw.filter(Boolean) : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function writeLocalHistory(words) {
+  try {
+    wx.setStorageSync(LOCAL_HISTORY_KEY, words.slice(0, MAX_LOCAL_HISTORY));
+  } catch (error) {
+    // ignore
+  }
+}
+
+function upsertLocalHistory(keyword) {
+  const value = (keyword || '').trim();
+  if (!value) return readLocalHistory();
+  const words = readLocalHistory().filter((item) => item !== value);
+  words.unshift(value);
+  writeLocalHistory(words);
+  return words.slice(0, MAX_LOCAL_HISTORY);
+}
 
 Page({
   data: {
+    historyItems: [],
     historyWords: [],
     popularWords: [],
     searchValue: '',
     dialog: {
       title: '确认删除当前历史记录',
       showCancelButton: true,
-      message: '',
+      message: ''
     },
-    dialogShow: false,
+    dialogShow: false
   },
 
   deleteType: 0,
@@ -21,103 +60,136 @@ Page({
     this.queryPopular();
   },
 
-  /**
-   * 查询历史记录
-   * @returns {Promise<void>}
-   */
   async queryHistory() {
-    request('/api/searchHistory').then((res) => {
-      const { code, data } = res;
-
-      if (code === 200) {
-        const { historyWords = [] } = data;
-        this.setData({
-          historyWords,
-        });
+    if (isLoggedIn()) {
+      try {
+        const res = await searchApi.getHistory();
+        if (res.code === '0000') {
+          const items = res.data?.items || [];
+          const historyWords = res.data?.historyWords || items.map((item) => item.keyword);
+          this.setData({ historyItems: items, historyWords });
+          return;
+        }
+      } catch (error) {
+        console.warn('[search] 读取服务端历史失败，降级本地缓存', error);
       }
-    });
-  },
-
-  /**
-   * 查询热门搜索
-   * @returns {Promise<void>}
-   */
-  async queryPopular() {
-    request('/api/searchPopular').then((res) => {
-      const { code, data } = res;
-
-      if (code === 200) {
-        const { popularWords = [] } = data;
-        this.setData({
-          popularWords,
-        });
-      }
-    });
-  },
-
-  setHistoryWords(searchValue) {
-    if (!searchValue) return;
-
-    const { historyWords } = this.data;
-    const index = historyWords.indexOf(searchValue);
-
-    if (index !== -1) {
-      historyWords.splice(index, 1);
     }
-    historyWords.unshift(searchValue);
 
+    const historyWords = readLocalHistory();
     this.setData({
-      searchValue,
       historyWords,
+      historyItems: historyWords.map((keyword, index) => ({ id: index, keyword }))
     });
-    // if (searchValue) {
-    //     wx.navigateTo({
-    //         url: `/pages/goods/result/index?searchValue=${searchValue}`,
-    //     });
-    // }
   },
 
-  /**
-   * 清空历史记录的再次确认框
-   * 后期可能需要增加一个向后端请求的接口
-   * @returns {Promise<void>}
-   */
-  confirm() {
-    const { historyWords } = this.data;
+  async queryPopular() {
+    try {
+      const res = await searchApi.getPopular();
+      if (res.code === '0000') {
+        this.setData({
+          popularWords: res.data?.popularWords || []
+        });
+      }
+    } catch (error) {
+      console.warn('[search] 读取热门搜索失败', error);
+    }
+  },
+
+  async persistHistory(keyword) {
+    const value = (keyword || '').trim();
+    if (!value) return;
+
+    if (isLoggedIn()) {
+      try {
+        await searchApi.saveHistory(value);
+        await this.queryHistory();
+        return;
+      } catch (error) {
+        console.warn('[search] 保存服务端历史失败，降级本地缓存', error);
+      }
+    }
+
+    const historyWords = upsertLocalHistory(value);
+    this.setData({
+      historyWords,
+      historyItems: historyWords.map((item, index) => ({ id: index, keyword: item }))
+    });
+  },
+
+  navigateToResult(keyword) {
+    const value = (keyword || '').trim();
+    if (!value) return;
+    wx.navigateTo({
+      url: `/pages/search/result/index?keyword=${encodeURIComponent(value)}`
+    });
+  },
+
+  async setHistoryWords(searchValue) {
+    const value = (searchValue || '').trim();
+    if (!value) return;
+
+    this.setData({ searchValue: value });
+    await this.persistHistory(value);
+    this.navigateToResult(value);
+  },
+
+  async confirm() {
+    const { historyItems } = this.data;
     const { deleteType, deleteIndex } = this;
 
     if (deleteType === 0) {
-      historyWords.splice(deleteIndex, 1);
-      this.setData({
-        historyWords,
-        dialogShow: false,
-      });
-    } else {
-      this.setData({ historyWords: [], dialogShow: false });
+      const item = historyItems[deleteIndex];
+      if (!item) {
+        this.setData({ dialogShow: false });
+        return;
+      }
+
+      if (isLoggedIn() && item.id != null && typeof item.id === 'number' && item.id > 0) {
+        try {
+          await searchApi.deleteHistory(item.id);
+        } catch (error) {
+          Message.error({ context: this, offset: [20, 32], content: '删除失败，请重试' });
+          this.setData({ dialogShow: false });
+          return;
+        }
+      } else {
+        const historyWords = readLocalHistory().filter((_, index) => index !== deleteIndex);
+        writeLocalHistory(historyWords);
+      }
+      await this.queryHistory();
+      this.setData({ dialogShow: false });
+      return;
     }
+
+    if (isLoggedIn()) {
+      try {
+        await searchApi.clearHistory();
+      } catch (error) {
+        Message.error({ context: this, offset: [20, 32], content: '清空失败，请重试' });
+        this.setData({ dialogShow: false });
+        return;
+      }
+    } else {
+      writeLocalHistory([]);
+    }
+
+    await this.queryHistory();
+    this.setData({ dialogShow: false });
   },
 
-  /**
-   * 取消清空历史记录
-   * @returns {Promise<void>}
-   */
   close() {
     this.setData({ dialogShow: false });
   },
 
-  /**
-   * 点击清空历史记录
-   * @returns {Promise<void>}
-   */
   handleClearHistory() {
     const { dialog } = this.data;
     this.deleteType = 1;
     this.setData({
       dialog: {
         ...dialog,
-        message: '确认删除所有历史记录',
+        message: '确认删除所有历史记录'
       },
-      dialogShow: true,
+      dialogShow: true
     });
   },
 
@@ -129,22 +201,16 @@ Page({
     this.setData({
       dialog: {
         ...dialog,
-        message: '确认删除当前历史记录',
+        message: '确认删除当前历史记录'
       },
-      dialogShow: true,
+      dialogShow: true
     });
   },
 
-  /**
-   * 点击关键词跳转搜索
-   * 后期需要增加跳转和后端请求接口
-   * @returns {Promise<void>}
-   */
   handleHistoryTap(e) {
     const { historyWords } = this.data;
     const { index } = e.currentTarget.dataset;
     const searchValue = historyWords[index || 0] || '';
-
     this.setHistoryWords(searchValue);
   },
 
@@ -152,30 +218,17 @@ Page({
     const { popularWords } = this.data;
     const { index } = e.currentTarget.dataset;
     const searchValue = popularWords[index || 0] || '';
-
     this.setHistoryWords(searchValue);
   },
 
-  /**
-   * 提交搜索框内容
-   * 后期需要增加跳转和后端请求接口
-   * @returns {Promise<void>}
-   */
   handleSubmit(e) {
     const { value } = e.detail;
-    if (value.length === 0) return;
-
-    this.setHistoryWords(value);
+    if (!value || !String(value).trim()) return;
+    this.setHistoryWords(String(value).trim());
   },
 
-  /**
-   * 点击取消回到主页
-   * @returns {Promise<void>}
-   */
   actionHandle() {
-    this.setData({
-      searchValue: '',
-    });
-    wx.switchTab({ url: '/pages/home/index' });
-  },
+    this.setData({ searchValue: '' });
+    wx.switchTab({ url: '/pages/category/index' });
+  }
 });

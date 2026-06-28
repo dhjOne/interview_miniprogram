@@ -8,7 +8,6 @@ import {
   toSavePayload
 } from '~/utils/userProfile';
 import { fetchProfessionOptions, formatProfessionText } from '~/utils/profession';
-import { navigateToProfessionPage } from '~/utils/professionNav';
 import { areaList } from './areaData.js';
 
 Page({
@@ -38,6 +37,7 @@ Page({
     birthEnd: '2030-12-31',
     birthFilter: (type, options) => (type === 'year' ? options.sort((a, b) => b.value - a.value) : options),
     addressVisible: false,
+    professionPickerVisible: false,
     provinces: [],
     cities: [],
     gridConfig: {
@@ -46,22 +46,6 @@ Page({
       height: 160,
     },
     saving: false,
-  },
-
-  onShow() {
-    this.loadProfessionSummary();
-  },
-
-  async loadProfessionSummary() {
-    try {
-      const info = await fetchPersonalInfo();
-      const professionCodes = info.professionCodes || [];
-      this.setData({
-        'personInfo.professionCodes': professionCodes
-      }, () => this.syncProfessionText());
-    } catch (e) {
-      // ignore
-    }
   },
 
   onLoad() {
@@ -100,8 +84,20 @@ Page({
     });
   },
 
-  goProfessionPage() {
-    navigateToProfessionPage();
+  showProfessionPicker() {
+    this.setData({ professionPickerVisible: true });
+  },
+
+  hideProfessionPicker() {
+    this.setData({ professionPickerVisible: false });
+  },
+
+  onProfessionConfirm(e) {
+    const professionCodes = e.detail.professionCodes || [];
+    this.setData({
+      'personInfo.professionCodes': professionCodes,
+      professionPickerVisible: false
+    }, () => this.syncProfessionText());
   },
 
   syncAddressText(personInfo) {

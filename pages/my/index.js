@@ -7,8 +7,6 @@ import {
 } from '~/utils/userSocial';
 import { fetchPointAccount } from '~/utils/points';
 import { fetchPersonalInfo, syncCachedUserInfo } from '~/utils/userProfile';
-import { fetchProfessionOptions, formatProfessionText } from '~/utils/profession';
-import { navigateToProfessionPage } from '~/utils/professionNav';
 
 const app = getApp();
 Page({
@@ -48,8 +46,6 @@ Page({
       }
     ],
     personalInfo: {},
-    professionText: '设置职业方向，获取个性化题库',
-    hasProfession: false,
     socialStats: SOCIAL_STAT_ITEMS.map((item) => ({
       ...item,
       count: 0,
@@ -110,22 +106,18 @@ Page({
           isLoad: true,
           personalInfo
         });
-        this.loadProfessionSummary(personalInfo);
       } catch (e) {
         const cached = app.getUserInfo() || {};
         this.setData({
           isLoad: true,
           personalInfo: cached
         });
-        this.loadProfessionSummary(cached);
       }
       this.loadSocialStats();
     } else {
       this.setData({
         isLoad: false,
         personalInfo: {},
-        professionText: '设置职业方向，获取个性化题库',
-        hasProfession: false,
         socialStats: this._buildSocialStatsDisplay(null)
       });
     }
@@ -170,33 +162,6 @@ Page({
     const item = e.currentTarget.dataset.item;
     if (!item || !item.url) return;
     app.navigateToLogin({ url: item.url });
-  },
-
-  async loadProfessionSummary(info) {
-    const codes = info?.professionCodes || [];
-    if (!codes.length) {
-      this.setData({
-        hasProfession: false,
-        professionText: '设置职业方向，获取个性化题库推荐'
-      });
-      return;
-    }
-    try {
-      const options = await fetchProfessionOptions();
-      this.setData({
-        hasProfession: true,
-        professionText: formatProfessionText(codes, options)
-      });
-    } catch (e) {
-      this.setData({
-        hasProfession: true,
-        professionText: codes.join('、')
-      });
-    }
-  },
-
-  onProfessionTap() {
-    navigateToProfessionPage();
   },
 
   async getPersonalInfo() {

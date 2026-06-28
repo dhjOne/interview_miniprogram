@@ -1,0 +1,71 @@
+<t-navbar title="搜索结果" left-arrow />
+<view class="search-result-page">
+  <t-message id="t-message" />
+
+  <view class="search-result__keyword">
+    <text class="search-result__label">关键词</text>
+    <text class="search-result__value">{{keyword}}</text>
+  </view>
+
+  <view wx:if="{{categories.length}}" class="search-result__section">
+    <view class="search-result__header">
+      <text class="search-result__title">分类</text>
+      <text class="search-result__meta">共 {{categoryTotal}} 个</text>
+    </view>
+    <view class="search-result__categories">
+      <view
+        wx:for="{{categories}}"
+        wx:key="id"
+        class="search-result__category"
+        hover-class="search-result__category--hover"
+        bindtap="onCategoryTap"
+        data-id="{{item.id}}"
+        data-name="{{item.name}}"
+      >
+        <t-icon name="folder" size="32rpx" color="#0052d9" />
+        <text class="search-result__category-name">{{item.name}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="search-result__section">
+    <view class="search-result__header">
+      <text class="search-result__title">题目</text>
+      <text class="search-result__meta">共 {{questionTotal}} 道</text>
+    </view>
+
+    <view wx:if="{{questionList.length}}" class="search-result__questions">
+      <view
+        wx:for="{{questionList}}"
+        wx:key="id"
+        class="search-result__question"
+        hover-class="search-result__question--hover"
+        bindtap="onQuestionTap"
+        data-id="{{item.id}}"
+        data-title="{{item.title}}"
+      >
+        <view class="search-result__question-main">
+          <text class="search-result__question-title">{{item.title || '无标题'}}</text>
+          <text wx:if="{{item.categoryName}}" class="search-result__question-category">{{item.categoryName}}</text>
+        </view>
+        <view class="search-result__question-meta">
+          <t-tag wx:if="{{item.difficultyTag}}" size="small" theme="{{item.difficultyTag.theme}}">
+            {{item.difficultyTag.text}}
+          </t-tag>
+          <text class="search-result__question-view">{{item.viewCount}} 浏览</text>
+        </view>
+      </view>
+    </view>
+
+    <view wx:elif="{{!loading}}" class="search-result__empty">
+      <t-empty description="未找到相关题目" />
+    </view>
+  </view>
+
+  <view wx:if="{{loading}}" class="search-result__loading">
+    <t-loading size="40rpx" text="加载中..." />
+  </view>
+  <view wx:elif="{{questionList.length && !hasMore}}" class="search-result__footer">
+    — 已加载全部 —
+  </view>
+</view>

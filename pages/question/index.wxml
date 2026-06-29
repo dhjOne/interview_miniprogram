@@ -5,13 +5,16 @@
         <t-search
           value="{{searchValue}}"
           placeholder="搜索题目标题…"
+          action="搜索"
           bind:change="onSearchChange"
-          bind:search="onSearch"
+          bind:submit="onSearchSubmit"
+          bind:action-click="onSearchAction"
           bind:clear="onSearchClear"
           shape="round"
           t-class="ql-filter-search"
           t-class-input-container="ql-filter-search__box"
           t-class-input="ql-filter-search__input"
+          t-class-action="ql-filter-search__action"
         />
       </view>
 
@@ -37,7 +40,7 @@
           </view>
         </view>
       </view>
-      <text class="ql-filter__swipe-tip">左右滑动排序条或题目列表可切换</text>
+      <text class="ql-filter__swipe-tip">左右滑动可切换排序</text>
 
       <view class="ql-filter__meta" wx:if="{{listHeaderReady}}">
         <view class="ql-filter__meta-left">
@@ -95,11 +98,11 @@
                     <t-icon name="view" size="24rpx" />
                     {{item.viewCount}} 浏览
                   </text>
-                  <text class="meta-item">
+                  <text wx:if="{{item.commentCount > 0}}" class="meta-item">
                     <t-icon name="app" size="24rpx" />
                     {{item.commentCount}} 评论
                   </text>
-                  <text class="meta-item">
+                  <text wx:if="{{item.likeCount > 0}}" class="meta-item">
                     <t-icon name="thumb-up" size="24rpx" />
                     {{item.likeCount}} 点赞
                   </text>
@@ -109,7 +112,7 @@
                 <t-icon
                   name="{{item.isCollected ? 'heart-filled' : 'heart'}}"
                   size="40rpx"
-                  color="{{item.isCollected ? '#07C160' : '#bbb'}}"
+                  color="{{item.isCollected ? '#e34d59' : '#c0c4cc'}}"
                   class="collect-icon"
                 />
               </view>
@@ -131,9 +134,12 @@
 
       <view wx:if="{{questionList.length === 0 && !loading}}" class="empty-state">
         <t-icon name="info-circle-filled" size="120rpx" color="#ddd" />
-        <text class="empty-text">暂无题目</text>
-        <text class="empty-desc">换个关键词试试，或发布一道题</text>
-        <t-button theme="primary" size="large" bindtap="goRelease" class="empty-btn">
+        <text class="empty-text">{{searchValue ? '未找到相关题目' : '暂无题目'}}</text>
+        <text class="empty-desc">{{searchValue ? '试试其他关键词，或清空搜索查看全部' : '换个关键词试试，或发布一道题'}}</text>
+        <t-button wx:if="{{searchValue}}" theme="light" size="large" bindtap="onSearchClear" class="empty-btn">
+          清空搜索
+        </t-button>
+        <t-button wx:else theme="primary" size="large" bindtap="goRelease" class="empty-btn">
           发布题目
         </t-button>
       </view>

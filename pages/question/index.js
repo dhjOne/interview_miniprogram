@@ -53,6 +53,15 @@ function normalizeQuestionRow(row) {
   };
 }
 
+function safeDecodeURIComponent(value) {
+  if (!value) return '';
+  try {
+    return decodeURIComponent(value);
+  } catch (error) {
+    return value;
+  }
+}
+
 Page({
   data: {
     searchValue: '',
@@ -81,13 +90,15 @@ Page({
   _sortSwipeTouch: null,
 
   onLoad(options) {
-    const { categoryId, categoryName, secondaryCategoryId, secondaryCategoryName } = options;
+    const { categoryId, categoryName, secondaryCategoryId, secondaryCategoryName, keyword, search } = options;
     const finalCategoryId = categoryId || secondaryCategoryId;
-    const finalCategoryName = categoryName || secondaryCategoryName;
+    const finalCategoryName = safeDecodeURIComponent(categoryName || secondaryCategoryName);
+    const initialKeyword = safeDecodeURIComponent(keyword || search || '');
 
     this.setData({
       categoryId: finalCategoryId,
-      categoryName: finalCategoryName
+      categoryName: finalCategoryName,
+      searchValue: initialKeyword
     });
 
     wx.setNavigationBarTitle({
@@ -123,7 +134,7 @@ Page({
   },
 
   async loadQuestions(refresh = false) {
-    if (this.data.loading) return;
+    if (this.data.loading && !refresh) return;
 
     const requestPage = refresh ? 1 : this.data.page + 1;
 
@@ -184,17 +195,34 @@ Page({
 
   onSearchChange(e) {
     this.setData({
-      searchValue: e.detail.value
+      searchValue: e.detail.value || ''
     });
   },
 
-  onSearch() {
-    this.loadQuestions(true);
+  triggerSearch(keyword) {
+    const value = (keyword ?? this.data.searchValue ?? '').trim();
+    this.setData({ searchValue: value, scrollIntoView: 'list-top' }, () => {
+      this.loadQuestions(true);
+      setTimeout(() => {
+        this.setData({ scrollIntoView: '' });
+      }, 300);
+    });
+  },
+
+  onSearchSubmit(e) {
+    this.triggerSearch(e.detail?.value);
+  },
+
+  onSearchAction() {
+    this.triggerSearch(this.data.searchValue);
   },
 
   onSearchClear() {
-    this.setData({ searchValue: '' }, () => {
+    this.setData({ searchValue: '', scrollIntoView: 'list-top' }, () => {
       this.loadQuestions(true);
+      setTimeout(() => {
+        this.setData({ scrollIntoView: '' });
+      }, 300);
     });
   },
 

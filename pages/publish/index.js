@@ -112,6 +112,12 @@ Page({
     this.initEditor();
   },
 
+  async onPullDownRefresh() {
+    this.categorySubCache = {};
+    await this.loadLevel1Categories();
+    this.updatePreviewContent();
+  },
+
   applyMknowImport() {
     const pending = consumePendingPublish();
     if (!pending || !pending.markdownContent) return false;

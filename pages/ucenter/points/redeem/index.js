@@ -28,6 +28,14 @@ Page({
     this.loadAccount();
   },
 
+  onPullDownRefresh() {
+    return Promise.all([
+      this.loadAccount(),
+      this.loadItems(),
+      this.loadOrders()
+    ]);
+  },
+
   async loadAccount() {
     try {
       const account = await fetchPointAccount();

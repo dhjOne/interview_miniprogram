@@ -161,8 +161,10 @@ Page({
   },
 
   onPullDownRefresh() {
-    this.loadDocList(true);
-    wx.stopPullDownRefresh();
+    return Promise.all([
+      this.getCategories(),
+      this.loadDocList(true)
+    ]);
   },
 
   onReachBottom() {

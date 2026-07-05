@@ -117,6 +117,10 @@ Page({
     }
   },
 
+  onPullDownRefresh() {
+    return this.loadQuestions(true);
+  },
+
   onPageScroll(e) {
     const top = (e.detail && e.detail.scrollTop) || 0;
     this.setData({

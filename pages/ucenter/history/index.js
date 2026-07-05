@@ -64,6 +64,10 @@ Page({
     this.refreshList();
   },
 
+  onPullDownRefresh() {
+    return this.refreshList();
+  },
+
   async refreshList() {
     this.setData({ loading: true });
     const useServer = hasLoginToken();

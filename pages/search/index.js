@@ -60,6 +60,13 @@ Page({
     this.queryPopular();
   },
 
+  onPullDownRefresh() {
+    return Promise.all([
+      this.queryHistory(),
+      this.queryPopular()
+    ]);
+  },
+
   async queryHistory() {
     if (isLoggedIn()) {
       try {

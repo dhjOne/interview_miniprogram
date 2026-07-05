@@ -14,6 +14,8 @@
           <text class="profile-hero__name">{{profile.nickname}}</text>
           <text wx:if="{{profile.bio}}" class="profile-hero__bio">{{profile.bio}}</text>
           <text wx:else class="profile-hero__bio profile-hero__bio--muted">暂无个人简介</text>
+          <text wx:if="{{profile.auditStatus === 0}}" class="profile-hero__bio profile-hero__bio--muted">资料审核中</text>
+          <text wx:if="{{profile.auditStatus === 2}}" class="profile-hero__bio profile-hero__bio--muted">资料审核未通过</text>
 
           <view class="profile-stats">
             <view class="profile-stats__item">
@@ -42,14 +44,18 @@
               wx:if="{{!isSelf}}"
               block
               shape="round"
-              theme="{{profile.isFollowing ? 'light' : 'primary'}}"
+              theme="{{profile.isBlocked || profile.isBlockedByTarget ? 'light' : (profile.isFollowing ? 'light' : 'primary')}}"
               variant="{{profile.isFollowing ? 'outline' : 'base'}}"
+              disabled="{{profile.isBlocked || profile.isBlockedByTarget}}"
               bind:tap="onToggleFollow"
             >
-              {{profile.isFollowing ? '已关注' : '关注 TA'}}
+              {{profile.isBlocked || profile.isBlockedByTarget ? '已限制互动' : (profile.isFollowing ? '已关注' : '关注 TA')}}
             </t-button>
             <t-button wx:else block shape="round" theme="light" variant="outline" disabled>
               这是你自己
+            </t-button>
+            <t-button wx:if="{{!isSelf}}" block shape="round" theme="light" variant="outline" bind:tap="onMoreTap">
+              更多操作
             </t-button>
           </view>
         </view>

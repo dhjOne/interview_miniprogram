@@ -174,6 +174,21 @@ Page({
       label: '微信',
       image: 'https://tdesign.gtimg.com/mobile/demos/wechat.png',
       value: 'wechat'
+    },
+    {
+      label: '举报题目',
+      icon: 'error-circle',
+      value: 'reportQuestion'
+    },
+    {
+      label: '举报作者',
+      icon: 'user-circle',
+      value: 'reportAuthor'
+    },
+    {
+      label: '拉黑作者',
+      icon: 'close-circle',
+      value: 'blockAuthor'
     }
     ],
     contentBlocks: [], // 内容块数组
@@ -239,6 +254,10 @@ Page({
       withShareTicket: true,
       menus: ['shareAppMessage', 'shareTimeline']
     });
+  },
+
+  onPullDownRefresh() {
+    return this.refreshPage();
   },
 
   // 加载题目详情
@@ -420,9 +439,81 @@ Page({
       case 'refresh':
         this.refreshPage();
         break;
+      case 'reportQuestion':
+        this.reportQuestion();
+        break;
+      case 'reportAuthor':
+        this.reportAuthor();
+        break;
+      case 'blockAuthor':
+        this.blockAuthor();
+        break;
       default:
         break;
     }
+  },
+
+  async reportQuestion() {
+    try {
+      const res = await socialApi.submitReport({
+        targetType: 'QUESTION',
+        targetId: this.data.questionId,
+        targetUserId: this.data.authorId || undefined,
+        targetTitle: this.data.questionDetail.title,
+        reasonType: 'OTHER',
+        reason: '题目内容举报'
+      });
+      if (res.code !== '0000') throw new Error(res.message || '提交失败');
+      wx.showToast({ title: '举报已提交', icon: 'none' });
+    } catch (e) {
+      wx.showToast({ title: e?.message || '提交失败', icon: 'none' });
+    }
+  },
+
+  async reportAuthor() {
+    if (!this.data.authorId) {
+      wx.showToast({ title: '暂无作者信息', icon: 'none' });
+      return;
+    }
+    try {
+      const res = await socialApi.submitReport({
+        targetType: 'USER',
+        targetId: this.data.authorId,
+        targetUserId: this.data.authorId,
+        targetTitle: this.data.authorDisplayName,
+        reasonType: 'OTHER',
+        reason: '作者举报'
+      });
+      if (res.code !== '0000') throw new Error(res.message || '提交失败');
+      wx.showToast({ title: '举报已提交', icon: 'none' });
+    } catch (e) {
+      wx.showToast({ title: e?.message || '提交失败', icon: 'none' });
+    }
+  },
+
+  blockAuthor() {
+    if (!this.data.authorId) {
+      wx.showToast({ title: '暂无作者信息', icon: 'none' });
+      return;
+    }
+    wx.showModal({
+      title: '拉黑作者',
+      content: '拉黑后将自动取消双方关注，并限制后续互动，确定拉黑吗？',
+      success: async ({ confirm }) => {
+        if (!confirm) return;
+        try {
+          const res = await socialApi.blockUser({
+            userId: this.data.authorId,
+            reason: '从题目详情拉黑作者'
+          });
+          if (res.code !== '0000') throw new Error(res.message || '操作失败');
+          this.setData({ authorFollowing: false });
+          wx.showToast({ title: '已拉黑', icon: 'none' });
+        } catch (e) {
+          wx.showToast({ title: e?.message || '操作失败', icon: 'none' });
+        }
+      }
+    });
   },
 
   // 关闭分享 ActionSheet
@@ -483,7 +574,7 @@ Page({
       showCatalog: false,
       showCommentPanel: false
     });
-    this.loadQuestionDetail();
+    return this.loadQuestionDetail();
   },
 
   // 重新加载
@@ -691,10 +782,9 @@ Page({
       }
       throw new Error(response.message || '操作失败');
     } catch (e) {
-      console.warn('关注接口未就绪，使用本地状态', e);
-      this.setData({ authorFollowing: nextFollowing });
+      console.warn('关注作者失败', e);
       wx.showToast({
-        title: nextFollowing ? '已关注' : '已取消关注',
+        title: e?.message || '操作失败',
         icon: 'none'
       });
     }
@@ -813,6 +903,25 @@ Page({
         comments: patchCommentLike(this.data.comments, commentId, currentLiked)
       });
       Message.info({ content: e.message || '操作失败', duration: 2000 });
+    }
+  },
+
+  async onReportComment(event) {
+    const { id, userId, content } = event.currentTarget.dataset;
+    if (!id) return;
+    try {
+      const res = await socialApi.submitReport({
+        targetType: 'COMMENT',
+        targetId: id,
+        targetUserId: userId || undefined,
+        targetTitle: truncateText(content || '评论举报', 50),
+        reasonType: 'OTHER',
+        reason: '评论内容举报'
+      });
+      if (res.code !== '0000') throw new Error(res.message || '提交失败');
+      wx.showToast({ title: '举报已提交', icon: 'none' });
+    } catch (e) {
+      wx.showToast({ title: e?.message || '提交失败', icon: 'none' });
     }
   },
 

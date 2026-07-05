@@ -1,4 +1,5 @@
 import { fetchSocialList } from '~/utils/userSocial';
+import { socialApi } from '~/api/request/api_social';
 
 /**
  * 关注 / 粉丝 / 访问 列表页通用逻辑
@@ -26,18 +27,24 @@ export function createSocialListPage(listType) {
       this.loadList(false);
     },
 
+    onPullDownRefresh() {
+      return this.reload();
+    },
+
     reload() {
-      this.setData(
-        {
-          list: [],
-          page: 0,
-          hasMore: true,
-          loadError: false,
-          loadDone: false,
-          fromDemo: false
-        },
-        () => this.loadList(true)
-      );
+      return new Promise((resolve) => {
+        this.setData(
+          {
+            list: [],
+            page: 0,
+            hasMore: true,
+            loadError: false,
+            loadDone: false,
+            fromDemo: false
+          },
+          () => resolve(this.loadList(true))
+        );
+      });
     },
 
     async loadList(isRefresh) {
@@ -75,7 +82,7 @@ export function createSocialListPage(listType) {
       }
     },
 
-    onFollowTap(e) {
+    async onFollowTap(e) {
       const { id, index } = e.currentTarget.dataset;
       const idx = Number(index);
       if (Number.isNaN(idx) || !this.data.list[idx]) return;
@@ -85,10 +92,20 @@ export function createSocialListPage(listType) {
       const key = `list[${idx}].isFollowing`;
       this.setData({ [key]: nextFollowing });
 
-      wx.showToast({
-        title: nextFollowing ? '已关注' : '已取消关注',
-        icon: 'none'
-      });
+      try {
+        const res = await socialApi.toggleFollow({ userId: id, follow: nextFollowing });
+        if (res.code !== '0000') throw new Error(res.message || '操作失败');
+        wx.showToast({
+          title: nextFollowing ? '已关注' : '已取消关注',
+          icon: 'none'
+        });
+      } catch (err) {
+        this.setData({ [key]: item.isFollowing });
+        wx.showToast({
+          title: err?.message || '操作失败',
+          icon: 'none'
+        });
+      }
     }
   };
 }

@@ -49,7 +49,9 @@ Page({
   onUnload() {},
 
   /** 页面相关事件处理函数--监听用户下拉动作 */
-  onPullDownRefresh() {},
+  onPullDownRefresh() {
+    return this.getMessageList();
+  },
 
   /** 页面上拉触底事件的处理函数 */
   onReachBottom() {},
@@ -59,9 +61,18 @@ Page({
 
   /** 获取完整消息列表 */
   getMessageList() {
-    fetchMessageList().then(({ data }) => {
-      this.setData({ messageList: data, loading: false });
-    });
+    this.setData({ loading: true });
+    return fetchMessageList()
+      .then(({ data }) => {
+        this.setData({ messageList: data || [] });
+      })
+      .catch((err) => {
+        console.error('消息列表加载失败', err);
+        wx.showToast({ title: '消息加载失败', icon: 'none' });
+      })
+      .finally(() => {
+        this.setData({ loading: false });
+      });
   },
 
   /** 通过 userId 获取 user 对象和下标 */

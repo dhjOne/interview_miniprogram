@@ -1,0 +1,53 @@
+.blacklist-page {
+  min-height: 100vh;
+  background: #f6f7fb;
+}
+
+.blacklist-page__body {
+  padding: 188rpx 24rpx 48rpx;
+}
+
+.blacklist-card {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  border-radius: 24rpx;
+  background: #fff;
+  box-shadow: 0 10rpx 30rpx rgba(20, 36, 64, 0.06);
+}
+
+.blacklist-card__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.blacklist-card__name {
+  display: block;
+  color: #1f2937;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.blacklist-card__reason {
+  display: block;
+  margin-top: 8rpx;
+  color: #9ca3af;
+  font-size: 24rpx;
+}
+
+.blacklist-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20rpx;
+  padding: 160rpx 0;
+  color: #9ca3af;
+  font-size: 28rpx;
+}
+
+.blacklist-page__footer {
+  padding: 20rpx 0 40rpx;
+  text-align: center;
+}

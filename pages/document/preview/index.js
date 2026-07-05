@@ -68,6 +68,11 @@ Page({
     }
   },
 
+  onPullDownRefresh() {
+    if (!this.data.docId) return Promise.resolve();
+    return this._load(this.data.docId);
+  },
+
   async _load(id) {
     this.setData({ loading: true });
     try {

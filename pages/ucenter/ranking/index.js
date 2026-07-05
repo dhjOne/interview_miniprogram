@@ -80,21 +80,25 @@ Page({
     this.fetchRank(false);
   },
 
+  onPullDownRefresh() {
+    return this.reload();
+  },
+
   reload() {
-    this.setData(
-      {
-        rankList: [],
-        myRankInfo: null,
-        page: 0,
-        hasMore: true,
-        loadError: false,
-        errorMessage: '',
-        loadDone: false
-      },
-      () => {
-        this.fetchRank(true);
-      }
-    );
+    return new Promise((resolve) => {
+      this.setData(
+        {
+          rankList: [],
+          myRankInfo: null,
+          page: 0,
+          hasMore: true,
+          loadError: false,
+          errorMessage: '',
+          loadDone: false
+        },
+        () => resolve(this.fetchRank(true))
+      );
+    });
   },
 
   async fetchRank(isRefresh) {

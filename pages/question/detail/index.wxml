@@ -328,6 +328,13 @@
                 data-name="{{item.userName || item.nickname || '匿名用户'}}"
                 data-content="{{item.content}}"
               >回复</text>
+              <text
+                class="comment-row__reply"
+                bindtap="onReportComment"
+                data-id="{{item.id}}"
+                data-user-id="{{item.userId}}"
+                data-content="{{item.content}}"
+              >举报</text>
             </view>
 
             <view wx:if="{{item.replies.length}}" class="comment-replies-toggle" bindtap="onToggleReplies" data-id="{{item.id}}">
@@ -359,6 +366,13 @@
                         data-name="{{reply.userName || reply.nickname || '匿名用户'}}"
                         data-content="{{reply.content}}"
                       >回复</text>
+                      <text
+                        class="comment-row__reply"
+                        bindtap="onReportComment"
+                        data-id="{{reply.id}}"
+                        data-user-id="{{reply.userId}}"
+                        data-content="{{reply.content}}"
+                      >举报</text>
                     </view>
                   </view>
                   <view

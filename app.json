@@ -99,6 +99,8 @@
         "following/index",
         "followers/index",
         "visits/index",
+        "notifications/index",
+        "blacklist/index",
         "profile/index"
       ]
     },
@@ -132,6 +134,7 @@
     }
   },
   "window": {
+    "enablePullDownRefresh": true,
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#fff",
     "navigationBarTitleText": "Weixin",

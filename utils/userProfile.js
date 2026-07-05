@@ -1,6 +1,8 @@
 import { profileApi, pickProfileData, normalizePersonalInfo } from '~/api/request/api_profile';
+import { socialApi } from '~/api/request/api_social';
 
 const app = getApp();
+export const DEFAULT_AVATAR = '/static/avatar1.png';
 
 export async function fetchPersonalInfo() {
   const res = await profileApi.getPersonalInfo();
@@ -61,5 +63,50 @@ export function toSavePayload(form) {
     bio: form.bio,
     photos: form.photos,
     professionCodes: form.professionCodes || []
+  };
+}
+
+export function normalizeProfileRow(row = {}, fallbackUserId = '') {
+  return {
+    userId: row.userId || row.user_id || row.id || fallbackUserId,
+    nickname: row.nickname || row.username || '用户',
+    avatar: row.avatar || row.logo || DEFAULT_AVATAR,
+    bio: row.bio || '',
+    followingCount: Number(row.followingCount || row.following_count || 0),
+    followerCount: Number(row.followerCount || row.follower_count || 0),
+    publishCount: Number(row.publishCount || row.publish_count || 0),
+    likeCount: Number(row.likeCount || row.like_count || 0),
+    visitCount: Number(row.visitCount || row.visit_count || 0),
+    isFollowing: !!(row.isFollowing ?? row.following ?? row.followed),
+    isBlocked: !!row.isBlocked,
+    isBlockedByTarget: !!row.isBlockedByTarget,
+    auditStatus: row.auditStatus ?? 1
+  };
+}
+
+export async function fetchUserProfile(userId) {
+  const res = await socialApi.getUserProfile({ userId });
+  const profile = normalizeProfileRow(pickProfileData(res) || res.data || {}, userId);
+  return { profile, fromDemo: false };
+}
+
+export async function fetchUserQuestions(userId, page = 1, limit = 20) {
+  const res = await socialApi.getUserQuestions({ userId, page, limit });
+  const data = res.data || {};
+  const rows = data.rows || data.list || data.records || [];
+  const list = rows.map(item => ({
+    ...item,
+    id: item.id || item.questionId,
+    title: item.title || '未命名内容',
+    viewCount: item.viewCount || 0,
+    likeCount: item.likeCount || 0,
+    commentCount: item.commentCount || 0,
+    category: item.category || item.categoryCode || 'other',
+    displayDate: String(item.createdAt || item.createTime || '').replace('T', ' ').slice(0, 10)
+  }));
+  return {
+    list,
+    total: Number(data.total || list.length),
+    fromDemo: false
   };
 }

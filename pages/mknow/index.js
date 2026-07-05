@@ -353,6 +353,15 @@ Page({
     this.loadAiQuota();
   },
 
+  onPullDownRefresh() {
+    return Promise.all([
+      this.initModelSelector(),
+      this.loadAiQuota(),
+      this.refreshConversationState(),
+      this.refreshHistoryList({ fetchRemote: true })
+    ]);
+  },
+
   async loadAiQuota() {
     if (!hasLoginToken()) {
       this.setData({ aiQuotaList: [], showAiQuota: false });

@@ -40,6 +40,12 @@ Page({
         url: '/pages/ucenter/ranking/index'
       },
       {
+        name: '互动通知',
+        icon: 'notification',
+        type: 'notifications',
+        url: '/pages/ucenter/notifications/index'
+      },
+      {
         name: '联系客服',
         icon: 'chat',
         type: 'contact'
@@ -95,6 +101,14 @@ Page({
   },
 
   async onShow() {
+    return this.refreshPersonalCenter();
+  },
+
+  async onPullDownRefresh() {
+    return this.refreshPersonalCenter();
+  },
+
+  async refreshPersonalCenter() {
     const historyCount = getQuestionBrowseHistoryCount();
     this.setData({ historyCount });
 
@@ -113,7 +127,7 @@ Page({
           personalInfo: cached
         });
       }
-      this.loadSocialStats();
+      await this.loadSocialStats();
     } else {
       this.setData({
         isLoad: false,

@@ -12,6 +12,10 @@ Page({
     this.loadInviteCode();
   },
 
+  onPullDownRefresh() {
+    return this.loadInviteCode();
+  },
+
   async loadInviteCode() {
     this.setData({ loading: true });
     try {

@@ -115,6 +115,11 @@ Page({
     }
   },
 
+  async onPullDownRefresh() {
+    await this.refreshProfessionScope(false);
+    return this.refreshCurrentData();
+  },
+
   async onShow() {
     console.log('页面显示');
     await this.refreshProfessionScope(false);

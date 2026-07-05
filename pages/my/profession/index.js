@@ -34,6 +34,10 @@ Page({
     this.bootstrap();
   },
 
+  onPullDownRefresh() {
+    return this.bootstrap();
+  },
+
   async bootstrap() {
     this.setData({ loading: true });
     try {

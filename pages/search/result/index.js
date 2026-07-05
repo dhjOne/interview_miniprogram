@@ -59,6 +59,10 @@ Page({
     this.loadSearch(true);
   },
 
+  onPullDownRefresh() {
+    return this.loadSearch(true);
+  },
+
   async loadSearch(refresh = false) {
     if (this.data.loading) return;
     const requestPage = refresh ? 1 : this.data.page + 1;

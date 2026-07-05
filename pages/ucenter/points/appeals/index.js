@@ -17,9 +17,15 @@ Page({
     this.loadAppeals(false);
   },
 
+  onPullDownRefresh() {
+    return this.reload();
+  },
+
   reload() {
-    this.setData({ appealList: [], page: 0, hasMore: true }, () => {
-      this.loadAppeals(true);
+    return new Promise((resolve) => {
+      this.setData({ appealList: [], page: 0, hasMore: true }, () => {
+        resolve(this.loadAppeals(true));
+      });
     });
   },
 

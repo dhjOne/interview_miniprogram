@@ -21,18 +21,24 @@ Page({
     this.init();
   },
 
+  onPullDownRefresh() {
+    return this.init();
+  },
+
   init() {
-    this.getMemberData();
-    this.getInteractionData();
-    this.getCompleteRateData();
-    this.getAreaData();
+    return Promise.all([
+      this.getMemberData(),
+      this.getInteractionData(),
+      this.getCompleteRateData(),
+      this.getAreaData()
+    ]);
   },
 
   /**
    * 获取 “整体情况” 数据
    */
   getMemberData() {
-    request('/dataCenter/member').then((res) => {
+    return request('/dataCenter/member').then((res) => {
       const totalSituationData = res.data.template.succ.data.list;
       this.setData({
         totalSituationDataList: totalSituationData,
@@ -52,7 +58,7 @@ Page({
    * 获取 “互动情况” 数据
    */
   getInteractionData() {
-    request('/dataCenter/interaction').then((res) => {
+    return request('/dataCenter/interaction').then((res) => {
       const interactionSituationData = res.data.template.succ.data.list;
       this.setData({
         interactionSituationDataList: interactionSituationData,
@@ -72,7 +78,7 @@ Page({
    * 完播率
    */
   getCompleteRateData() {
-    request('/dataCenter/complete-rate').then((res) => {
+    return request('/dataCenter/complete-rate').then((res) => {
       const completeRateData = res.data.template.succ.data.list;
       this.setData({
         completeRateDataList: completeRateData,
@@ -93,7 +99,7 @@ Page({
    * 按区域统计
    */
   getAreaData() {
-    request('/dataCenter/area').then((res) => {
+    return request('/dataCenter/area').then((res) => {
       const areaData = res.data.template.succ.data.list;
       this.setData({
         areaDataList: areaData,

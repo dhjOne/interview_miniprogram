@@ -48,22 +48,30 @@ Page({
     this.fetchLedger(false);
   },
 
+  onPullDownRefresh() {
+    return this.reload();
+  },
+
   reload() {
-    this.setData(
-      {
-        ledgerList: [],
-        page: 0,
-        hasMore: true,
-        loadError: false,
-        errorMessage: '',
-        loadDone: false
-      },
-      () => {
-        this.loadAccount();
-        this.loadRules();
-        this.fetchLedger(true);
-      }
-    );
+    return new Promise((resolve) => {
+      this.setData(
+        {
+          ledgerList: [],
+          page: 0,
+          hasMore: true,
+          loadError: false,
+          errorMessage: '',
+          loadDone: false
+        },
+        () => {
+          resolve(Promise.all([
+            this.loadAccount(),
+            this.loadRules(),
+            this.fetchLedger(true)
+          ]));
+        }
+      );
+    });
   },
 
   async loadAccount() {

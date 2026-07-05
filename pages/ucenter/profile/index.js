@@ -20,7 +20,10 @@ Page({
       followerCount: 0,
       publishCount: 0,
       likeCount: 0,
-      isFollowing: false
+      isFollowing: false,
+      isBlocked: false,
+      isBlockedByTarget: false,
+      auditStatus: 1
     },
     articleList: [],
     allArticleList: [],
@@ -82,6 +85,17 @@ Page({
 
   onReachBottom() {
     this.loadArticles(false);
+  },
+
+  onPullDownRefresh() {
+    return this.reloadPage();
+  },
+
+  reloadPage() {
+    return Promise.all([
+      this.loadProfile(),
+      this.loadArticles(true)
+    ]);
   },
 
   async loadProfile() {
@@ -160,8 +174,13 @@ Page({
 
   async onToggleFollow() {
     if (this.data.isSelf) return;
+    if (this.data.profile.isBlocked || this.data.profile.isBlockedByTarget) {
+      wx.showToast({ title: '双方存在拉黑关系，无法关注', icon: 'none' });
+      return;
+    }
 
     const nextFollowing = !this.data.profile.isFollowing;
+    const prevFollowing = this.data.profile.isFollowing;
     this.setData({ 'profile.isFollowing': nextFollowing });
 
     try {
@@ -177,11 +196,79 @@ Page({
         icon: 'none'
       });
     } catch (e) {
-      console.warn('[profile] 关注接口未就绪', e);
+      console.warn('[profile] 关注失败', e);
+      this.setData({ 'profile.isFollowing': prevFollowing });
       wx.showToast({
-        title: nextFollowing ? '已关注' : '已取消关注',
+        title: e?.message || '操作失败',
         icon: 'none'
       });
+    }
+  },
+
+  onMoreTap() {
+    if (this.data.isSelf) return;
+    const isBlocked = !!this.data.profile.isBlocked;
+    wx.showActionSheet({
+      itemList: ['举报用户', isBlocked ? '解除拉黑' : '拉黑用户'],
+      success: ({ tapIndex }) => {
+        if (tapIndex === 0) {
+          this.reportUser();
+        } else {
+          isBlocked ? this.unblockUser() : this.blockUser();
+        }
+      }
+    });
+  },
+
+  async reportUser() {
+    try {
+      const res = await socialApi.submitReport({
+        targetType: 'USER',
+        targetId: this.data.userId,
+        targetUserId: this.data.userId,
+        targetTitle: this.data.profile.nickname,
+        reasonType: 'OTHER',
+        reason: '用户主页举报'
+      });
+      if (res.code !== '0000') throw new Error(res.message || '提交失败');
+      wx.showToast({ title: '举报已提交', icon: 'none' });
+    } catch (e) {
+      wx.showToast({ title: e?.message || '提交失败', icon: 'none' });
+    }
+  },
+
+  async blockUser() {
+    wx.showModal({
+      title: '拉黑用户',
+      content: '拉黑后将自动取消双方关注，并限制后续互动，确定拉黑吗？',
+      success: async ({ confirm }) => {
+        if (!confirm) return;
+        try {
+          const res = await socialApi.blockUser({
+            userId: this.data.userId,
+            reason: '用户主动拉黑'
+          });
+          if (res.code !== '0000') throw new Error(res.message || '操作失败');
+          this.setData({
+            'profile.isBlocked': true,
+            'profile.isFollowing': false
+          });
+          wx.showToast({ title: '已拉黑', icon: 'none' });
+        } catch (e) {
+          wx.showToast({ title: e?.message || '操作失败', icon: 'none' });
+        }
+      }
+    });
+  },
+
+  async unblockUser() {
+    try {
+      const res = await socialApi.unblockUser(this.data.userId);
+      if (res.code !== '0000') throw new Error(res.message || '操作失败');
+      this.setData({ 'profile.isBlocked': false });
+      wx.showToast({ title: '已解除拉黑', icon: 'none' });
+    } catch (e) {
+      wx.showToast({ title: e?.message || '操作失败', icon: 'none' });
     }
   },
 

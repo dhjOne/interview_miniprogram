@@ -4,6 +4,24 @@ import encryption from './utils/encryption';
 import { connectSocket, fetchUnreadNum } from './utils/chatService';
 const { warmupTowxml } = require('./utils/towxmlLoader');
 
+const nativePage = Page;
+Page = function withPullDownRefreshGuard(options = {}) {
+  const pageOptions = options || {};
+  const originPullDownRefresh = pageOptions.onPullDownRefresh;
+
+  pageOptions.onPullDownRefresh = async function guardedPullDownRefresh(...args) {
+    try {
+      if (typeof originPullDownRefresh === 'function') {
+        await originPullDownRefresh.apply(this, args);
+      }
+    } finally {
+      wx.stopPullDownRefresh();
+    }
+  };
+
+  return nativePage(pageOptions);
+};
+
 App({
   onLaunch() {
     const updateManager = wx.getUpdateManager();

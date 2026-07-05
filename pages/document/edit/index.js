@@ -254,6 +254,16 @@ Page({
     await this.initEditor();
   },
 
+  async onPullDownRefresh() {
+    this.categorySubCache = {};
+    await this.loadLevel1Categories();
+    if (this.data.editDocId) {
+      await this.loadDocForEdit(this.data.editDocId);
+      return;
+    }
+    this.updatePreviewContent();
+  },
+
   // 初始化编辑器（新建；编辑走 loadDocForEdit）
   async initEditor() {
     wx.setNavigationBarTitle({ title: '发布文档' });

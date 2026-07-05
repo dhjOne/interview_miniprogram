@@ -38,6 +38,53 @@ export const socialApi = {
     })
   },
 
+  /** 提交举报 */
+  submitReport: (params) => {
+    const payload = params && typeof params.toRequestData === 'function'
+      ? params
+      : { toRequestData: () => (params || {}) };
+    return http.post('/repository/user/social/report', payload, {
+      showLoading: true,
+      loadingText: '提交中...'
+    });
+  },
+
+  /** 拉黑用户 */
+  blockUser: (params) => {
+    const payload = params && typeof params.toRequestData === 'function'
+      ? params
+      : { toRequestData: () => (params || {}) };
+    return http.post('/repository/user/social/blacklist', payload, {
+      showLoading: true,
+      loadingText: '操作中...'
+    });
+  },
+
+  /** 解除拉黑 */
+  unblockUser: (userId) =>
+    http.delete(`/repository/user/social/blacklist/${userId}`, null, {
+      showLoading: true,
+      loadingText: '操作中...'
+    }),
+
+  /** 我的黑名单 */
+  getBlacklist: (params) =>
+    http.get('/repository/user/social/blacklist', params, {
+      showLoading: false
+    }),
+
+  /** 我的通知 */
+  getNotifications: (params) =>
+    http.get('/repository/user/social/notifications', params, {
+      showLoading: false
+    }),
+
+  /** 标记通知已读 */
+  markNotificationRead: (notificationId) =>
+    http.post(`/repository/user/social/notifications/${notificationId}/read`, null, {
+      showLoading: false
+    }),
+
   /** 用户个人主页资料 */
   getUserProfile: (params) =>
     http.get('/repository/user/social/profile', params, {

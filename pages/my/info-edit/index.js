@@ -54,6 +54,13 @@ Page({
     this.loadPersonalInfo();
   },
 
+  onPullDownRefresh() {
+    return Promise.all([
+      this.loadProfessionOptions(),
+      this.loadPersonalInfo()
+    ]);
+  },
+
   async loadProfessionOptions() {
     try {
       const professionOptions = await fetchProfessionOptions();
@@ -272,7 +279,7 @@ Page({
     this.setData({ saving: true });
     try {
       await savePersonalInfo(toSavePayload(personInfo));
-      this.onShowToast('#t-toast', '保存成功');
+      this.onShowToast('#t-toast', '保存成功，已提交审核');
       setTimeout(() => wx.navigateBack(), 500);
     } catch (e) {
       console.error('[info-edit] 保存失败', e);

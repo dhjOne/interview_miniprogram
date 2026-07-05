@@ -71,6 +71,13 @@ Page({
           desc: '查看当前绑定手机号'
         },
         {
+          title: '黑名单管理',
+          icon: 'user-clear',
+          type: 'blacklist',
+          url: '/pages/ucenter/blacklist/index',
+          desc: '查看和解除已拉黑用户'
+        },
+        {
           title: '退出登录',
           icon: 'logout',
           type: 'logout',
@@ -82,6 +89,10 @@ Page({
 
   onShow() {
     this.loadPageData();
+  },
+
+  onPullDownRefresh() {
+    return this.loadPageData();
   },
 
   async loadPageData() {

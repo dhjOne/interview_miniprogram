@@ -144,6 +144,10 @@ Page({
     this.loadQuestions(true);
   },
 
+  onPullDownRefresh() {
+    return this.loadQuestions(true);
+  },
+
   onSearchChange(e) {
     this.setData({ searchValue: e.detail.value });
   },

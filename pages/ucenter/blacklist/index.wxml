@@ -1,0 +1,25 @@
+<view class="blacklist-page">
+  <t-navbar left-arrow title="黑名单管理" fixed safe-area-inset-top />
+  <view class="blacklist-page__body">
+    <view wx:if="{{!loading && loadDone && !list.length}}" class="blacklist-empty">
+      <t-icon name="user-clear" size="88rpx" color="#d9d9d9" />
+      <text>暂无拉黑用户</text>
+    </view>
+
+    <view wx:for="{{list}}" wx:key="id" class="blacklist-card">
+      <t-avatar image="{{item.blockedAvatar || defaultAvatar}}" size="88rpx" />
+      <view class="blacklist-card__main">
+        <text class="blacklist-card__name">{{item.blockedNickname || '用户'}}</text>
+        <text class="blacklist-card__reason">{{item.reason || '已拉黑'}}</text>
+      </view>
+      <t-button size="small" theme="primary" variant="outline" data-user-id="{{item.blockedUserId}}" data-index="{{index}}" bind:tap="onUnblockTap">
+        解除
+      </t-button>
+    </view>
+
+    <view class="blacklist-page__footer">
+      <t-loading wx:if="{{loading}}" size="36rpx" text="加载中..." />
+      <t-divider wx:elif="{{list.length && !hasMore}}" content="没有更多了" />
+    </view>
+  </view>
+</view>

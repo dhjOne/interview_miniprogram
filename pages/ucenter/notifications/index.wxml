@@ -1,0 +1,33 @@
+<view class="notification-page">
+  <t-navbar left-arrow title="互动通知" fixed safe-area-inset-top />
+
+  <view class="notification-page__body">
+    <view wx:if="{{!loading && loadDone && !list.length}}" class="notification-empty">
+      <t-icon name="notification" size="88rpx" color="#d9d9d9" />
+      <text>暂无互动通知</text>
+    </view>
+
+    <view
+      wx:for="{{list}}"
+      wx:key="id"
+      class="notification-card {{item.isRead ? '' : 'notification-card--unread'}}"
+      data-id="{{item.id}}"
+      data-index="{{index}}"
+      bindtap="onNotificationTap"
+    >
+      <view class="notification-card__main">
+        <view class="notification-card__head">
+          <text class="notification-card__title">{{item.title}}</text>
+          <text wx:if="{{!item.isRead}}" class="notification-card__dot"></text>
+        </view>
+        <text class="notification-card__content">{{item.content || '你有一条新的互动通知'}}</text>
+        <text class="notification-card__time">{{item.timeText}}</text>
+      </view>
+    </view>
+
+    <view class="notification-page__footer">
+      <t-loading wx:if="{{loading}}" size="36rpx" text="加载中..." />
+      <t-divider wx:elif="{{list.length && !hasMore}}" content="没有更多了" />
+    </view>
+  </view>
+</view>

@@ -20,6 +20,9 @@ Page({
   },
   // 生命周期
   async onReady() {
+    await this.loadHomeData();
+  },
+  async loadHomeData() {
     const [cardRes, swiperRes] = await Promise.all([
       request('/s').then((res) => res.data),
       request('/home/swipers').then((res) => res.data),
@@ -48,24 +51,30 @@ Page({
     }
   },
   onRefresh() {
-    this.refresh();
+    return this.refresh();
+  },
+  onPullDownRefresh() {
+    return this.refresh();
   },
   async refresh() {
     this.setData({
       enable: true,
     });
-    const [cardRes, swiperRes] = await Promise.all([
-      request('/s').then((res) => res.data),
-      request('/home/swipers').then((res) => res.data),
-    ]);
-
-    setTimeout(() => {
+    try {
+      const [cardRes, swiperRes] = await Promise.all([
+        request('/s').then((res) => res.data),
+        request('/home/swipers').then((res) => res.data),
+      ]);
       this.setData({
-        enable: false,
         cardInfo: cardRes.data,
+        focusCardInfo: cardRes.data.slice(0, 3),
         swiperList: swiperRes.data,
       });
-    }, 1500);
+    } finally {
+      this.setData({
+        enable: false,
+      });
+    }
   },
   showOperMsg(content) {
     Message.success({

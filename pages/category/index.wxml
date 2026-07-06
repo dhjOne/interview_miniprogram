@@ -44,6 +44,8 @@
           class="category-main-scroll"
           scroll-y
           enable-flex
+          bindscrolltolower="loadMoreSecondaryCategories"
+          lower-threshold="120"
           show-scrollbar="{{false}}"
         >
           <view class="category-main">
@@ -63,9 +65,20 @@
                   <text wx:if="{{item.count !== undefined && item.count !== null}}" class="secondary-row__count">{{item.count}}</text>
                 </view>
               </block>
+
+              <view wx:if="{{secondaryLoadingMore}}" class="list-footer">
+                <t-loading size="32rpx" text="加载中..." />
+              </view>
+              <view wx:elif="{{!secondaryHasMore}}" class="list-footer list-footer--end">
+                <text>— 已加载全部 —</text>
+              </view>
             </view>
 
-            <view wx:else class="empty-state">
+            <view wx:elif="{{categoryLoading}}" class="category-inline-loading">
+              <t-loading size="36rpx" text="加载中..." />
+            </view>
+
+            <view wx:elif="{{!categoryLoading}}" class="empty-state">
               <t-icon name="folder-open" size="72rpx" color="#cbd5e1" />
               <text class="empty-state__title">暂无二级分类</text>
             </view>

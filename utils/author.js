@@ -1,3 +1,11 @@
+/** 当前登录用户 userId（未登录返回空字符串） */
+export function resolveCurrentUserId() {
+  const app = getApp();
+  const user = app.getUserInfo?.() || wx.getStorageSync('user_info') || {};
+  const id = user.userId ?? user.id ?? user.user_id;
+  return id != null && id !== '' ? String(id) : '';
+}
+
 /** 从题目/文档详情中解析作者 userId */
 export function resolveAuthorId(detail) {
   if (!detail) return '';

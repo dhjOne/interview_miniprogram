@@ -11,7 +11,8 @@ import {
   resolveAuthorAvatar,
   resolveAuthorDisplayName,
   resolveAuthorFollowing,
-  resolveAuthorId
+  resolveAuthorId,
+  resolveCurrentUserId
 } from '~/utils/author';
 import { trackQuestionBrowse } from '~/utils/practiceBrowse';
 
@@ -41,15 +42,110 @@ function truncateText(text, maxLen = 36) {
   return value.length > maxLen ? `${value.slice(0, maxLen)}…` : value;
 }
 
+function formatDisplayDate(value) {
+  if (!value) return '';
+  const normalized = String(value).replace('T', ' ');
+  const match = normalized.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (match) {
+    const month = `${match[2]}`.padStart(2, '0');
+    const day = `${match[3]}`.padStart(2, '0');
+    return `${match[1]}-${month}-${day}`;
+  }
+  const date = new Date(normalized.replace(/-/g, '/'));
+  if (Number.isNaN(date.getTime())) {
+    return normalized.slice(0, 10);
+  }
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+function normalizeQuestionDetail(detail) {
+  if (!detail) return {};
+  return {
+    ...detail,
+    liked: !!(detail.liked ?? detail.isLiked),
+    collected: !!(detail.collected ?? detail.isCollected),
+    likeCount: detail.likeCount ?? detail.like_count ?? 0,
+    collectCount: detail.collectCount ?? detail.collect_count ?? 0,
+    viewCount: detail.viewCount ?? detail.view_count ?? 0,
+    commentCount: detail.commentCount ?? detail.comment_count ?? 0,
+    createdAt: formatDisplayDate(
+      detail.createdAt ?? detail.created_at ?? detail.createTime ?? detail.create_time
+    )
+  };
+}
+
+function buildSharePanels(isSelfAuthor) {
+  const panels = [
+    {
+      title: '分享与操作',
+      items: [
+        { label: '刷新', value: 'refresh', icon: 'refresh', tone: 'brand' },
+        { label: '复制链接', value: 'copy', icon: 'link', tone: 'brand' },
+        { label: '微信好友', value: 'wechat', icon: 'logo-wechat-stroke', tone: 'wechat' },
+        { label: '朋友圈', value: 'moment', icon: 'share', tone: 'wechat' }
+      ]
+    }
+  ];
+
+  if (!isSelfAuthor) {
+    panels.push({
+      title: '安全反馈',
+      items: [
+        { label: '举报题目', value: 'reportQuestion', icon: 'error-circle', tone: 'warn' },
+        { label: '举报作者', value: 'reportAuthor', icon: 'user-circle', tone: 'warn' },
+        { label: '拉黑作者', value: 'blockAuthor', icon: 'close-circle', tone: 'danger' }
+      ]
+    });
+  }
+
+  return panels;
+}
+
+function resolveReplyCount(row) {
+  if (!row) return 0;
+  const embedded = Array.isArray(row.replies) ? row.replies.length : 0;
+  const count = row.replyCount ?? row.repliesCount ?? row.childCount ?? row.childrenCount;
+  if (count !== undefined && count !== null && count !== '') {
+    return Math.max(Number(count) || 0, embedded);
+  }
+  return embedded;
+}
+
 function normalizeComment(row, extra = {}) {
   if (!row) return row;
+  const embeddedReplies = Array.isArray(row.replies) ? row.replies : [];
+  const replyCount = resolveReplyCount(row);
   return {
     ...row,
     ...extra,
     likeCount: row.likeCount ?? 0,
     timeText: formatCommentTime(row.createdAt || row.createTime),
     userName: row.userName || row.nickname || (row.userId ? `用户${row.userId}` : '匿名用户'),
-    replies: Array.isArray(row.replies) ? row.replies : []
+    replyCount,
+    replies: embeddedReplies,
+    repliesLoaded: embeddedReplies.length > 0,
+    repliesLoading: false
+  };
+}
+
+function parseCommentListResponse(response) {
+  const data = response?.data;
+  if (Array.isArray(data)) {
+    return {
+      rows: data,
+      total: data.length,
+      hasTotal: false
+    };
+  }
+  const rows = data?.rows ?? data?.list ?? data?.records ?? [];
+  const parsedTotal = Number(data?.total);
+  const hasTotal = data?.total !== undefined && data?.total !== null && !Number.isNaN(parsedTotal);
+  return {
+    rows: Array.isArray(rows) ? rows : [],
+    total: hasTotal ? parsedTotal : 0,
+    hasTotal
   };
 }
 
@@ -119,6 +215,13 @@ Page({
     relatedQuestions: [],
     comments: [],
     commentCount: 0,
+    commentPage: 1,
+    commentPageSize: 15,
+    commentTotal: 0,
+    commentHasMore: true,
+    commentLoading: false,
+    commentLoadingMore: false,
+    replyLoadingIds: {},
     commentText: '',
     showActionBar: true,
     scrollTop: 0,
@@ -127,13 +230,20 @@ Page({
     categoryName: '',
     catalogTitle: '题目目录',
     catalogList: [],
+    catalogPage: 1,
+    catalogPageSize: 30,
+    catalogTotal: 0,
+    catalogHasMore: true,
     catalogLoading: false,
+    catalogLoadingMore: false,
     catalogLoaded: false,
+    catalogSupportsPagination: true,
     showCatalog: false,
 
     authorId: '',
     authorDisplayName: '题目作者',
     authorFollowing: false,
+    isSelfAuthor: false,
 
     showCommentPanel: false,
     replyParentId: null,
@@ -155,42 +265,7 @@ Page({
     showShareActionSheet: false, // 分享操作面板
     showCustomGuide: false, // 使用自定义引导弹窗
 
-    shareOptions: [{
-      label: '刷新',
-      icon: 'refresh',
-      value: 'refresh'
-    },
-    {
-      label: '复制',
-      icon: 'queue',
-      value: 'copy'
-    },
-    {
-      label: '朋友圈',
-      image: 'https://tdesign.gtimg.com/mobile/demos/times.png',
-      value: 'moment'
-    },
-    {
-      label: '微信',
-      image: 'https://tdesign.gtimg.com/mobile/demos/wechat.png',
-      value: 'wechat'
-    },
-    {
-      label: '举报题目',
-      icon: 'error-circle',
-      value: 'reportQuestion'
-    },
-    {
-      label: '举报作者',
-      icon: 'user-circle',
-      value: 'reportAuthor'
-    },
-    {
-      label: '拉黑作者',
-      icon: 'close-circle',
-      value: 'blockAuthor'
-    }
-    ],
+    sharePanels: buildSharePanels(false),
     contentBlocks: [], // 内容块数组
     blockStyles: {}, // 块样式配置
     currentTheme: 'default', // 当前主题
@@ -275,12 +350,14 @@ Page({
       const response = await authApi.getQuestionDetail(questionDetail);
       
       if (response.data) {
-        const questionDetail = response.data;
+        const questionDetail = normalizeQuestionDetail(response.data);
         
         // 判断内容类型
         const isMarkdownContent = questionDetail.contentType === 'markdown';
         
         const authorId = resolveAuthorId(questionDetail);
+        const currentUserId = resolveCurrentUserId();
+        const isSelfAuthor = !!(currentUserId && authorId && currentUserId === authorId);
         let authorDisplayName = resolveAuthorDisplayName(questionDetail, '题目作者');
         const patch = {
           questionDetail,
@@ -288,9 +365,19 @@ Page({
           isMarkdown: isMarkdownContent,
           authorId,
           authorDisplayName,
-          authorFollowing: resolveAuthorFollowing(questionDetail),
+          authorFollowing: isSelfAuthor ? false : resolveAuthorFollowing(questionDetail),
+          isSelfAuthor,
+          sharePanels: buildSharePanels(isSelfAuthor),
           catalogLoaded: false,
-          commentCount: questionDetail.commentCount ?? questionDetail.comment_count ?? 0
+          comments: [],
+          commentPage: 1,
+          commentTotal: 0,
+          commentHasMore: true,
+          commentLoading: false,
+          commentLoadingMore: false,
+          replyLoadingIds: {},
+          expandedReplyIds: {},
+          commentCount: questionDetail.commentCount ?? 0
         };
         if (!this.data.categoryId && questionDetail.categoryId) {
           patch.categoryId = questionDetail.categoryId;
@@ -310,7 +397,7 @@ Page({
           // 浏览记录失败不影响详情页
         }
 
-        this.loadComments();
+        this.loadCommentCount();
         
         // 根据内容类型选择渲染方式
         if (isMarkdownContent) {
@@ -340,6 +427,8 @@ Page({
         error: true,
         errorMessage: '网络错误，请重试'
       });
+    } finally {
+      wx.stopPullDownRefresh();
     }
   },
 
@@ -408,30 +497,30 @@ Page({
     });
   },
 
-  // 分享选项选择
-  onShareOptionSelect(event) {
-    const {
-      selected
-    } = event.detail;
-    const option = this.data.shareOptions[selected.index];
+  onShareOptionTap(event) {
+    const { value } = event.currentTarget.dataset;
+    if (!value) return;
 
-    // 关闭 ActionSheet
-    this.setData({
-      showShareActionSheet: false
-    });
+    this.setData({ showShareActionSheet: false });
+    this.handleShareAction(value);
+  },
 
-    console.log("根据选项执行不同操作", selected.value);
+  onSharePanelVisibleChange(e) {
+    const visible = e.detail?.visible ?? e.detail;
+    if (!visible) {
+      this.setData({ showShareActionSheet: false });
+    }
+  },
 
-    // 根据选项执行不同操作
-    switch (selected.value) {
+  handleShareAction(value) {
+    switch (value) {
       case 'copy':
         this.copyLink();
         break;
       case 'wechat':
-        // 延迟显示自定义引导，确保 ActionSheet 完全关闭
         setTimeout(() => {
           this.showCustomGuide();
-        }, 300);
+        }, 280);
         break;
       case 'moment':
         this.shareToMoment();
@@ -451,6 +540,17 @@ Page({
       default:
         break;
     }
+  },
+
+  // 分享选项选择（兼容旧 ActionSheet，保留备用）
+  onShareOptionSelect(event) {
+    const { selected } = event.detail;
+    const flatItems = (this.data.sharePanels || []).flatMap((panel) => panel.items || []);
+    const option = flatItems[selected.index];
+    if (!option) return;
+
+    this.setData({ showShareActionSheet: false });
+    this.handleShareAction(option.value);
   },
 
   async reportQuestion() {
@@ -532,7 +632,11 @@ Page({
   },
 
   // 关闭自定义引导
-  onCloseCustomGuide() {
+  onCloseCustomGuide(e) {
+    if (e && e.detail !== undefined) {
+      const visible = e.detail?.visible ?? e.detail;
+      if (visible) return;
+    }
     this.setData({
       showCustomGuide: false
     });
@@ -571,8 +675,20 @@ Page({
       contentBlocks: [],
       catalogLoaded: false,
       catalogList: [],
+      catalogPage: 1,
+      catalogTotal: 0,
+      catalogHasMore: true,
+      catalogLoadingMore: false,
       showCatalog: false,
-      showCommentPanel: false
+      showCommentPanel: false,
+      comments: [],
+      commentPage: 1,
+      commentTotal: 0,
+      commentHasMore: true,
+      commentLoading: false,
+      commentLoadingMore: false,
+      replyLoadingIds: {},
+      expandedReplyIds: {}
     });
     return this.loadQuestionDetail();
   },
@@ -589,8 +705,20 @@ Page({
       contentBlocks: [],
       catalogLoaded: false,
       catalogList: [],
+      catalogPage: 1,
+      catalogTotal: 0,
+      catalogHasMore: true,
+      catalogLoadingMore: false,
       showCatalog: false,
-      showCommentPanel: false
+      showCommentPanel: false,
+      comments: [],
+      commentPage: 1,
+      commentTotal: 0,
+      commentHasMore: true,
+      commentLoading: false,
+      commentLoadingMore: false,
+      replyLoadingIds: {},
+      expandedReplyIds: {}
     });
     this.loadQuestionDetail();
   },
@@ -622,79 +750,252 @@ Page({
     }
   },
 
-  async loadComments() {
+  async loadComments(refresh = true) {
+    const questionId = this.data.questionId;
+    if (!questionId) return;
+
+    if (!refresh && (this.data.commentLoadingMore || !this.data.commentHasMore || this.data.commentLoading)) {
+      return;
+    }
+
+    const nextPage = refresh ? 1 : this.data.commentPage + 1;
+
+    if (refresh) {
+      this.setData({
+        commentLoading: true,
+        commentPage: 1,
+        commentTotal: 0,
+        commentHasMore: true,
+        comments: []
+      });
+    } else {
+      this.setData({ commentLoadingMore: true });
+    }
+
     try {
-      const response = await authApi.getQuestionComments(this.data.questionId);
+      const response = await authApi.getQuestionComments(questionId, {
+        page: nextPage,
+        limit: this.data.commentPageSize
+      });
       if (response.code !== '0000') {
         throw new Error(response.message || '加载评论失败');
       }
-      const rows = response.data ?? [];
-      const topLevel = Array.isArray(rows) ? rows.map((row) => normalizeComment(row)) : [];
-      const comments = await Promise.all(
-        topLevel.map(async (comment) => {
-          const replies = await fetchReplyThread(comment);
-          return { ...comment, replies };
-        })
-      );
-      this.setData({ comments });
+
+      const { rows, total, hasTotal } = parseCommentListResponse(response);
+      const newChunk = rows.map((row) => normalizeComment(row));
+      const comments = refresh ? newChunk : [...this.data.comments, ...newChunk];
+      const commentHasMore = hasTotal
+        ? comments.length < total
+        : newChunk.length >= this.data.commentPageSize;
+
+      this.setData({
+        comments,
+        commentPage: nextPage,
+        commentTotal: hasTotal ? total : comments.length,
+        commentHasMore,
+        commentLoading: false,
+        commentLoadingMore: false
+      });
       this.loadCommentCount();
     } catch (e) {
       console.warn('加载评论失败', e);
+      this.setData({
+        commentLoading: false,
+        commentLoadingMore: false
+      });
     }
   },
 
-  onToggleReplies(event) {
+  loadMoreComments() {
+    this.loadComments(false);
+  },
+
+  async onToggleReplies(event) {
     const commentId = event.currentTarget.dataset.id;
     if (!commentId) return;
 
     const expandedReplyIds = { ...(this.data.expandedReplyIds || {}) };
-    if (expandedReplyIds[commentId]) {
+    const isExpanded = !!expandedReplyIds[commentId];
+
+    if (isExpanded) {
       delete expandedReplyIds[commentId];
-    } else {
-      expandedReplyIds[commentId] = true;
+      this.setData({ expandedReplyIds });
+      return;
     }
+
+    expandedReplyIds[commentId] = true;
     this.setData({ expandedReplyIds });
+
+    const commentIndex = this.data.comments.findIndex(
+      (item) => String(item.id) === String(commentId)
+    );
+    if (commentIndex < 0) return;
+
+    const comment = this.data.comments[commentIndex];
+    if (comment.repliesLoaded || comment.repliesLoading) {
+      return;
+    }
+
+    const comments = [...this.data.comments];
+    comments[commentIndex] = { ...comment, repliesLoading: true };
+    const replyLoadingIds = { ...(this.data.replyLoadingIds || {}), [commentId]: true };
+    this.setData({ comments, replyLoadingIds });
+
+    try {
+      const replies = await fetchReplyThread(comment);
+      const latestComments = [...this.data.comments];
+      const latestIndex = latestComments.findIndex(
+        (item) => String(item.id) === String(commentId)
+      );
+      if (latestIndex < 0) return;
+
+      latestComments[latestIndex] = {
+        ...latestComments[latestIndex],
+        replies,
+        repliesLoaded: true,
+        repliesLoading: false,
+        replyCount: Math.max(replies.length, latestComments[latestIndex].replyCount || 0)
+      };
+
+      const nextReplyLoadingIds = { ...(this.data.replyLoadingIds || {}) };
+      delete nextReplyLoadingIds[commentId];
+      this.setData({
+        comments: latestComments,
+        replyLoadingIds: nextReplyLoadingIds
+      });
+    } catch (e) {
+      console.warn('加载回复失败', commentId, e);
+      const latestComments = [...this.data.comments];
+      const latestIndex = latestComments.findIndex(
+        (item) => String(item.id) === String(commentId)
+      );
+      if (latestIndex >= 0) {
+        latestComments[latestIndex] = {
+          ...latestComments[latestIndex],
+          repliesLoading: false
+        };
+      }
+      const nextReplyLoadingIds = { ...(this.data.replyLoadingIds || {}) };
+      delete nextReplyLoadingIds[commentId];
+      const nextExpandedReplyIds = { ...(this.data.expandedReplyIds || {}) };
+      delete nextExpandedReplyIds[commentId];
+      this.setData({
+        comments: latestComments,
+        replyLoadingIds: nextReplyLoadingIds,
+        expandedReplyIds: nextExpandedReplyIds
+      });
+      wx.showToast({ title: '回复加载失败', icon: 'none' });
+    }
   },
 
-  async loadCatalog() {
-    this.setData({ catalogLoading: true });
-    try {
-      let rows = [];
-      if (this.data.categoryId) {
-        const questionParams = new QuestionParams(null, this.data.categoryId, null);
-        questionParams.page = 1;
-        questionParams.limit = 80;
-        questionParams.sortField = 'sort_order';
-        questionParams.order = 'asc';
-        const response = await authApi.getQuestionList(questionParams);
-        if (response.code === '0000') {
-          rows = response.data?.rows || [];
-        }
-      } else {
+  async loadCatalog(refresh = true) {
+    const categoryId = this.data.categoryId;
+
+    if (!refresh && (this.data.catalogLoadingMore || !this.data.catalogHasMore || this.data.catalogLoading)) {
+      return;
+    }
+
+    if (!categoryId) {
+      if (!refresh) return;
+      this.setData({ catalogLoading: true, catalogList: [], catalogPage: 1 });
+      try {
         const response = await authApi.getRelatedQuestions(
           new QuestionParams(null, null, this.data.questionId)
         );
-        rows = response.data?.rows ?? response.data ?? [];
+        let rows = response.data?.rows ?? response.data ?? [];
         if (!Array.isArray(rows)) rows = [];
+
+        const catalogList = rows.map((row, index) => ({
+          id: row.id,
+          title: row.title || `题目 ${index + 1}`,
+          index: index + 1,
+          displayDate: (row.updatedAt || row.createdAt || '').slice(0, 10)
+        }));
+
+        this.setData({
+          catalogList,
+          catalogPage: 1,
+          catalogTotal: catalogList.length,
+          catalogHasMore: false,
+          catalogSupportsPagination: false,
+          catalogLoaded: true,
+          catalogTitle: this.data.catalogTitle || this.data.categoryName || '相关题目'
+        });
+      } catch (e) {
+        console.error('加载目录失败', e);
+        this.setData({ catalogList: [], catalogLoaded: true, catalogHasMore: false });
+      } finally {
+        this.setData({ catalogLoading: false, catalogLoadingMore: false });
+      }
+      return;
+    }
+
+    const nextPage = refresh ? 1 : this.data.catalogPage + 1;
+    const pageSize = this.data.catalogPageSize;
+
+    if (refresh) {
+      this.setData({
+        catalogLoading: true,
+        catalogList: [],
+        catalogPage: 1,
+        catalogTotal: 0,
+        catalogHasMore: true,
+        catalogSupportsPagination: true
+      });
+    } else {
+      this.setData({ catalogLoadingMore: true });
+    }
+
+    try {
+      const questionParams = new QuestionParams(null, categoryId, null);
+      questionParams.page = nextPage;
+      questionParams.limit = pageSize;
+      questionParams.sortField = 'sort_order';
+      questionParams.order = 'asc';
+      const response = await authApi.getQuestionList(questionParams);
+      if (response.code !== '0000') {
+        throw new Error(response.message || '加载目录失败');
       }
 
-      const catalogList = rows.map((row, index) => ({
+      const rawRows = response.data?.rows || [];
+      const parsedTotal = Number(response.data?.total);
+      const hasTotal =
+        response.data?.total !== undefined &&
+        response.data?.total !== null &&
+        !Number.isNaN(parsedTotal);
+      const baseIndex = (nextPage - 1) * pageSize;
+      const newChunk = rawRows.map((row, index) => ({
         id: row.id,
-        title: row.title || `题目 ${index + 1}`,
-        index: index + 1,
+        title: row.title || `题目 ${baseIndex + index + 1}`,
+        index: baseIndex + index + 1,
         displayDate: (row.updatedAt || row.createdAt || '').slice(0, 10)
       }));
+      const catalogList = refresh ? newChunk : [...this.data.catalogList, ...newChunk];
+      const catalogHasMore = hasTotal
+        ? catalogList.length < parsedTotal
+        : rawRows.length >= pageSize;
 
       this.setData({
         catalogList,
+        catalogPage: nextPage,
+        catalogTotal: hasTotal ? parsedTotal : catalogList.length,
+        catalogHasMore,
         catalogLoaded: true,
         catalogTitle: this.data.catalogTitle || this.data.categoryName || '相关题目'
       });
     } catch (e) {
       console.error('加载目录失败', e);
-      this.setData({ catalogList: [], catalogLoaded: true });
+      if (refresh) {
+        this.setData({ catalogList: [], catalogLoaded: true, catalogHasMore: false });
+      }
     } finally {
-      this.setData({ catalogLoading: false });
+      this.setData({ catalogLoading: false, catalogLoadingMore: false });
+    }
+  },
+
+  loadMoreCatalog() {
+    if (this.data.catalogSupportsPagination) {
+      this.loadCatalog(false);
     }
   },
 
@@ -726,7 +1027,20 @@ Page({
       isMarkdown: false,
       towxmlData: null,
       contentBlocks: [],
-      catalogLoaded: false
+      catalogLoaded: false,
+      catalogList: [],
+      catalogPage: 1,
+      catalogTotal: 0,
+      catalogHasMore: true,
+      catalogLoadingMore: false,
+      comments: [],
+      commentPage: 1,
+      commentTotal: 0,
+      commentHasMore: true,
+      commentLoading: false,
+      commentLoadingMore: false,
+      replyLoadingIds: {},
+      expandedReplyIds: {}
     });
     if (item?.title) {
       wx.setNavigationBarTitle({ title: item.title });
@@ -757,6 +1071,10 @@ Page({
   },
 
   async onToggleFollow() {
+    if (this.data.isSelfAuthor) {
+      return;
+    }
+
     const nextFollowing = !this.data.authorFollowing;
 
     if (!this.data.authorId) {
@@ -792,8 +1110,8 @@ Page({
 
   onOpenComments() {
     this.setData({ showCommentPanel: true });
-    if (!this.data.comments.length) {
-      this.loadComments();
+    if (!this.data.comments.length && !this.data.commentLoading) {
+      this.loadComments(true);
     }
   },
 
@@ -852,7 +1170,7 @@ Page({
           expandedReplyIds
         });
         this.clearReplyState();
-        await this.loadComments();
+        await this.loadComments(true);
         if (newCommentId) {
           this.setData({ replyHighlightId: newCommentId });
         }
@@ -956,27 +1274,22 @@ Page({
     console.log('点赞题目');
     if (this.data.error || this.data.isEmpty) return;
 
-    const {
-      questionDetail
-    } = this.data;
+    const { questionDetail } = this.data;
+    const liked = !!questionDetail.liked;
 
     try {
-      console.log("点赞题目 params:", {
-        questionId: this.data.questionId,
-        like: !questionDetail.liked
-      })
-      const likeQuestion = new QuestionLikeOrCollectParams(this.data.questionId, !questionDetail.liked, null)
+      const likeQuestion = new QuestionLikeOrCollectParams(this.data.questionId, !liked, null);
       const response = await authApi.toggleLike(likeQuestion);
 
       if (response.code === "0000") {
         this.setData({
-          'questionDetail.liked': !questionDetail.liked,
-          'questionDetail.likeCount': questionDetail.liked ?
-            (questionDetail.likeCount - 1) :
-            (questionDetail.likeCount + 1)
+          'questionDetail.liked': !liked,
+          'questionDetail.likeCount': liked
+            ? Math.max(0, (questionDetail.likeCount || 0) - 1)
+            : (questionDetail.likeCount || 0) + 1
         });
         Message.success({
-          content: !questionDetail.liked ? '已取消点赞' : '点赞成功',
+          content: liked ? '已取消点赞' : '点赞成功',
           duration: 2000
         });
       } else {
@@ -998,23 +1311,22 @@ Page({
   async onCollect() {
     if (this.data.error || this.data.isEmpty) return;
 
-    const {
-      questionDetail
-    } = this.data;
+    const { questionDetail } = this.data;
+    const collected = !!(questionDetail.collected ?? questionDetail.isCollected);
 
     try {
-      const collectQuestion = new QuestionLikeOrCollectParams(this.data.questionId, null, !questionDetail.isCollected)
+      const collectQuestion = new QuestionLikeOrCollectParams(this.data.questionId, null, !collected);
       const response = await authApi.toggleCollect(collectQuestion);
       if (response.code === "0000") {
         this.setData({
-          'questionDetail.collected': !questionDetail.collected,
-          'questionDetail.collectCount': questionDetail.collected ?
-            (questionDetail.collectCount - 1) :
-            (questionDetail.collectCount + 1)
+          'questionDetail.collected': !collected,
+          'questionDetail.collectCount': collected
+            ? Math.max(0, (questionDetail.collectCount || 0) - 1)
+            : (questionDetail.collectCount || 0) + 1
         });
 
         Message.success({
-          content: !questionDetail.collected ? '已取消收藏' : '收藏成功',
+          content: collected ? '已取消收藏' : '收藏成功',
           duration: 2000
         });
       } else {

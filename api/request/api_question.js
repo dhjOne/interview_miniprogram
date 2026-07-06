@@ -33,9 +33,9 @@ export const authApi = {
       })
     },
   
-    // 获取题目评论
-    getQuestionComments: (questionId) => {
-      return http.get(`/comments/question/${questionId}`, null, {
+    // 获取题目评论（支持 page / limit 分页）
+    getQuestionComments: (questionId, query = null) => {
+      return http.get(`/comments/question/${questionId}`, query, {
         showLoading: false
       })
     },

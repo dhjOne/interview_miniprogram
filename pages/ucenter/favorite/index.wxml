@@ -3,28 +3,54 @@
   <t-navbar left-arrow title="收藏夹" fixed safe-area-inset-top />
   <view class="uc-favorite__inner question-list-container">
     <view class="question-list-sticky">
-      <view class="search-section">
-        <t-search
-          value="{{searchValue}}"
-          placeholder="搜索已收藏题目…"
-          bind:change="onSearchChange"
-          bind:search="onSearch"
-          bind:clear="onSearchClear"
-          shape="round"
-        />
-      </view>
-      <view class="sort-chip-bar">
-        <view
-          wx:for="{{sortChips}}"
-          wx:key="value"
-          class="sort-chip {{sortType === item.value ? 'sort-chip--active' : ''}}"
-          data-sort="{{item.value}}"
-          bindtap="onSortTap">
-          {{item.label}}
+      <view class="ql-filter">
+        <view class="ql-filter__search">
+          <t-search
+            value="{{searchValue}}"
+            placeholder="搜索已收藏题目…"
+            action="搜索"
+            bind:change="onSearchChange"
+            bind:submit="onSearchSubmit"
+            bind:action-click="onSearchAction"
+            bind:clear="onSearchClear"
+            shape="round"
+            t-class="ql-filter-search"
+            t-class-input-container="ql-filter-search__box"
+            t-class-input="ql-filter-search__input"
+            t-class-action="ql-filter-search__action"
+          />
         </view>
-      </view>
-      <view class="list-subbar" wx:if="{{listHeaderReady}}">
-        <text class="list-subbar-text">共 {{totalCount}} 道已收藏</text>
+
+        <view class="ql-filter__sort-row">
+          <text class="ql-filter__sort-label">排序</text>
+          <view
+            class="ql-sort-segment {{sortSwipePulse ? 'ql-sort-segment--pulse' : ''}}"
+            bindtouchstart="onSortSwipeStart"
+            bindtouchend="onSortSwipeEnd"
+          >
+            <view
+              class="ql-sort-segment__thumb"
+              style="width: {{sortThumbWidth}}%; transform: translateX({{sortThumbOffset}}%);"
+            />
+            <view
+              wx:for="{{sortChips}}"
+              wx:key="value"
+              class="ql-sort-segment__item {{sortType === item.value ? 'ql-sort-segment__item--active' : ''}}"
+              data-sort="{{item.value}}"
+              bindtap="onSortTap"
+            >
+              {{item.label}}
+            </view>
+          </view>
+        </view>
+        <text class="ql-filter__swipe-tip">左右滑动可切换排序</text>
+
+        <view class="ql-filter__meta" wx:if="{{listHeaderReady}}">
+          <view class="ql-filter__meta-left">
+            <text class="ql-filter__count">共 {{totalCount}} 道已收藏</text>
+          </view>
+          <text wx:if="{{searchValue}}" class="ql-filter__hint">关键词「{{searchValue}}」</text>
+        </view>
       </view>
     </view>
 
@@ -37,12 +63,14 @@
         scroll-into-view="{{scrollIntoView}}"
         scroll-with-animation
         bindscrolltolower="loadMore"
+        bindtouchstart="onSortSwipeStart"
+        bindtouchend="onSortSwipeEnd"
         lower-threshold="120">
         <view id="list-top" class="list-top-anchor" />
         <view class="question-list">
           <block wx:for="{{questionList}}" wx:key="id" wx:for-index="idx">
             <view
-              class="question-item question-item--collected"
+              class="question-item"
               bindtap="onQuestionClick"
               data-id="{{item.id}}"
               data-title="{{item.title}}">
@@ -84,7 +112,7 @@
                   <t-icon
                     name="{{item.isCollected ? 'heart-filled' : 'heart'}}"
                     size="40rpx"
-                    color="{{item.isCollected ? '#07C160' : '#bbb'}}"
+                    color="{{item.isCollected ? '#e34d59' : '#c0c4cc'}}"
                     class="collect-icon"
                   />
                 </view>
@@ -103,10 +131,15 @@
           <t-divider wx:elif="{{!hasMore}}" align="center" content="没有更多了" />
         </view>
 
-        <view wx:if="{{questionList.length === 0 && !loading && loadAttempted}}" class="empty-state">
-          <t-icon name="heart" size="120rpx" color="#ddd" />
-          <text class="empty-text">暂无收藏题目</text>
-          <text class="empty-desc">在题库中点击「心形」即可收藏，或换关键词再搜</text>
+        <view wx:if="{{questionList.length === 0 && !loading && loadAttempted}}" class="uc-favorite__empty">
+          <view class="uc-favorite__empty-icon">
+            <t-icon name="heart" size="80rpx" color="#c8c9cc" />
+          </view>
+          <text class="uc-favorite__empty-title">暂无收藏题目</text>
+          <text class="uc-favorite__empty-desc">在题库中点击心形图标即可收藏，或换关键词再搜</text>
+          <t-button theme="primary" size="medium" bindtap="goBrowse" class="uc-favorite__empty-btn">
+            去刷题
+          </t-button>
         </view>
 
         <view wx:if="{{questionList.length === 0 && loading}}" class="list-loading-center">

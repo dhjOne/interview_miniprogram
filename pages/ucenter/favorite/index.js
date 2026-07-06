@@ -63,8 +63,13 @@ Page({
     pageSize: 20,
     listHeaderReady: false,
     scrollIntoView: '',
-    loadAttempted: false
+    loadAttempted: false,
+    sortThumbWidth: 33.333,
+    sortThumbOffset: 0,
+    sortSwipePulse: false
   },
+
+  _sortSwipeTouch: null,
 
   onShow() {},
 
@@ -137,10 +142,12 @@ Page({
       this.setData({ loadAttempted: true });
     } finally {
       this.setData({ loading: false, listHeaderReady: true });
+      wx.stopPullDownRefresh();
     }
   },
 
   onLoad() {
+    this._updateSortThumb(this.data.sortType);
     this.loadQuestions(true);
   },
 
@@ -149,25 +156,111 @@ Page({
   },
 
   onSearchChange(e) {
-    this.setData({ searchValue: e.detail.value });
+    this.setData({ searchValue: e.detail.value || '' });
   },
 
-  onSearch() {
-    this.loadQuestions(true);
+  triggerSearch(keyword) {
+    const value = (keyword ?? this.data.searchValue ?? '').trim();
+    this.setData({ searchValue: value, scrollIntoView: 'list-top' }, () => {
+      this.loadQuestions(true);
+      setTimeout(() => {
+        this.setData({ scrollIntoView: '' });
+      }, 300);
+    });
+  },
+
+  onSearchSubmit(e) {
+    this.triggerSearch(e.detail?.value);
+  },
+
+  onSearchAction() {
+    this.triggerSearch(this.data.searchValue);
   },
 
   onSearchClear() {
-    this.setData({ searchValue: '' }, () => {
+    this.setData({ searchValue: '', scrollIntoView: 'list-top' }, () => {
       this.loadQuestions(true);
+      setTimeout(() => {
+        this.setData({ scrollIntoView: '' });
+      }, 300);
+    });
+  },
+
+  _sortValues() {
+    return this.data.sortChips.map((c) => c.value);
+  },
+
+  _sortIndex(sortType) {
+    const idx = this._sortValues().indexOf(sortType);
+    return idx < 0 ? 0 : idx;
+  },
+
+  _updateSortThumb(sortType) {
+    const count = this.data.sortChips.length || 3;
+    const idx = this._sortIndex(sortType);
+    this.setData({
+      sortThumbWidth: 100 / count,
+      sortThumbOffset: idx * 100
+    });
+  },
+
+  _pulseSortSegment() {
+    this.setData({ sortSwipePulse: true });
+    clearTimeout(this._sortPulseTimer);
+    this._sortPulseTimer = setTimeout(() => {
+      this.setData({ sortSwipePulse: false });
+    }, 280);
+  },
+
+  applySort(sort, fromSwipe = false) {
+    if (!sort || sort === this.data.sortType) return;
+    this._updateSortThumb(sort);
+    if (fromSwipe) {
+      this._pulseSortSegment();
+      wx.vibrateShort({ type: 'light' });
+    }
+    this.setData({ sortType: sort, scrollIntoView: 'list-top' }, () => {
+      this.loadQuestions(true);
+      setTimeout(() => {
+        this.setData({ scrollIntoView: '' });
+      }, 300);
     });
   },
 
   onSortTap(e) {
-    const { sort } = e.currentTarget.dataset;
-    if (!sort || sort === this.data.sortType) return;
-    this.setData({ sortType: sort }, () => {
-      this.loadQuestions(true);
-    });
+    this.applySort(e.currentTarget.dataset.sort, false);
+  },
+
+  onSortSwipeStart(e) {
+    const touch = e.touches && e.touches[0];
+    if (!touch) return;
+    this._sortSwipeTouch = {
+      x: touch.clientX,
+      y: touch.clientY
+    };
+  },
+
+  onSortSwipeEnd(e) {
+    const start = this._sortSwipeTouch;
+    this._sortSwipeTouch = null;
+    if (!start) return;
+    const touch = e.changedTouches && e.changedTouches[0];
+    if (!touch) return;
+
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    const SWIPE_MIN = 48;
+
+    if (Math.abs(dx) < SWIPE_MIN) return;
+    if (Math.abs(dx) < Math.abs(dy) * 1.25) return;
+
+    const order = this._sortValues();
+    const cur = this._sortIndex(this.data.sortType);
+    const next =
+      dx < 0
+        ? order[(cur + 1) % order.length]
+        : order[(cur - 1 + order.length) % order.length];
+    this.applySort(next, true);
   },
 
   loadMore() {
@@ -231,6 +324,15 @@ Page({
     const questionTitle = e.currentTarget.dataset.title || '';
     app.navigateToLogin({
       url: `/pages/question/detail/index?id=${questionId}&title=${encodeURIComponent(questionTitle)}`
+    });
+  },
+
+  goBrowse() {
+    wx.switchTab({
+      url: '/pages/category/index',
+      fail: () => {
+        wx.navigateTo({ url: '/pages/category/index' });
+      }
     });
   }
 });

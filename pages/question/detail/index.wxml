@@ -34,69 +34,53 @@
   <view wx:else class="detail-main">
     <scroll-view class="content-scroll" scroll-y enhanced show-scrollbar="{{false}}">
       <view class="question-card">
-        <view class="question-header">
-          <view class="question-title-section">
-            <text class="question-title">{{questionDetail.title}}</text>
-            <view wx:if="{{questionDetail.categoryName}}" class="category-tag">
-              <t-tag theme="primary" size="small">{{questionDetail.categoryName}}</t-tag>
+        <view class="detail-hero">
+          <text wx:if="{{questionDetail.categoryName}}" class="detail-hero__category">{{questionDetail.categoryName}}</text>
+          <text class="detail-hero__title">{{questionDetail.title}}</text>
+          <view wx:if="{{questionDetail.createdAt || questionDetail.viewCount || questionDetail.wordCount}}" class="detail-hero__meta">
+            <text wx:if="{{questionDetail.createdAt}}" class="detail-hero__meta-item">{{questionDetail.createdAt}}</text>
+            <text wx:if="{{questionDetail.createdAt && questionDetail.viewCount}}" class="detail-hero__meta-dot">·</text>
+            <text wx:if="{{questionDetail.viewCount}}" class="detail-hero__meta-item">{{questionDetail.viewCount}} 阅读</text>
+            <text wx:if="{{questionDetail.viewCount && questionDetail.wordCount}}" class="detail-hero__meta-dot">·</text>
+            <text wx:if="{{questionDetail.wordCount}}" class="detail-hero__meta-item">{{questionDetail.wordCount}} 字</text>
+          </view>
+        </view>
+
+        <view class="detail-author {{isSelfAuthor ? 'detail-author--self' : ''}}">
+          <view class="detail-author__main" catchtap="onAuthorTap" hover-class="detail-author__main--pressed">
+            <view class="detail-author__avatar">
+              <image
+                wx:if="{{questionDetail.authorAvatar || questionDetail.createAvatar}}"
+                class="detail-author__avatar-img"
+                src="{{questionDetail.authorAvatar || questionDetail.createAvatar}}"
+                mode="aspectFill"
+              />
+              <t-icon wx:else name="user-circle" size="44rpx" color="#0052d9" />
+            </view>
+            <view class="detail-author__copy">
+              <text class="detail-author__name">{{authorDisplayName}}</text>
+              <text class="detail-author__hint">{{isSelfAuthor ? '我的主页' : '点击查看作者主页'}}</text>
             </view>
           </view>
-
-          <!-- 作者信息 + 关注（始终展示） -->
-          <view class="author-info-section">
-            <view class="author-info">
-              <view class="author-basic">
-                <view
-                  class="author-avatar author-avatar--tap"
-                  hover-class="author-avatar--pressed"
-                  hover-stay-time="80"
-                  catchtap="onAuthorTap"
-                >
-                  <image
-                    wx:if="{{questionDetail.authorAvatar || questionDetail.createAvatar}}"
-                    class="author-avatar-img"
-                    src="{{questionDetail.authorAvatar || questionDetail.createAvatar}}"
-                    mode="aspectFill"
-                  />
-                  <t-icon wx:else name="user-circle" size="48rpx" color="#1890ff"></t-icon>
-                </view>
-                <view
-                  class="author-details author-details--tap"
-                  hover-class="author-details--pressed"
-                  hover-stay-time="80"
-                  catchtap="onAuthorTap"
-                >
-                  <text class="author-name">{{authorDisplayName}}</text>
-                  <view class="author-meta">
-                    <text wx:if="{{questionDetail.createdAt}}" class="meta-item">{{questionDetail.createdAt}}</text>
-                    <text wx:if="{{questionDetail.createdAt && questionDetail.wordCount}}" class="meta-divider">·</text>
-                    <text wx:if="{{questionDetail.wordCount}}" class="meta-item">{{questionDetail.wordCount}}字</text>
-                    <text wx:if="{{questionDetail.viewCount}}" class="meta-divider">·</text>
-                    <text wx:if="{{questionDetail.viewCount}}" class="meta-item">{{questionDetail.viewCount}} 阅读</text>
-                  </view>
-                </view>
-              </view>
-              <view
-                class="follow-btn {{authorFollowing ? 'follow-btn--followed' : ''}}"
-                hover-class="follow-btn--pressed"
-                hover-stay-time="80"
-                bindtap="onToggleFollow"
-              >
-                <t-icon
-                  wx:if="{{!authorFollowing}}"
-                  name="add"
-                  size="28rpx"
-                  class="follow-btn__icon"
-                />
-                <t-icon
-                  wx:else
-                  name="check"
-                  size="28rpx"
-                  class="follow-btn__icon follow-btn__icon--muted"
-                />
-                <text class="follow-btn__text">{{authorFollowing ? '已关注' : '关注'}}</text>
-              </view>
-            </view>
+          <view
+            wx:if="{{!isSelfAuthor}}"
+            class="detail-author__follow {{authorFollowing ? 'detail-author__follow--followed' : ''}}"
+            hover-class="detail-author__follow--pressed"
+            bindtap="onToggleFollow"
+          >
+            <t-icon
+              wx:if="{{!authorFollowing}}"
+              name="add"
+              size="26rpx"
+              class="detail-author__follow-icon"
+            />
+            <t-icon
+              wx:else
+              name="check"
+              size="26rpx"
+              class="detail-author__follow-icon detail-author__follow-icon--muted"
+            />
+            <text>{{authorFollowing ? '已关注' : '关注'}}</text>
           </view>
         </view>
 
@@ -215,32 +199,59 @@
 
     <!-- 底部导航栏 -->
     <view class="detail-bottom-bar">
-      <view class="bottom-bar__nav">
-        <view class="bottom-nav-item" bindtap="onOpenCatalog">
-          <t-icon name="view-list" size="40rpx" color="#333"></t-icon>
-          <text>目录</text>
+      <view class="bottom-bar__dock">
+        <view class="bottom-tool" hover-class="bottom-tool--pressed" bindtap="onOpenCatalog">
+          <view class="bottom-tool__icon">
+            <t-icon name="view-list" size="40rpx" color="#64748b" />
+          </view>
+          <text class="bottom-tool__label">目录</text>
         </view>
-        <view class="bottom-nav-item bottom-nav-item--comment" bindtap="onOpenComments">
-          <t-icon name="chat" size="40rpx" color="#333"></t-icon>
-          <text>评论</text>
-          <text wx:if="{{commentCount}}" class="bottom-nav-badge">{{commentCount}}</text>
-        </view>
-      </view>
 
-      <view class="bottom-bar__actions">
-        <view class="bottom-action-item {{questionDetail.liked ? 'like-active' : ''}}" bindtap="onLike">
-          <t-icon name="{{questionDetail.liked ? 'thumb-up-filled' : 'thumb-up'}}" size="40rpx"
-            color="{{questionDetail.liked ? '#ff6b6b' : '#666'}}"></t-icon>
-          <text class="bottom-action-count">{{questionDetail.likeCount || 0}}</text>
+        <view class="bottom-tool" hover-class="bottom-tool--pressed" bindtap="onOpenComments">
+          <view class="bottom-tool__icon">
+            <t-icon name="chat" size="40rpx" color="#64748b" />
+            <text wx:if="{{commentCount}}" class="bottom-tool__badge">{{commentCount > 99 ? '99+' : commentCount}}</text>
+          </view>
+          <text class="bottom-tool__label">评论</text>
         </view>
-        <view class="bottom-action-item {{questionDetail.collected ? 'collect-active' : ''}}" bindtap="onCollect">
-          <t-icon name="{{questionDetail.collected ? 'heart-filled' : 'heart'}}" size="40rpx"
-            color="{{questionDetail.collected ? '#ff6b6b' : '#666'}}"></t-icon>
-          <text class="bottom-action-count">{{questionDetail.collectCount || 0}}</text>
+
+        <view class="bottom-bar__divider" />
+
+        <view
+          class="bottom-tool {{questionDetail.liked ? 'bottom-tool--active' : ''}}"
+          hover-class="bottom-tool--pressed"
+          bindtap="onLike"
+        >
+          <view class="bottom-tool__icon">
+            <t-icon
+              name="{{questionDetail.liked ? 'thumb-up-filled' : 'thumb-up'}}"
+              size="40rpx"
+              color="{{questionDetail.liked ? '#0052d9' : '#64748b'}}"
+            />
+          </view>
+          <text class="bottom-tool__label">{{questionDetail.likeCount > 0 ? questionDetail.likeCount : '点赞'}}</text>
         </view>
-        <view class="bottom-action-item bottom-action-item--share" bindtap="onShare">
-          <t-icon name="share" size="40rpx" color="#666"></t-icon>
-          <text>分享</text>
+
+        <view
+          class="bottom-tool {{questionDetail.collected ? 'bottom-tool--active' : ''}}"
+          hover-class="bottom-tool--pressed"
+          bindtap="onCollect"
+        >
+          <view class="bottom-tool__icon">
+            <t-icon
+              name="{{questionDetail.collected ? 'heart-filled' : 'heart'}}"
+              size="40rpx"
+              color="{{questionDetail.collected ? '#0052d9' : '#64748b'}}"
+            />
+          </view>
+          <text class="bottom-tool__label">{{questionDetail.collectCount > 0 ? questionDetail.collectCount : '收藏'}}</text>
+        </view>
+
+        <view class="bottom-tool" hover-class="bottom-tool--pressed" bindtap="onShare">
+          <view class="bottom-tool__icon">
+            <t-icon name="share" size="40rpx" color="#64748b" />
+          </view>
+          <text class="bottom-tool__label">分享</text>
         </view>
       </view>
     </view>
@@ -259,12 +270,19 @@
       <text class="catalog-drawer__sub">{{catalogTitle}}</text>
     </view>
 
-    <view wx:if="{{catalogLoading}}" class="catalog-drawer__loading">
+    <view wx:if="{{catalogLoading && !catalogList.length}}" class="catalog-drawer__loading">
       <t-loading size="48rpx" text="加载目录…"></t-loading>
     </view>
 
-    <scroll-view wx:else class="catalog-drawer__list" scroll-y show-scrollbar="{{false}}">
-      <view wx:if="{{!catalogList.length}}" class="catalog-drawer__empty">
+    <scroll-view
+      wx:else
+      class="catalog-drawer__list"
+      scroll-y
+      show-scrollbar="{{false}}"
+      bindscrolltolower="loadMoreCatalog"
+      lower-threshold="120"
+    >
+      <view wx:if="{{!catalogList.length && !catalogLoading}}" class="catalog-drawer__empty">
         <t-icon name="folder-open" size="80rpx" color="#ccc"></t-icon>
         <text>暂无同分类题目</text>
         <text class="catalog-drawer__empty-hint">从题库列表进入可浏览完整目录</text>
@@ -282,7 +300,14 @@
           <text class="catalog-item__title">{{item.title}}</text>
           <text wx:if="{{item.displayDate}}" class="catalog-item__meta">{{item.displayDate}}</text>
         </view>
-        <t-icon wx:if="{{item.id == questionId}}" name="check-circle-filled" size="36rpx" color="#1890ff"></t-icon>
+        <t-icon wx:if="{{item.id == questionId}}" name="check-circle-filled" size="36rpx" color="#0052d9"></t-icon>
+      </view>
+
+      <view wx:if="{{catalogList.length}}" class="catalog-drawer__footer">
+        <view wx:if="{{catalogLoadingMore}}" class="catalog-drawer__footer-loading">
+          <t-loading size="32rpx" text="加载中..." />
+        </view>
+        <text wx:elif="{{!catalogHasMore}}" class="catalog-drawer__footer-end">— 已加载全部 —</text>
       </view>
     </scroll-view>
   </view>
@@ -306,8 +331,18 @@
       </view>
     </view>
 
-    <scroll-view class="comment-panel__list" scroll-y show-scrollbar="{{false}}">
-      <view wx:if="{{!comments.length}}" class="comment-panel__empty">
+    <scroll-view
+      class="comment-panel__list"
+      scroll-y
+      show-scrollbar="{{false}}"
+      bindscrolltolower="loadMoreComments"
+      lower-threshold="120"
+    >
+      <view wx:if="{{commentLoading && !comments.length}}" class="comment-panel__empty">
+        <t-loading size="48rpx" text="加载评论…" />
+      </view>
+
+      <view wx:elif="{{!comments.length && !commentLoading}}" class="comment-panel__empty">
         <t-icon name="chat" size="64rpx" color="#ddd"></t-icon>
         <text>还没有评论，来抢沙发吧</text>
       </view>
@@ -337,12 +372,18 @@
               >举报</text>
             </view>
 
-            <view wx:if="{{item.replies.length}}" class="comment-replies-toggle" bindtap="onToggleReplies" data-id="{{item.id}}">
+            <view
+              wx:if="{{item.replyCount > 0 || item.replies.length || item.repliesLoaded}}"
+              class="comment-replies-toggle"
+              bindtap="onToggleReplies"
+              data-id="{{item.id}}"
+            >
               <view class="comment-replies-toggle__line"></view>
-              <text class="comment-replies-toggle__text">
-                {{expandedReplyIds[item.id] ? '收起回复' : '展开 ' + item.replies.length + ' 条回复'}}
+              <text wx:if="{{item.repliesLoading || replyLoadingIds[item.id]}}" class="comment-replies-toggle__text">回复加载中…</text>
+              <text wx:else class="comment-replies-toggle__text">
+                {{expandedReplyIds[item.id] ? '收起回复' : '展开 ' + (item.repliesLoaded ? item.replies.length : item.replyCount) + ' 条回复'}}
               </text>
-              <t-icon name="{{expandedReplyIds[item.id] ? 'chevron-up' : 'chevron-down'}}" size="28rpx" color="#999"></t-icon>
+              <t-icon wx:if="{{!item.repliesLoading && !replyLoadingIds[item.id]}}" name="{{expandedReplyIds[item.id] ? 'chevron-up' : 'chevron-down'}}" size="28rpx" color="#999"></t-icon>
             </view>
 
             <view wx:if="{{expandedReplyIds[item.id] && item.replies.length}}" class="comment-row__replies">
@@ -383,7 +424,7 @@
                     <t-icon
                       name="{{likedCommentIds[reply.id] ? 'thumb-up-filled' : 'thumb-up'}}"
                       size="28rpx"
-                      color="{{likedCommentIds[reply.id] ? '#ff6b6b' : '#999'}}"
+                      color="{{likedCommentIds[reply.id] ? '#0052d9' : '#94a3b8'}}"
                     ></t-icon>
                     <text>{{reply.likeCount || 0}}</text>
                   </view>
@@ -399,12 +440,19 @@
             <t-icon
               name="{{likedCommentIds[item.id] ? 'thumb-up-filled' : 'thumb-up'}}"
               size="28rpx"
-              color="{{likedCommentIds[item.id] ? '#ff6b6b' : '#999'}}"
+              color="{{likedCommentIds[item.id] ? '#0052d9' : '#94a3b8'}}"
             ></t-icon>
             <text>{{item.likeCount || 0}}</text>
           </view>
         </view>
       </block>
+
+      <view wx:if="{{comments.length}}" class="comment-panel__list-footer">
+        <view wx:if="{{commentLoadingMore}}" class="comment-panel__list-footer-loading">
+          <t-loading size="32rpx" text="加载中..." />
+        </view>
+        <text wx:elif="{{!commentHasMore}}" class="comment-panel__list-footer-end">— 已加载全部 —</text>
+      </view>
     </scroll-view>
 
     <view class="comment-panel__footer">
@@ -436,25 +484,71 @@
   </view>
 </t-popup>
 
-<!-- 分享 ActionSheet -->
-<t-action-sheet id="t-action-sheet" visible="{{showShareActionSheet}}" bind:close="onShareActionSheetClose"
-  bind:cancel="onShareActionSheetClose" bind:selected="onShareOptionSelect" theme="grid" align="center"
-  items="{{shareOptions}}" cancel-text="取消分享" class="share-action-sheet" />
+<!-- 分享面板 -->
+<t-popup
+  visible="{{showShareActionSheet}}"
+  placement="bottom"
+  bind:visible-change="onSharePanelVisibleChange"
+>
+  <view class="share-panel">
+    <view class="share-panel__handle" />
+    <view class="share-panel__head">
+      <text class="share-panel__title">更多操作</text>
+      <text class="share-panel__sub">分享题目或进行其他操作</text>
+    </view>
+
+    <block wx:for="{{sharePanels}}" wx:key="title" wx:for-item="panel">
+      <view class="share-panel__section">
+        <text wx:if="{{panel.title}}" class="share-panel__section-title">{{panel.title}}</text>
+        <view class="share-panel__grid">
+          <view
+            wx:for="{{panel.items}}"
+            wx:for-item="item"
+            wx:key="value"
+            class="share-panel__item"
+            data-value="{{item.value}}"
+            bindtap="onShareOptionTap"
+            hover-class="share-panel__item--pressed"
+          >
+            <view class="share-panel__icon share-panel__icon--{{item.tone}}">
+              <t-icon name="{{item.icon}}" size="44rpx" />
+            </view>
+            <text class="share-panel__label">{{item.label}}</text>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <view class="share-panel__cancel" bindtap="onShareActionSheetClose" hover-class="share-panel__cancel--pressed">
+      取消
+    </view>
+  </view>
+</t-popup>
 
 <!-- 分享引导 -->
-<t-popup visible="{{showCustomGuide}}" bind:visible-change="onCloseCustomGuide" placement="center"
-  overlay-props="{{ { background: 'rgba(0, 0, 0, 0.6)' } }}">
-  <view class="custom-guide-popup">
-    <view class="guide-header">
-      <t-icon name="share" size="48rpx" color="#07c160"></t-icon>
-      <text class="guide-title">分享指引</text>
+<t-popup
+  visible="{{showCustomGuide}}"
+  bind:visible-change="onCloseCustomGuide"
+  placement="center"
+  overlay-props="{{ { background: 'rgba(15, 23, 42, 0.55)' } }}"
+>
+  <view class="share-guide">
+    <view class="share-guide__icon-wrap">
+      <t-icon name="logo-wechat-stroke" size="56rpx" color="#07c160" />
     </view>
-    <view class="guide-content">
-      <text class="guide-text">请点击右上角"···"按钮</text>
-      <text class="guide-text">然后选择"转发"将题目分享给好友</text>
+    <text class="share-guide__title">分享给微信好友</text>
+    <view class="share-guide__steps">
+      <view class="share-guide__step">
+        <text class="share-guide__step-num">1</text>
+        <text class="share-guide__step-text">点击右上角「···」菜单</text>
+      </view>
+      <view class="share-guide__step">
+        <text class="share-guide__step-num">2</text>
+        <text class="share-guide__step-text">选择「转发」发送给好友</text>
+      </view>
     </view>
-    <view class="guide-actions">
-      <t-button theme="primary" bindtap="onCloseCustomGuide" size="large">知道了</t-button>
+    <view class="share-guide__btn" bindtap="onCloseCustomGuide" hover-class="share-guide__btn--pressed">
+      知道了
     </view>
   </view>
 </t-popup>

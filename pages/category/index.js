@@ -85,6 +85,11 @@ Page({
     messageOffset: 100,
 
     categoryLoading: false,
+    secondaryPage: 1,
+    secondaryPageSize: 20,
+    secondaryTotal: 0,
+    secondaryHasMore: true,
+    secondaryLoadingMore: false,
     categoryScope: 'all',
     isLoggedIn: false,
     hasProfession: false,
@@ -251,7 +256,10 @@ Page({
       } else {
         this.setData({
           secondaryCategories: [],
-          categoryLoading: false
+          categoryLoading: false,
+          secondaryTotal: 0,
+          secondaryHasMore: false,
+          secondaryLoadingMore: false
         });
       }
 
@@ -263,7 +271,10 @@ Page({
         primaryCategories: [],
         secondaryCategories: [],
         currentPrimaryId: null,
-        categoryLoading: false
+        categoryLoading: false,
+        secondaryTotal: 0,
+        secondaryHasMore: false,
+        secondaryLoadingMore: false
       });
       return false;
     } finally {
@@ -275,17 +286,40 @@ Page({
 
   /**
    * 根据当前一级分类加载二级分类。
+   * @param {{ refresh?: boolean }} [opts]
    */
-  async loadSecondaryCategories() {
+  async loadSecondaryCategories(opts = {}) {
+    const refresh = opts.refresh !== false;
     const parentId = this.data.currentPrimaryId;
+    const requestScope = this.data.categoryScope;
+    const nextPage = refresh ? 1 : this.data.secondaryPage + 1;
 
-    this.setData({
-      secondaryCategories: [],
-      categoryLoading: true
-    });
+    if (
+      !refresh &&
+      (this.data.categoryLoading || this.data.secondaryLoadingMore || !this.data.secondaryHasMore)
+    ) {
+      return;
+    }
+
+    if (refresh) {
+      this.setData({
+        secondaryCategories: [],
+        secondaryPage: 1,
+        secondaryTotal: 0,
+        secondaryHasMore: true,
+        secondaryLoadingMore: false,
+        categoryLoading: true
+      });
+    } else {
+      this.setData({ secondaryLoadingMore: true });
+    }
 
     if (!parentId) {
-      this.setData({ categoryLoading: false });
+      this.setData({
+        categoryLoading: false,
+        secondaryLoadingMore: false,
+        secondaryHasMore: false
+      });
       return;
     }
 
@@ -293,23 +327,54 @@ Page({
       const categoryParams = new CategoryParams(null, parentId, this.data.categoryScope);
       categoryParams.sortField = 'sort_order';
       categoryParams.order = 'asc';
+      categoryParams.page = nextPage;
+      categoryParams.limit = this.data.secondaryPageSize;
       const response = await authApi.getCategories(categoryParams);
       console.log('二级分类：', response);
 
-      const secondaryCategories = decorateCategoryRows(response.data?.rows || []);
+      if (parentId != this.data.currentPrimaryId || requestScope !== this.data.categoryScope) {
+        return;
+      }
+
+      const rawRows = response.data?.rows || [];
+      const newChunk = decorateCategoryRows(rawRows);
+      const rawTotal = response.data?.total;
+      const parsedTotal = Number(rawTotal);
+      const hasTotal =
+        rawTotal !== undefined && rawTotal !== null && !Number.isNaN(parsedTotal);
+      const secondaryCategories = refresh
+        ? newChunk
+        : [...this.data.secondaryCategories, ...newChunk];
+      const secondaryHasMore = hasTotal
+        ? secondaryCategories.length < parsedTotal
+        : rawRows.length >= this.data.secondaryPageSize;
 
       this.setData({
         secondaryCategories,
-        categoryLoading: false
+        secondaryPage: nextPage,
+        secondaryTotal: hasTotal ? parsedTotal : secondaryCategories.length,
+        secondaryHasMore,
+        categoryLoading: false,
+        secondaryLoadingMore: false
       });
     } catch (error) {
       console.error('加载二级分类失败:', error);
       this.showErrorMessage('加载分类失败');
-      this.setData({
-        secondaryCategories: [],
-        categoryLoading: false
-      });
+      const patch = {
+        categoryLoading: false,
+        secondaryLoadingMore: false
+      };
+      if (refresh) {
+        patch.secondaryCategories = [];
+        patch.secondaryTotal = 0;
+        patch.secondaryHasMore = false;
+      }
+      this.setData(patch);
     }
+  },
+
+  loadMoreSecondaryCategories() {
+    this.loadSecondaryCategories({ refresh: false });
   },
 
   calculateNavBarHeight() {
@@ -358,6 +423,10 @@ Page({
     this.setData({
       currentPrimaryId: categoryId,
       secondaryCategories: [],
+      secondaryPage: 1,
+      secondaryTotal: 0,
+      secondaryHasMore: true,
+      secondaryLoadingMore: false,
       categoryLoading: true
     });
 
@@ -415,7 +484,11 @@ Page({
     this.setData({
       categoryScope: scope,
       currentPrimaryId: null,
-      secondaryCategories: []
+      secondaryCategories: [],
+      secondaryPage: 1,
+      secondaryTotal: 0,
+      secondaryHasMore: true,
+      secondaryLoadingMore: false
     });
     await this.loadPrimaryCategories();
   },

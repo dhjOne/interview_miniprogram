@@ -229,6 +229,8 @@ Page({
       }
 
       const categoryParams = new CategoryParams(null, 0, this.data.categoryScope);
+      categoryParams.page = 1;
+      categoryParams.limit = 100;
       categoryParams.sortField = 'sort_order';
       categoryParams.order = 'asc';
       const response = await authApi.getCategories(categoryParams);

@@ -27,6 +27,29 @@ export class CategoryParams extends SortParams {
   }
 }
 
+/**
+ * 用户分类建议提交参数
+ */
+export class CategorySuggestParams {
+  constructor({ suggestedName, parentId, fallbackCategoryId, questionId, reason } = {}) {
+    this.suggestedName = suggestedName
+    this.parentId = parentId
+    this.fallbackCategoryId = fallbackCategoryId
+    this.questionId = questionId
+    this.reason = reason
+  }
+
+  toRequestData() {
+    return {
+      suggestedName: this.suggestedName,
+      parentId: this.parentId,
+      fallbackCategoryId: this.fallbackCategoryId,
+      questionId: this.questionId,
+      reason: this.reason
+    }
+  }
+}
+
 // 问题参数 - 增加页码相关属性
 export class QuestionParams extends SortParams {
   constructor(title, categoryId, questionId) {

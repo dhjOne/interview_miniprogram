@@ -1,8 +1,9 @@
 import { authApi } from '~/api/request/api_question';
 import { authApi as categoryApi } from '~/api/request/api_category';
-import { CategoryParams } from '~/api/param/param_category';
+import { CategoryParams, CategorySuggestParams } from '~/api/param/param_category';
 import { QuestionPublishParams } from '~/api/param/param_publish';
 import { consumePendingPublish } from '~/utils/aiChatStorage';
+import { isFallbackCategory, isFallbackCategoryId, toCascaderNode, applyCascaderChange, findCascaderPath } from '~/utils/categorySuggest';
 import Message from 'tdesign-miniprogram/message/index';
 // 获取应用实例
 const app = getApp();
@@ -34,12 +35,23 @@ Page({
     canUndo: false,
     canRedo: false,
     
-    /** 一级分类（与 pages/category 相同接口：parentId=0） */
+    /** 一级分类（兼容草稿解析） */
     categoryLevel1: [],
-    /** 当前一级下的二级分类 */
+    /** 当前一级下的二级分类（兼容旧逻辑，Cascader 树优先） */
     categoryLevel2: [],
     /** 当前选中的一级 id */
     selectedParentCategory: '',
+    /** Cascader 树 options */
+    categoryCascaderOptions: [],
+    categoryCascaderVisible: false,
+    categoryCascaderValue: '',
+    categoryCascaderSubTitles: ['选择一级分类', '选择二级分类'],
+    /** 分类列表加载中 */
+    categoryLoading: false,
+    /** 找不到合适分类：展开反馈面板 */
+    showCategoryMissPanel: false,
+    /** 用户建议的分类名称（选「其他」时必填） */
+    categorySuggestName: '',
     
     // towxml 渲染数据
     renderedContent: null,
@@ -94,22 +106,151 @@ Page({
     return rows;
   },
 
-  /** 与 pages/category 一致：拉取一级分类（categoryId = 0） */
+  /** 拉取一级 + 二级，组装 Cascader 树（叶子不带空 children） */
   async loadLevel1Categories() {
+    this.setData({ categoryLoading: true });
     try {
       const rows = await this.fetchSubCategories(0);
-      this.setData({ categoryLevel1: rows });
+      const options = await Promise.all(
+        rows.map(async (parent) => {
+          let children = [];
+          try {
+            children = await this.fetchSubCategories(parent.id);
+          } catch (e) {
+            console.error('fetchSubCategories', parent.id, e);
+          }
+          return toCascaderNode(parent, children);
+        })
+      );
+      this.setData({
+        categoryLevel1: rows,
+        categoryCascaderOptions: options,
+        categoryLoading: false
+      });
     } catch (e) {
       console.error('loadLevel1Categories', e);
       wx.showToast({ title: '分类加载失败', icon: 'none' });
-      this.setData({ categoryLevel1: [] });
+      this.setData({
+        categoryLevel1: [],
+        categoryCascaderOptions: [],
+        categoryLoading: false
+      });
     }
+  },
+
+  retryLoadCategories() {
+    this.categorySubCache = {};
+    this.loadLevel1Categories();
+  },
+
+  openCategoryCascader() {
+    if (this.data.categoryLoading) return;
+    if (!(this.data.categoryCascaderOptions || []).length) {
+      wx.showToast({ title: '暂无分类', icon: 'none' });
+      return;
+    }
+    this.setData({ categoryCascaderVisible: true });
+  },
+
+  closeCategoryCascader() {
+    this.setData({ categoryCascaderVisible: false });
+  },
+
+  onCategoryCascaderChange(e) {
+    const patch = applyCascaderChange(e.detail || {});
+    const data = {
+      categoryCascaderVisible: false,
+      categoryCascaderValue: patch.categoryCascaderValue,
+      selectedCategory: patch.selectedCategory,
+      selectedParentCategory: patch.selectedParentCategory,
+      categoryName: patch.categoryName,
+      categoryLevel2: []
+    };
+    if (patch.isFallback) {
+      data.showCategoryMissPanel = true;
+    }
+    this.setData(data, () => this.updatePreviewContent());
+  },
+
+  toggleCategoryMissPanel() {
+    this.setData({
+      showCategoryMissPanel: !this.data.showCategoryMissPanel
+    });
+  },
+
+  onCategorySuggestChange(e) {
+    const value = (e.detail && e.detail.value) || '';
+    this.setData({ categorySuggestName: String(value) }, () => {
+      this.updatePreviewContent();
+    });
+  },
+
+  onCategoryContact() {
+    // 客服会话由 open-type=contact 打开；此处仅作兜底提示
+  },
+
+  /**
+   * 根据 categoryId 解析一级/二级选中态（供旧草稿兼容）
+   */
+  async resolveCategorySelection(categoryId, fallbackName) {
+    if (categoryId === undefined || categoryId === null || String(categoryId).trim() === '') {
+      return null;
+    }
+    const idStr = String(categoryId);
+    const rows1 = this.data.categoryLevel1 || [];
+    if (!rows1.length) {
+      return fallbackName
+        ? {
+            selectedParentCategory: '',
+            categoryLevel2: [],
+            selectedCategory: categoryId,
+            categoryName: fallbackName
+          }
+        : null;
+    }
+
+    const hit1 = rows1.find((c) => String(c.id) === idStr);
+    if (hit1) {
+      const sub = await this.fetchSubCategories(hit1.id);
+      const leafId = sub.length ? '' : hit1.id;
+      const categoryName = sub.length && fallbackName ? fallbackName : hit1.name;
+      return {
+        selectedParentCategory: hit1.id,
+        categoryLevel2: sub,
+        selectedCategory: leafId,
+        categoryName
+      };
+    }
+
+    for (const p of rows1) {
+      const sub = await this.fetchSubCategories(p.id);
+      const child = sub.find((c) => String(c.id) === idStr);
+      if (child) {
+        return {
+          selectedParentCategory: p.id,
+          categoryLevel2: sub,
+          selectedCategory: child.id,
+          categoryName: `${p.name} / ${child.name}`
+        };
+      }
+    }
+
+    if (fallbackName) {
+      return {
+        selectedParentCategory: '',
+        categoryLevel2: [],
+        selectedCategory: categoryId,
+        categoryName: fallbackName
+      };
+    }
+    return null;
   },
 
   onLoad(options) {
     this._fromMknow = options && options.from === 'mknow';
-    this.loadLevel1Categories();
-    this.initEditor();
+    this.loadLevel1Categories().then(() => {
+      this.initEditor();
+    });
   },
 
   async onPullDownRefresh() {
@@ -143,13 +284,13 @@ Page({
   },
 
   // 初始化编辑器
-  initEditor() {
+  async initEditor() {
     if (this._fromMknow && this.applyMknowImport()) {
       return;
     }
 
     // 尝试从草稿中恢复
-    this.loadDraft();
+    await this.loadDraft();
 
     // 初始化示例内容
     if (!this.data.markdownContent) {
@@ -263,44 +404,50 @@ Page({
     }
   },
 
-  /** 选择一级：有二级则清空已选叶子，仅展示二级；无二级则一级即发布分类 */
-  async onSelectLevel1(e) {
-    const parentId = e.currentTarget.dataset.id;
-    if (parentId === undefined || parentId === null) return;
-    const sub = await this.fetchSubCategories(parentId);
-    const parent = this.data.categoryLevel1.find(
-      (p) => String(p.id) === String(parentId)
-    );
-    const patch = {
-      selectedParentCategory: parentId,
-      categoryLevel2: sub
+  /** 根据已选叶子 id 回填 Cascader value / 路径文案 */
+  syncCascaderFromSelection(categoryId, fallbackName) {
+    const id = categoryId === undefined || categoryId === null ? '' : categoryId;
+    const path = findCascaderPath(this.data.categoryCascaderOptions, id);
+    const categoryName =
+      path && path.length
+        ? path.map((n) => n.label).join(' / ')
+        : fallbackName || this.data.categoryName || '';
+    const isFallback =
+      (path && path.some((n) => isFallbackCategory(n))) || isFallbackCategoryId(id);
+    return {
+      categoryCascaderValue: id,
+      categoryName,
+      showCategoryMissPanel: isFallback
+        ? true
+        : this.data.showCategoryMissPanel
     };
-    if (!sub.length) {
-      patch.selectedCategory = parentId;
-      patch.categoryName = parent ? parent.name : '';
-    } else {
-      patch.selectedCategory = '';
-      patch.categoryName = '';
-    }
-    this.setData(patch, () => this.updatePreviewContent());
   },
 
-  /** 选择二级：提交用二级 id，预览展示「一级 / 二级」 */
-  onSelectLevel2(e) {
-    const id = e.currentTarget.dataset.id;
-    const parent = this.data.categoryLevel1.find(
-      (p) => String(p.id) === String(this.data.selectedParentCategory)
-    );
-    const child = this.data.categoryLevel2.find((c) => String(c.id) === String(id));
-    const categoryName =
-      parent && child ? `${parent.name} / ${child.name}` : child?.name || '';
-    this.setData(
-      {
-        selectedCategory: id,
-        categoryName
-      },
-      () => this.updatePreviewContent()
-    );
+  /** 当前发布分类是否为兜底「其他」 */
+  _isSelectedFallbackCategory() {
+    const { selectedCategory, categoryCascaderOptions } = this.data;
+    if (isFallbackCategoryId(selectedCategory)) return true;
+    const path = findCascaderPath(categoryCascaderOptions, selectedCategory);
+    if (path && path.length) {
+      return path.some((n) => isFallbackCategory(n));
+    }
+    return false;
+  },
+
+  /** 有建议名时提交独立建议接口（选「其他」时必填，已在 validateForm 校验） */
+  async submitCategorySuggestIfNeeded() {
+    const name = String(this.data.categorySuggestName || '').trim();
+    if (!name) return null;
+    const parentId = this._isSelectedFallbackCategory()
+      ? null
+      : this.data.selectedParentCategory || null;
+    const params = new CategorySuggestParams({
+      suggestedName: name,
+      parentId,
+      fallbackCategoryId: this.data.selectedCategory || null,
+      reason: this._isSelectedFallbackCategory() ? '选用兜底分类「其他」发布' : ''
+    });
+    return categoryApi.suggestCategory(params);
   },
 
   // 切换标签页
@@ -371,48 +518,6 @@ Page({
     this.setData({
       showToolbarDropdown: false
     });
-  },
-
-  // 构建完整的预览内容
-  buildFullPreviewContent() {
-    const { docTitle, categoryName, markdownContent } = this.data;
-    
-    let fullContent = '';
-    
-    // 1. 标题部分 - 使用 HTML 实现标题居中和分类右对齐
-    if (docTitle) {
-      fullContent += `<div style="text-align: center; margin-bottom: 40rpx;">\n`;
-      fullContent += `  <h1 style="font-size: 48rpx; font-weight: 700; color: #1d2129; margin: 0;">${docTitle}</h1>\n`;
-      
-      // 2. 分类标签 - 如果存在分类，右对齐且无间距
-      if (categoryName) {
-        fullContent += `  <div style="text-align: right; margin: 0;">\n`;
-        fullContent += `    <span style="background: #165dff; color: white; padding: 4rpx 16rpx; border-radius: 16rpx; font-size: 24rpx; display: inline-block;">${categoryName}</span>\n`;
-        fullContent += `  </div>\n`;
-      }
-      fullContent += `</div>\n\n`;
-    } else {
-      // 如果没有标题，显示占位符
-      fullContent += `<div style="text-align: center; margin-bottom: 40rpx;">\n`;
-      fullContent += `  <h1 style="font-size: 48rpx; font-weight: 700; color: #c9cdd4; margin: 0;">未命名文档</h1>\n`;
-      fullContent += `</div>\n\n`;
-    }
-    
-    // 3. 文档内容 - 直接开始文档内容，没有分割线
-    if (markdownContent) {
-      fullContent += markdownContent;
-    } else {
-      fullContent += `## 文档内容\n\n`;
-      fullContent += `请在此处输入您的文档内容...\n\n`;
-      fullContent += `### 编辑器特色功能\n\n`;
-      fullContent += `- **实时预览**：编辑内容即时渲染\n`;
-      fullContent += `- **代码高亮**：支持多种编程语言\n`;
-      fullContent += `- **数学公式**：使用 LaTeX 语法\n`;
-      fullContent += `- **表格支持**：创建美观的表格\n`;
-      fullContent += `- **模板插入**：快速插入常用模板\n`;
-    }
-    
-    return fullContent;
   },
 
   // 更新预览内容
@@ -616,7 +721,7 @@ Page({
         });
         
         // 插入图片 Markdown 到文档末尾
-        const imageMarkdown = newImages.map(img => `\n\n![图片${index + 1}](${img.url})`).join('\n');
+        const imageMarkdown = newImages.map((img, index) => `\n\n![图片${index + 1}](${img.url})`).join('\n');
         const { markdownContent } = this.data;
         const newContent = markdownContent + imageMarkdown;
         
@@ -780,6 +885,11 @@ Page({
       docTitle: '',
       markdownContent: '',
       selectedCategory: '',
+      selectedParentCategory: '',
+      categoryLevel2: [],
+      categoryCascaderValue: '',
+      categorySuggestName: '',
+      showCategoryMissPanel: false,
       images: [],
       renderedContent: null,
       cursorPosition: 0,
@@ -807,11 +917,15 @@ Page({
   },
 
   // 保存草稿
-  saveDraft() {
+  saveDraft(options = {}) {
+    const silent = options && options.silent;
     const draft = {
       docTitle: this.data.docTitle,
       markdownContent: this.data.markdownContent,
       selectedCategory: this.data.selectedCategory,
+      selectedParentCategory: this.data.selectedParentCategory,
+      categoryName: this.data.categoryName,
+      categorySuggestName: this.data.categorySuggestName,
       images: this.data.images,
       previewFullContent: this.data.previewFullContent,
       timestamp: Date.now()
@@ -819,11 +933,13 @@ Page({
     
     wx.setStorageSync('markdown_draft', draft);
     
-    wx.showToast({
-      title: '草稿已保存',
-      icon: 'success',
-      duration: 2000
-    });
+    if (!silent) {
+      wx.showToast({
+        title: '草稿已保存',
+        icon: 'success',
+        duration: 2000
+      });
+    }
   },
 
   // 自动保存草稿
@@ -833,37 +949,86 @@ Page({
     }
     
     this.autoSaveTimer = setTimeout(() => {
-      this.saveDraft();
+      this.saveDraft({ silent: true });
     }, 2000);
   },
 
   // 加载草稿
-  loadDraft() {
+  async loadDraft() {
     const draft = wx.getStorageSync('markdown_draft');
-    if (draft) {
-      // 获取分类名称
-      let categoryName = '';
-      if (draft.selectedCategory) {
-        const selectedCat = this.data.categories.find(item => item.id === draft.selectedCategory);
-        categoryName = selectedCat ? selectedCat.name : '';
+    if (!draft) return;
+
+    const base = {
+      docTitle: draft.docTitle || '',
+      markdownContent: draft.markdownContent || '',
+      images: draft.images || [],
+      previewFullContent: draft.previewFullContent || '',
+      categorySuggestName: draft.categorySuggestName || '',
+      showCategoryMissPanel: !!(draft.categorySuggestName && String(draft.categorySuggestName).trim())
+    };
+
+    let categoryPatch = {
+      selectedCategory: '',
+      selectedParentCategory: '',
+      categoryLevel2: [],
+      categoryName: ''
+    };
+
+    if (draft.selectedParentCategory) {
+      const parentId = draft.selectedParentCategory;
+      let categoryLevel2 = [];
+      try {
+        categoryLevel2 = await this.fetchSubCategories(parentId);
+      } catch (e) {
+        console.error('loadDraft fetchSubCategories', e);
       }
-      
-      this.setData({
-        docTitle: draft.docTitle || '',
-        markdownContent: draft.markdownContent || '',
+      let categoryName = draft.categoryName || '';
+      if (!categoryName && draft.selectedCategory) {
+        const p = (this.data.categoryLevel1 || []).find(
+          (x) => String(x.id) === String(parentId)
+        );
+        const c = categoryLevel2.find(
+          (x) => String(x.id) === String(draft.selectedCategory)
+        );
+        if (p && c) categoryName = `${p.name} / ${c.name}`;
+        else if (c) categoryName = c.name;
+        else if (p && String(draft.selectedCategory) === String(parentId)) {
+          categoryName = p.name;
+        }
+      }
+      categoryPatch = {
+        selectedParentCategory: parentId,
         selectedCategory: draft.selectedCategory || '',
-        images: draft.images || [],
-        previewFullContent: draft.previewFullContent || '',
-        categoryName: categoryName
-      }, () => {
+        categoryLevel2,
+        categoryName
+      };
+    } else if (draft.selectedCategory) {
+      const resolved = await this.resolveCategorySelection(
+        draft.selectedCategory,
+        draft.categoryName || ''
+      );
+      if (resolved) {
+        categoryPatch = resolved;
+      }
+    }
+
+    this.setData(
+      {
+        ...base,
+        ...categoryPatch,
+        ...this.syncCascaderFromSelection(
+          categoryPatch.selectedCategory,
+          categoryPatch.categoryName
+        ),
+        wordCount: (draft.markdownContent || '').length
+      },
+      () => {
         this.updatePreviewContent();
-        
-        // 加载草稿后滚动到底部
         setTimeout(() => {
           this.scrollToBottom();
         }, 300);
-      });
-    }
+      }
+    );
   },
 
   // 验证表单
@@ -886,6 +1051,14 @@ Page({
       return false;
     }
     
+    if (!this.data.selectedParentCategory) {
+      wx.showToast({
+        title: '请选择文档分类',
+        icon: 'none',
+        duration: 2000
+      });
+      return false;
+    }
     if (!this.data.selectedCategory) {
       wx.showToast({
         title: '请选择文档分类',
@@ -893,6 +1066,19 @@ Page({
         duration: 2000
       });
       return false;
+    }
+
+    if (this._isSelectedFallbackCategory()) {
+      const suggest = String(this.data.categorySuggestName || '').trim();
+      if (!suggest) {
+        this.setData({ showCategoryMissPanel: true });
+        wx.showToast({
+          title: '请填写建议分类名称',
+          icon: 'none',
+          duration: 2000
+        });
+        return false;
+      }
     }
     
     if (!this.data.markdownContent.trim()) {
@@ -934,13 +1120,19 @@ Page({
     });
 
     try {
+      await this.submitCategorySuggestIfNeeded();
+
+      const previewFullContent = this.buildFullPreviewContent();
+      this.setData({ previewFullContent });
+
       const documentData = {
         title: this.data.docTitle,
         content: this.data.markdownContent,
         category: this.data.selectedCategory,
         categoryName: this.data.categoryName,
+        categorySuggestName: this.data.categorySuggestName,
         images: this.data.images,
-        previewFullContent: this.data.previewFullContent,
+        previewFullContent,
         createTime: new Date().toISOString(),
         wordCount: this.data.wordCount
       };
@@ -950,7 +1142,7 @@ Page({
         this.data.docTitle,
         this.data.selectedCategory,
         this.data.markdownContent,
-        this.data.previewFullContent
+        previewFullContent
       );
       await authApi.publishQuestion(publishParams);
 
@@ -967,6 +1159,9 @@ Page({
         selectedCategory: '',
         selectedParentCategory: '',
         categoryLevel2: [],
+        categoryCascaderValue: '',
+        categorySuggestName: '',
+        showCategoryMissPanel: false,
         images: [],
         renderedContent: null,
         contentHistory: [],

@@ -88,58 +88,127 @@
   color: #86909c;
 }
 
-/* 分类：一级 / 二级 */
+/* 分类：Cascader + 建议 */
 .category-section {
-  padding-bottom: 28rpx;
+  padding-bottom: 20rpx;
 }
 
-.category-tier {
-  margin-top: 8rpx;
+.category-cascader-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  padding: 24rpx 28rpx;
+  background: #f7f8fa;
+  border-radius: 16rpx;
+  border: 1rpx solid #e8ecf4;
 }
 
-.category-tier-second {
-  margin-top: 28rpx;
-  padding-top: 24rpx;
-  border-top: 1rpx solid #f0f2f5;
+.category-cascader-trigger--filled {
+  background: #f0f3ff;
+  border-color: #d6e4ff;
 }
 
-.category-tier-label {
-  font-size: 24rpx;
-  color: #86909c;
-  margin-bottom: 16rpx;
+.category-cascader-trigger-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.category-cascader-trigger-label {
+  font-size: 28rpx;
+  color: #1d2129;
   font-weight: 500;
-}
-
-.category-scroll {
-  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.category-scroll-inner {
-  display: inline-flex;
-  flex-wrap: nowrap;
-  gap: 16rpx;
-  padding: 4rpx 2rpx 8rpx;
-  align-items: center;
+.category-cascader-trigger:not(.category-cascader-trigger--filled) .category-cascader-trigger-label {
+  color: #86909c;
+  font-weight: 400;
 }
 
-.category-tag {
-  flex-shrink: 0;
+.category-cascader-trigger-hint {
+  font-size: 22rpx;
+  color: #c9cdd4;
 }
 
-.category-empty,
-.category-leaf-hint {
+.category-loading,
+.category-empty {
   font-size: 24rpx;
   color: #86909c;
   line-height: 36rpx;
   padding: 12rpx 0;
 }
 
-.category-leaf-hint {
+.category-empty {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.category-retry {
   color: #165dff;
-  background: #f0f3ff;
+  font-weight: 500;
+}
+
+.category-miss {
+  margin-top: 28rpx;
+  padding-top: 24rpx;
+  border-top: 1rpx dashed #e5e6eb;
+}
+
+.category-miss-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8rpx 0;
+}
+
+.category-miss-trigger-text {
+  font-size: 26rpx;
+  color: #4e5969;
+  font-weight: 500;
+}
+
+.category-miss-panel {
+  margin-top: 16rpx;
+  padding: 20rpx;
+  background: #fafbfd;
   border-radius: 12rpx;
-  padding: 16rpx 20rpx;
+  border: 1rpx solid #e8ecf4;
+}
+
+.category-miss-tip {
+  display: block;
+  font-size: 24rpx;
+  color: #86909c;
+  line-height: 38rpx;
+  margin-bottom: 20rpx;
+}
+
+.category-miss-input {
+  margin-bottom: 20rpx;
+}
+
+.category-miss-contact {
+  width: 100%;
+  height: 72rpx;
+  line-height: 72rpx;
+  font-size: 26rpx;
+  color: #165dff;
+  background: #ffffff;
+  border: 1rpx solid #d6e4ff;
+  border-radius: 12rpx;
+  padding: 0;
+  margin: 0;
+}
+
+.category-miss-contact::after {
+  border: none;
 }
 
 /* 编辑器区域 */

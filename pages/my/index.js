@@ -7,6 +7,7 @@ import {
 } from '~/utils/userSocial';
 import { fetchPointAccount } from '~/utils/points';
 import { fetchPersonalInfo, syncCachedUserInfo } from '~/utils/userProfile';
+import { fetchCreatorPreview } from '~/utils/creatorCenter';
 
 const app = getApp();
 Page({
@@ -57,32 +58,34 @@ Page({
       count: 0,
       displayCount: '0'
     })),
-    gridList: [
+    /** 创作中心核心模块：四宫格直达，减少一层跳转 */
+    creatorGridList: [
       {
-        name: '全部发布',
-        icon: 'root-list',
-        type: 'all',
+        name: '去创作',
+        icon: 'edit-1',
+        type: 'write',
+        url: '/pages/publish/index'
+      },
+      {
+        name: '内容管理',
+        icon: 'folder',
+        type: 'document',
         url: '/pages/document/index?type=all'
       },
       {
-        name: '审核中',
-        icon: 'search',
-        type: 'progress',
-        url: '/pages/document/index?type=review'
+        name: '数据洞察',
+        icon: 'chart',
+        type: 'data',
+        url: '/pages/dataCenter/index'
       },
       {
-        name: '已发布',
-        icon: 'upload',
-        type: 'published',
-        url: '/pages/document/index?type=published'
-      },
-      {
-        name: '草稿箱',
-        icon: 'file-copy',
-        type: 'draft',
-        url: '/pages/document/index?type=drafts'
+        name: '创作激励',
+        icon: 'wallet',
+        type: 'points',
+        url: '/pages/ucenter/points/index'
       }
-    ]
+    ],
+    creatorPreviewText: '作品 0 · 获赞 0'
   },
 
   onLoad() {
@@ -127,12 +130,38 @@ Page({
           personalInfo: cached
         });
       }
-      await this.loadSocialStats();
+      await Promise.all([this.loadSocialStats(), this.loadCreatorPreview()]);
     } else {
       this.setData({
         isLoad: false,
         personalInfo: {},
-        socialStats: this._buildSocialStatsDisplay(null)
+        socialStats: this._buildSocialStatsDisplay(null),
+        creatorPreviewText: '登录后管理作品与数据'
+      });
+    }
+  },
+
+  _buildCreatorPreviewText(preview) {
+    const parts = [
+      `作品 ${formatStatCount(preview.publishCount || 0)}`,
+      `获赞 ${formatStatCount(preview.likeCount || 0)}`
+    ];
+    if (preview.draftCount != null) {
+      parts.push(`草稿 ${formatStatCount(preview.draftCount)}`);
+    }
+    return parts.join(' · ');
+  },
+
+  async loadCreatorPreview() {
+    try {
+      const preview = await fetchCreatorPreview();
+      this.setData({
+        creatorPreviewText: this._buildCreatorPreviewText(preview)
+      });
+    } catch (e) {
+      console.warn('[my] creator preview failed', e);
+      this.setData({
+        creatorPreviewText: '管理作品 · 查看数据 · 继续创作'
       });
     }
   },
@@ -198,16 +227,20 @@ Page({
     app.navigateToLogin({ url: '/pages/setting/index' });
   },
 
-  onEleClick(e) {
-    const { url } = e.currentTarget.dataset.data;
-    if (url) {
-      app.navigateToLogin({
-        url
-      });
+  onCreatorCenterTap() {
+    app.navigateToLogin({ url: '/pages/creator/index' });
+  },
+
+  onCreatorGridTap(e) {
+    const item = e.currentTarget.dataset.data;
+    if (!item) return;
+
+    if (item.url) {
+      app.navigateToLogin({ url: item.url });
       return;
     }
-    const { name } = e.currentTarget.dataset.data;
-    this.onShowToast('#t-toast', name || '敬请期待');
+
+    this.onShowToast('#t-toast', item.name || '敬请期待');
   },
 
   /** 常用服务：浏览历史免登录；收藏与排行需登录 */

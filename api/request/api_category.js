@@ -19,5 +19,12 @@ export const authApi = {
       showLoading: false,
       ...options
     })
+  },
+  /** 提交分类建议（找不到合适分类时） */
+  suggestCategory: (suggestParams, options = {}) => {
+    return http.post('/repository/categories/suggest', suggestParams, {
+      showLoading: false,
+      ...options
+    })
   }
 }

@@ -1,0 +1,126 @@
+<view class="creator-page">
+  <image class="creator-page__nav-bg" src="/static/bg_navbar.png" mode="aspectFill" />
+  <t-navbar left-arrow title="创作中心" fixed safe-area-inset-top />
+
+  <view class="creator-page__body">
+    <!-- 主 CTA -->
+    <view class="creator-hero">
+      <view class="creator-hero__text">
+        <text class="creator-hero__title">{{hasWorks ? '继续你的创作' : '发布第一篇技术文档'}}</text>
+        <text class="creator-hero__desc">
+          {{hasWorks ? '沉淀面试经验，让更多人看见你的思考' : '从一道题、一篇笔记开始，建立你的技术影响力'}}
+        </text>
+      </view>
+      <view class="creator-hero__btn" hover-class="creator-hero__btn--active" bindtap="onWriteTap">
+        <t-icon name="edit-1" size="36rpx" />
+        <text>写技术文档</text>
+      </view>
+    </view>
+
+    <!-- 数据概览 -->
+    <view class="creator-card">
+      <view class="creator-card__head">
+        <text class="creator-card__title">数据概览</text>
+        <text class="creator-card__desc">作品与互动表现</text>
+      </view>
+      <view wx:if="{{loading}}" class="creator-card__loading">
+        <t-loading size="40rpx" text="加载中…" />
+      </view>
+      <view wx:else class="creator-stats">
+        <view
+          wx:for="{{overviewStats}}"
+          wx:key="type"
+          class="creator-stats__item {{item.url ? 'creator-stats__item--link' : ''}}"
+          data-item="{{item}}"
+          bindtap="onOverviewStatTap"
+        >
+          <text class="creator-stats__num">{{item.display}}</text>
+          <text class="creator-stats__label">{{item.label}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 内容状态 -->
+    <view class="creator-card">
+      <view class="creator-card__head">
+        <text class="creator-card__title">内容状态</text>
+        <text class="creator-card__desc">按发布进度快速筛选</text>
+      </view>
+      <view class="creator-status">
+        <view
+          wx:for="{{statusItems}}"
+          wx:key="type"
+          class="creator-status__item"
+          hover-class="creator-status__item--active"
+          data-item="{{item}}"
+          bindtap="onStatusTap"
+        >
+          <view class="creator-status__icon">
+            <t-icon name="{{item.icon}}" size="40rpx" />
+            <view wx:if="{{item.displayCount}}" class="creator-status__badge">{{item.displayCount}}</view>
+          </view>
+          <text class="creator-status__name">{{item.name}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 创作工具 -->
+    <view class="creator-card">
+      <view class="creator-card__head">
+        <text class="creator-card__title">创作工具</text>
+        <text class="creator-card__desc">管理、数据与激励</text>
+      </view>
+      <view class="creator-tools">
+        <view
+          wx:for="{{toolItems}}"
+          wx:key="type"
+          class="creator-tools__item"
+          hover-class="creator-tools__item--active"
+          data-item="{{item}}"
+          bindtap="onToolTap"
+        >
+          <view class="creator-tools__icon creator-tools__icon--{{item.type}}">
+            <t-icon name="{{item.icon}}" size="40rpx" />
+          </view>
+          <view class="creator-tools__meta">
+            <text class="creator-tools__name">{{item.name}}</text>
+            <text class="creator-tools__desc">{{item.desc}}</text>
+          </view>
+          <t-icon name="chevron-right" size="32rpx" />
+        </view>
+      </view>
+    </view>
+
+    <!-- 最近作品 -->
+    <view class="creator-card" wx:if="{{hasWorks || recentList.length}}">
+      <view class="creator-card__head creator-card__head--row">
+        <view>
+          <text class="creator-card__title">最近作品</text>
+          <text class="creator-card__desc">已发布内容</text>
+        </view>
+        <view class="creator-card__more" hover-class="creator-card__more--active" bindtap="onViewAllTap">
+          <text>查看全部</text>
+          <t-icon name="chevron-right" size="28rpx" />
+        </view>
+      </view>
+      <view wx:if="{{recentList.length === 0 && !loading}}" class="creator-recent__empty">暂无已发布作品</view>
+      <view wx:else class="creator-recent">
+        <view
+          wx:for="{{recentList}}"
+          wx:key="id"
+          class="creator-recent__item"
+          hover-class="creator-recent__item--active"
+          data-id="{{item.id}}"
+          bindtap="onRecentTap"
+        >
+          <text class="creator-recent__title">{{item.title}}</text>
+          <view class="creator-recent__meta">
+            <text wx:if="{{item.displayDate}}">{{item.displayDate}}</text>
+            <text>浏览 {{item.viewCount}}</text>
+            <text>获赞 {{item.likeCount}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

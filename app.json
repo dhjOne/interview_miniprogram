@@ -8,7 +8,8 @@
     "pages/agreement/agreement"
   ],
   "usingComponents": {
-    "nav": "/components/nav"
+    "nav": "/components/nav",
+    "t-cascader": "/miniprogram_npm/tdesign-miniprogram/cascader/cascader"
   },
   "subpackages": [
     {
@@ -26,6 +27,13 @@
         "index",
         "preview/index",
         "edit/index"
+      ]
+    },
+    {
+      "root": "pages/creator",
+      "name": "creator",
+      "pages": [
+        "index"
       ]
     },
     {

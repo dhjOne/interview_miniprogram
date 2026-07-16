@@ -56,7 +56,16 @@
     background: var(--td-bg-color-container, #fff);
 
     &--row {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16rpx;
       padding: 24rpx 28rpx 16rpx;
+    }
+
+    &--creator {
+      padding-bottom: 8rpx;
     }
   }
 
@@ -64,6 +73,8 @@
     display: flex;
     flex-direction: column;
     gap: 8rpx;
+    min-width: 0;
+    flex: 1;
   }
 
   &__section-title {
@@ -79,6 +90,27 @@
     font-size: 24rpx;
     color: var(--td-text-color-placeholder, rgba(0, 0, 0, 0.4));
     line-height: 1.45;
+  }
+
+  &__section-more {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 2rpx;
+    margin-top: 4rpx;
+    font-size: 24rpx;
+    font-weight: 500;
+    color: var(--td-brand-color, #0052d9);
+
+    t-icon,
+    svg {
+      color: var(--td-brand-color, #0052d9) !important;
+    }
+
+    &--active {
+      opacity: 0.75;
+    }
   }
 
   &__publish-grid {
@@ -99,21 +131,6 @@
 
     .t-grid-item__icon {
       color: var(--td-brand-color, #0052d9) !important;
-    }
-  }
-
-  &__publish-item--split {
-    position: relative;
-
-    &::after {
-      content: '';
-      position: absolute;
-      right: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 1rpx;
-      height: 48rpx;
-      background: var(--td-component-stroke, #e7e7e7);
     }
   }
 
@@ -186,6 +203,7 @@
   }
 }
 
+/* 社交数据条 */
 .my-stats {
   display: flex;
   flex-direction: row;

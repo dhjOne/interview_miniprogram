@@ -5,7 +5,7 @@
   <nav title-text="我的" />
 
   <view class="my-page__body">
-    <!-- 个人资料 + 内容管理 -->
+    <!-- 个人资料 + 创作中心入口 -->
     <t-cell-group theme="card" bordered="{{false}}" t-class="my-page__card-group">
       <view wx:if="{{isLoad}}" class="my-profile-card">
         <view class="my-profile-card__main">
@@ -56,21 +56,31 @@
 
       <t-divider t-class="my-page__divider" />
 
-      <view class="my-page__section-head">
-        <text class="my-page__section-title">内容管理</text>
-        <text class="my-page__section-desc">发布与审核状态</text>
+      <view class="my-page__section-head my-page__section-head--row my-page__section-head--creator">
+        <view class="my-page__section-head-main">
+          <text class="my-page__section-title">创作中心</text>
+          <text class="my-page__section-desc">{{isLoad ? creatorPreviewText : '登录后管理作品与数据'}}</text>
+        </view>
+        <view
+          class="my-page__section-more"
+          hover-class="my-page__section-more--active"
+          bindtap="onCreatorCenterTap"
+        >
+          <text>全部</text>
+          <t-icon name="chevron-right" size="28rpx" />
+        </view>
       </view>
 
       <t-grid column="4" t-class="my-page__publish-grid">
         <t-grid-item
-          wx:for="{{gridList}}"
+          wx:for="{{creatorGridList}}"
           wx:for-item="gridItem"
           wx:key="type"
           text="{{gridItem.name}}"
           icon="{{gridItem.icon}}"
-          class="my-page__publish-item {{gridItem.type === 'all' ? 'my-page__publish-item--split' : ''}}"
+          class="my-page__publish-item"
           data-data="{{gridItem}}"
-          bindclick="onEleClick"
+          bindclick="onCreatorGridTap"
         />
       </t-grid>
     </t-cell-group>

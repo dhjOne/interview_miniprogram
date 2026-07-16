@@ -1,53 +1,181 @@
-<t-navbar title="数据中心" left-arrow />
-<view class="data-center">
-  <view class="card first">
-    <view class="card-header">
-      <view class="card-header__title"> 整体情况 </view>
-      <view class="card-header__desc"> 截止12:00累计数值 </view>
-    </view>
-    <view class="card-content">
-      <view class="card-content__item" wx:for="{{totalSituationDataList}}" wx:for-item="item" wx:key="index">
-        <view class="card-content__item--desc"> {{item.name}} </view>
-        <view class="card-content__item--count"> {{item.number}} </view>
-      </view>
-    </view>
-  </view>
+<view class="insights-page">
+  <t-navbar left-arrow title="数据洞察" fixed safe-area-inset-top />
 
-  <view class="card second">
-    <view class="card-header">
-      <view class="card-header__title"> 互动情况 </view>
+  <view class="insights-page__body">
+    <view wx:if="{{loading}}" class="insights-page__loading">
+      <t-loading size="48rpx" text="加载创作数据…" />
     </view>
-    <view class="card-content">
-      <view class="card-content__item" wx:for="{{interactionSituationDataList}}" wx:for-item="item" wx:key="*this">
-        <view class="card-content__item--desc"> {{item.name}} </view>
-        <view class="card-content__item--count">
-          <text>{{item.number}}</text>
-          <text class="unit">次</text>
+
+    <block wx:elif="{{loadError}}">
+      <view class="insights-page__error">
+        <t-empty description="暂时无法获取数据">
+          <view slot="action" class="insights-page__retry" bindtap="onRetry">重新加载</view>
+        </t-empty>
+      </view>
+    </block>
+
+    <block wx:else>
+      <!-- 核心内容表现：C 端创作者最关心 -->
+      <view class="insights-hero">
+        <view class="insights-hero__head">
+          <view>
+            <text class="insights-hero__title">内容表现</text>
+            <text class="insights-hero__desc">已发布题目累计数据 · 更新于 {{updatedText}}</text>
+          </view>
+        </view>
+        <view class="insights-hero__grid">
+          <view wx:for="{{coreMetrics}}" wx:key="key" class="insights-hero__item">
+            <text class="insights-hero__num">{{item.value}}</text>
+            <text class="insights-hero__label">{{item.label}}</text>
+          </view>
         </view>
       </view>
-    </view>
-  </view>
 
-  <view class="card third">
-    <view class="card-header">
-      <view class="card-header__title"> 完播率 </view>
-    </view>
-    <view class="card-content">
-      <view class="card-content__item" wx:for="{{completeRateDataList}}" wx:for-item="item" wx:key="index">
-        <text class="progress__label"> {{item.time}} </text>
-        <view class="progress__content">
-          <t-progress percentage="{{item.percentage}}" />
+      <!-- 成长与影响力 -->
+      <view class="insights-card">
+        <view class="insights-card__head">
+          <text class="insights-card__title">成长与影响力</text>
+          <text class="insights-card__desc">作品、粉丝与主页访问</text>
+        </view>
+        <view class="insights-growth">
+          <view
+            wx:for="{{growthMetrics}}"
+            wx:key="key"
+            class="insights-growth__item {{item.url ? 'insights-growth__item--link' : ''}}"
+            data-item="{{item}}"
+            bindtap="onGrowthTap"
+          >
+            <text class="insights-growth__num">{{item.value}}</text>
+            <text class="insights-growth__label">{{item.label}}</text>
+          </view>
         </view>
       </view>
-    </view>
-  </view>
 
-  <view class="card forth">
-    <view class="card-header">
-      <view class="card-header__title"> 按区域统计 </view>
-    </view>
-    <view class="card-content">
-      <t-empty icon="info-circle-filled" description="Empty Data" />
-    </view>
+      <!-- 内容管道 -->
+      <view class="insights-card">
+        <view class="insights-card__head">
+          <text class="insights-card__title">内容状态</text>
+          <text class="insights-card__desc">面试题 / 技术文档发布进度</text>
+        </view>
+        <view class="insights-status">
+          <view
+            wx:for="{{statusItems}}"
+            wx:key="type"
+            class="insights-status__item"
+            hover-class="insights-status__item--active"
+            data-item="{{item}}"
+            bindtap="onStatusTap"
+          >
+            <text class="insights-status__num">{{item.count}}</text>
+            <text class="insights-status__name">{{item.name}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 互动趋势 -->
+      <view class="insights-card">
+        <view class="insights-card__head insights-card__head--row">
+          <view>
+            <text class="insights-card__title">互动趋势</text>
+            <text class="insights-card__desc">读者点赞 / 收藏按日变化</text>
+          </view>
+          <view class="insights-range">
+            <view
+              class="insights-range__btn {{trendRange === '7d' ? 'insights-range__btn--on' : ''}}"
+              data-range="7d"
+              bindtap="onTrendRangeChange"
+            >近7天</view>
+            <view
+              class="insights-range__btn {{trendRange === '30d' ? 'insights-range__btn--on' : ''}}"
+              data-range="30d"
+              bindtap="onTrendRangeChange"
+            >近30天</view>
+          </view>
+        </view>
+
+        <view class="insights-metric-tabs">
+          <view
+            class="insights-metric-tabs__item {{trendMetric === 'like' ? 'insights-metric-tabs__item--on' : ''}}"
+            data-metric="like"
+            bindtap="onTrendMetricChange"
+          >获赞</view>
+          <view
+            class="insights-metric-tabs__item {{trendMetric === 'collect' ? 'insights-metric-tabs__item--on' : ''}}"
+            data-metric="collect"
+            bindtap="onTrendMetricChange"
+          >收藏</view>
+        </view>
+
+        <view wx:if="{{trendList.length === 0}}" class="insights-card__empty">暂无互动数据</view>
+        <view wx:else class="insights-trend">
+          <view
+            wx:for="{{trendList}}"
+            wx:key="date"
+            class="insights-trend__col"
+          >
+            <view class="insights-trend__bar-wrap">
+              <view
+                class="insights-trend__bar"
+                style="height: {{trendMax ? (item.value / trendMax * 100) : 0}}%;"
+              />
+            </view>
+            <text class="insights-trend__val">{{item.value > 0 ? item.displayValue : ''}}</text>
+            <text class="insights-trend__label">{{item.label}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 热门作品 -->
+      <view class="insights-card insights-card--last">
+        <view class="insights-card__head insights-card__head--row">
+          <view>
+            <text class="insights-card__title">热门作品</text>
+            <text class="insights-card__desc">读者最爱看的面试题</text>
+          </view>
+        </view>
+        <view class="insights-metric-tabs">
+          <view
+            class="insights-metric-tabs__item {{topSort === 'view' ? 'insights-metric-tabs__item--on' : ''}}"
+            data-sort="view"
+            bindtap="onTopSortChange"
+          >阅读</view>
+          <view
+            class="insights-metric-tabs__item {{topSort === 'like' ? 'insights-metric-tabs__item--on' : ''}}"
+            data-sort="like"
+            bindtap="onTopSortChange"
+          >获赞</view>
+          <view
+            class="insights-metric-tabs__item {{topSort === 'collect' ? 'insights-metric-tabs__item--on' : ''}}"
+            data-sort="collect"
+            bindtap="onTopSortChange"
+          >收藏</view>
+        </view>
+
+        <view wx:if="{{topList.length === 0}}" class="insights-card__empty">
+          <t-empty description="还没有已发布作品" />
+        </view>
+        <view wx:else class="insights-top">
+          <view
+            wx:for="{{topList}}"
+            wx:key="id"
+            class="insights-top__item"
+            hover-class="insights-top__item--active"
+            data-id="{{item.id}}"
+            bindtap="onTopTap"
+          >
+            <view class="insights-top__rank insights-top__rank--{{item.rank <= 3 ? 'hot' : 'normal'}}">{{item.rank}}</view>
+            <view class="insights-top__main">
+              <text class="insights-top__title">{{item.title}}</text>
+              <view class="insights-top__meta">
+                <text>阅读 {{item.displayViews}}</text>
+                <text>获赞 {{item.displayLikes}}</text>
+                <text>收藏 {{item.collectCount}}</text>
+              </view>
+            </view>
+            <t-icon name="chevron-right" size="32rpx" />
+          </view>
+        </view>
+      </view>
+    </block>
   </view>
 </view>

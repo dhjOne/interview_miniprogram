@@ -9,7 +9,8 @@
   ],
   "usingComponents": {
     "nav": "/components/nav",
-    "t-cascader": "/miniprogram_npm/tdesign-miniprogram/cascader/cascader"
+    "t-cascader": "/miniprogram_npm/tdesign-miniprogram/cascader/cascader",
+    "t-search": "/miniprogram_npm/tdesign-miniprogram/search/search"
   },
   "subpackages": [
     {

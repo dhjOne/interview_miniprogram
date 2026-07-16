@@ -3,7 +3,7 @@ import { authApi as categoryApi } from '~/api/request/api_category';
 import { CategoryParams, CategorySuggestParams } from '~/api/param/param_category';
 import { QuestionPublishParams } from '~/api/param/param_publish';
 import { QuestionParams } from '~/api/param/param_question';
-import { isFallbackCategory, isFallbackCategoryId, toCascaderNode, applyCascaderChange, findCascaderPath } from '~/utils/categorySuggest';
+import { isFallbackCategory, isFallbackCategoryId, toCascaderNode, applyCascaderChange, findCascaderPath, filterCascaderOptions, findFallbackCascaderNode } from '~/utils/categorySuggest';
 // 获取应用实例
 const app = getApp();
 const { renderMarkdown } = require('../../../utils/towxmlLoader');
@@ -40,10 +40,13 @@ Page({
     categoryLevel2: [],
     /** 当前选中的一级 id */
     selectedParentCategory: '',
-    /** Cascader 树 options */
+    /** Cascader 全量树（搜索过滤前） */
+    categoryCascaderOptionsAll: [],
+    /** Cascader 展示用树（可被搜索过滤） */
     categoryCascaderOptions: [],
     categoryCascaderVisible: false,
     categoryCascaderValue: '',
+    categoryCascaderKeyword: '',
     categoryCascaderSubTitles: ['选择一级分类', '选择二级分类'],
     /** 分类列表加载中 */
     categoryLoading: false,
@@ -135,7 +138,9 @@ Page({
       );
       this.setData({
         categoryLevel1: rows,
+        categoryCascaderOptionsAll: options,
         categoryCascaderOptions: options,
+        categoryCascaderKeyword: '',
         categoryLoading: false
       });
     } catch (e) {
@@ -143,7 +148,9 @@ Page({
       wx.showToast({ title: '分类加载失败', icon: 'none' });
       this.setData({
         categoryLevel1: [],
+        categoryCascaderOptionsAll: [],
         categoryCascaderOptions: [],
+        categoryCascaderKeyword: '',
         categoryLoading: false
       });
     }
@@ -154,23 +161,103 @@ Page({
     this.loadLevel1Categories();
   },
 
+  noop() {},
+
   openCategoryCascader() {
     if (this.data.categoryLoading) return;
-    if (!(this.data.categoryCascaderOptions || []).length) {
+    const all = this.data.categoryCascaderOptionsAll || [];
+    if (!all.length) {
       wx.showToast({ title: '暂无分类', icon: 'none' });
       return;
     }
-    this.setData({ categoryCascaderVisible: true });
+    this.setData({
+      categoryCascaderVisible: true,
+      categoryCascaderKeyword: '',
+      categoryCascaderOptions: all
+    });
   },
 
   closeCategoryCascader() {
-    this.setData({ categoryCascaderVisible: false });
+    const all = this.data.categoryCascaderOptionsAll || this.data.categoryCascaderOptions || [];
+    this.setData({
+      categoryCascaderVisible: false,
+      categoryCascaderKeyword: '',
+      categoryCascaderOptions: all
+    });
+  },
+
+  onCategoryCascaderSearch(e) {
+    const keyword = (e.detail && (e.detail.value !== undefined ? e.detail.value : e.detail)) || '';
+    const kw = String(keyword);
+    const all = this.data.categoryCascaderOptionsAll || [];
+    this.setData({
+      categoryCascaderKeyword: kw,
+      categoryCascaderOptions: filterCascaderOptions(all, kw)
+    });
+  },
+
+  onCategoryCascaderSearchClear() {
+    const all = this.data.categoryCascaderOptionsAll || [];
+    this.setData({
+      categoryCascaderKeyword: '',
+      categoryCascaderOptions: all
+    });
+  },
+
+  /** Cascader 内「找不到」→ 选中「其他」并打开建议面板 */
+  onCascaderSelectFallback() {
+    const all = this.data.categoryCascaderOptionsAll || this.data.categoryCascaderOptions || [];
+    const hit = findFallbackCascaderNode(all);
+    if (!hit || !hit.leaf) {
+      wx.showToast({ title: '暂无「其他」分类，请联系客服', icon: 'none' });
+      return;
+    }
+    const selectedOptions = hit.parent
+      ? [
+          { label: hit.parent.label, value: hit.parent.value },
+          { label: hit.leaf.label, value: hit.leaf.value }
+        ]
+      : [{ label: hit.leaf.label, value: hit.leaf.value }];
+    const patch = applyCascaderChange({
+      value: hit.leaf.value,
+      selectedOptions
+    });
+    const kw = String(this.data.categoryCascaderKeyword || '').trim();
+    const suggest =
+      String(this.data.categorySuggestName || '').trim() ||
+      (kw && kw !== '其他' ? kw : '');
+    this.setData(
+      {
+        categoryCascaderVisible: false,
+        categoryCascaderKeyword: '',
+        categoryCascaderOptions: all,
+        categoryCascaderValue: patch.categoryCascaderValue,
+        selectedCategory: patch.selectedCategory,
+        selectedParentCategory: patch.selectedParentCategory,
+        categoryName: patch.categoryName,
+        categoryLevel2: [],
+        showCategoryMissPanel: true,
+        categorySuggestName: suggest
+      },
+      () => {
+        this.updatePreviewContent();
+        this.persistDraftLocal && this.persistDraftLocal();
+        wx.showToast({
+          title: suggest ? '已选「其他」，请确认建议名' : '已选「其他」，请填写建议分类',
+          icon: 'none',
+          duration: 2000
+        });
+      }
+    );
   },
 
   onCategoryCascaderChange(e) {
     const patch = applyCascaderChange(e.detail || {});
+    const all = this.data.categoryCascaderOptionsAll || [];
     const data = {
       categoryCascaderVisible: false,
+      categoryCascaderKeyword: '',
+      categoryCascaderOptions: all,
       categoryCascaderValue: patch.categoryCascaderValue,
       selectedCategory: patch.selectedCategory,
       selectedParentCategory: patch.selectedParentCategory,
@@ -476,7 +563,10 @@ Page({
   /** 根据已选叶子 id 回填 Cascader value / 路径文案 */
   syncCascaderFromSelection(categoryId, fallbackName) {
     const id = categoryId === undefined || categoryId === null ? '' : categoryId;
-    const path = findCascaderPath(this.data.categoryCascaderOptions, id);
+    const path = findCascaderPath(
+      this.data.categoryCascaderOptionsAll || this.data.categoryCascaderOptions,
+      id
+    );
     const categoryName =
       path && path.length
         ? path.map((n) => n.label).join(' / ')
@@ -492,9 +582,12 @@ Page({
 
   /** 当前发布分类是否为兜底「其他」 */
   _isSelectedFallbackCategory() {
-    const { selectedCategory, categoryCascaderOptions } = this.data;
+    const { selectedCategory, categoryCascaderOptions, categoryCascaderOptionsAll } = this.data;
     if (isFallbackCategoryId(selectedCategory)) return true;
-    const path = findCascaderPath(categoryCascaderOptions, selectedCategory);
+    const path = findCascaderPath(
+      categoryCascaderOptionsAll || categoryCascaderOptions,
+      selectedCategory
+    );
     if (path && path.length) {
       return path.some((n) => isFallbackCategory(n));
     }

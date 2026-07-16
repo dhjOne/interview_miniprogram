@@ -212,6 +212,48 @@
   border: none;
 }
 
+/* Cascader header：搜索 + 找不到 */
+.cascader-header {
+  padding: 0 24rpx 16rpx;
+  box-sizing: border-box;
+}
+
+.cascader-header-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.cascader-header-search {
+  flex: 1;
+  min-width: 0;
+}
+
+.cascader-header-miss {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 12rpx 16rpx;
+  background: #f0f3ff;
+  border-radius: 999rpx;
+  border: 1rpx solid #d6e4ff;
+}
+
+.cascader-header-miss text {
+  font-size: 24rpx;
+  color: #165dff;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.cascader-header-tip {
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: #86909c;
+  line-height: 34rpx;
+}
+
 /* 编辑器区域 */
 .editor-section {
   padding: 0;

@@ -8,6 +8,7 @@
     "t-icon": "/miniprogram_npm/tdesign-miniprogram/icon/icon",
     "t-tag": "/miniprogram_npm/tdesign-miniprogram/tag/tag",
     "t-cascader": "/miniprogram_npm/tdesign-miniprogram/cascader/cascader",
+    "t-search": "/miniprogram_npm/tdesign-miniprogram/search/search",
     "t-input": "/miniprogram_npm/tdesign-miniprogram/input/input",
     "t-dialog": "/miniprogram_npm/tdesign-miniprogram/dialog/dialog",
     "t-message": "/miniprogram_npm/tdesign-miniprogram/message/message",

@@ -86,3 +86,73 @@ export function findCascaderPath(options, leafId) {
   };
   return walk(options || [], []);
 }
+
+/**
+ * 按关键字过滤 Cascader 树（匹配一级或二级名称）
+ * - 一级命中：保留该一级及其全部二级
+ * - 仅二级命中：保留一级 + 命中的二级
+ */
+export function filterCascaderOptions(options, keyword) {
+  const kw = String(keyword || '').trim().toLowerCase();
+  if (!kw) return options || [];
+  const out = [];
+  (options || []).forEach((node) => {
+    const label = String(node.label || '').toLowerCase();
+    const parentHit = label.includes(kw);
+    if (node.children && node.children.length) {
+      const kids = node.children.filter((c) =>
+        String(c.label || '').toLowerCase().includes(kw)
+      );
+      if (parentHit) {
+        out.push({
+          label: node.label,
+          value: node.value,
+          isFallback: node.isFallback,
+          children: node.children.map((c) => ({ ...c }))
+        });
+      } else if (kids.length) {
+        out.push({
+          label: node.label,
+          value: node.value,
+          isFallback: node.isFallback,
+          children: kids.map((c) => ({ ...c }))
+        });
+      }
+    } else if (parentHit) {
+      out.push({
+        label: node.label,
+        value: node.value,
+        isFallback: node.isFallback
+      });
+    }
+  });
+  return out;
+}
+
+/** 在树中查找兜底「其他」节点（优先一级叶子） */
+export function findFallbackCascaderNode(options) {
+  const list = options || [];
+  for (let i = 0; i < list.length; i += 1) {
+    const n = list[i];
+    if (isFallbackCategory(n) && !(n.children && n.children.length)) {
+      return { leaf: n, parent: null };
+    }
+  }
+  for (let i = 0; i < list.length; i += 1) {
+    const n = list[i];
+    if (n.children && n.children.length) {
+      for (let j = 0; j < n.children.length; j += 1) {
+        const c = n.children[j];
+        if (isFallbackCategory(c)) {
+          return { leaf: c, parent: n };
+        }
+      }
+    }
+  }
+  for (let i = 0; i < list.length; i += 1) {
+    if (isFallbackCategory(list[i])) {
+      return { leaf: list[i], parent: null };
+    }
+  }
+  return null;
+}

@@ -69,7 +69,29 @@
     sub-titles="{{categoryCascaderSubTitles}}"
     bind:change="onCategoryCascaderChange"
     bind:close="closeCategoryCascader"
-  />
+  >
+    <view slot="header" class="cascader-header" catch:tap="noop">
+      <view class="cascader-header-row">
+        <view class="cascader-header-search">
+          <t-search
+            value="{{categoryCascaderKeyword}}"
+            placeholder="搜索分类"
+            shape="round"
+            clearable
+            bind:change="onCategoryCascaderSearch"
+            bind:clear="onCategoryCascaderSearchClear"
+          />
+        </view>
+        <view class="cascader-header-miss" bind:tap="onCascaderSelectFallback">
+          <t-icon name="add-circle" size="36rpx" color="#165dff" />
+          <text>找不到</text>
+        </view>
+      </view>
+      <view class="cascader-header-tip" wx:if="{{categoryCascaderKeyword && !categoryCascaderOptions.length}}">
+        未找到「{{categoryCascaderKeyword}}」，可点右上角「找不到」选「其他」并提交建议
+      </view>
+    </view>
+  </t-cascader>
 
   <!-- Markdown 编辑器区域 -->
   <view class="form-section form-section-card editor-section">

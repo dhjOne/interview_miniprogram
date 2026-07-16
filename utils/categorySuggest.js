@@ -91,6 +91,7 @@ export function findCascaderPath(options, leafId) {
  * 按关键字过滤 Cascader 树（匹配一级或二级名称）
  * - 一级命中：保留该一级及其全部二级
  * - 仅二级命中：保留一级 + 命中的二级
+ * @deprecated 搜索请用 searchCascaderFlat，避免改写 Cascader options 导致选中态错乱
  */
 export function filterCascaderOptions(options, keyword) {
   const kw = String(keyword || '').trim().toLowerCase();
@@ -127,6 +128,72 @@ export function filterCascaderOptions(options, keyword) {
     }
   });
   return out;
+}
+
+/**
+ * 扁平搜索结果（用于 Cascader 外独立列表，避免改写 options 导致内部索引错乱）
+ * @returns {{ value: any, label: string, pathLabel: string, parentLabel: string }[]}
+ */
+export function searchCascaderFlat(options, keyword) {
+  const kw = String(keyword || '').trim().toLowerCase();
+  if (!kw) return [];
+  const out = [];
+  (options || []).forEach((node) => {
+    const parentLabel = String(node.label || '').trim();
+    const parentHit = parentLabel.toLowerCase().includes(kw);
+    const children = node.children && node.children.length ? node.children : null;
+    if (children) {
+      children.forEach((c) => {
+        const childLabel = String(c.label || '').trim();
+        if (parentHit || childLabel.toLowerCase().includes(kw)) {
+          out.push({
+            value: c.value,
+            label: childLabel,
+            parentLabel,
+            pathLabel: `${parentLabel} / ${childLabel}`
+          });
+        }
+      });
+      // 一级本身是可选叶子时不会进这里；一级命中但无子项匹配时上面已展开全部子项
+    } else if (parentHit) {
+      out.push({
+        value: node.value,
+        label: parentLabel,
+        parentLabel: '',
+        pathLabel: parentLabel
+      });
+    }
+  });
+  return out;
+}
+
+/**
+ * 用全量树路径解析 Cascader change，保证二次选择 / 搜索选中展示与 parent 正确。
+ * 注意：TDesign Cascader 在 setData(selectedIndexes) 回调里触发 change 时，
+ * selectedValue 可能尚未同步，detail.value 会变成 ''，需从 selectedOptions 回退取值。
+ */
+export function resolveCascaderSelection(optionsAll, detail) {
+  const selectedOptions = ((detail && detail.selectedOptions) || []).filter(Boolean);
+  let value =
+    detail && detail.value !== undefined && detail.value !== null && detail.value !== ''
+      ? detail.value
+      : '';
+  if (value === '' && selectedOptions.length) {
+    const leaf = selectedOptions[selectedOptions.length - 1];
+    if (leaf && leaf.value !== undefined && leaf.value !== null && leaf.value !== '') {
+      value = leaf.value;
+    }
+  }
+  const path = findCascaderPath(optionsAll || [], value);
+  // 优先用树节点上的原始 value（避免 dataset 把数字转成字符串）
+  const finalValue =
+    path && path.length && path[path.length - 1].value !== undefined
+      ? path[path.length - 1].value
+      : value;
+  return applyCascaderChange({
+    value: finalValue,
+    selectedOptions: path && path.length ? path : selectedOptions
+  });
 }
 
 /** 在树中查找兜底「其他」节点（优先一级叶子） */

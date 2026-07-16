@@ -20,12 +20,21 @@
           </view>
         </view>
         <view class="my-profile-card__actions">
-          <view class="my-profile-card__action" hover-class="my-profile-card__action--active" bindtap="onNavigateTo">
-            <t-icon name="edit" size="34rpx" />
+          <view
+            class="my-profile-card__action my-profile-card__notify"
+            hover-class="my-profile-card__action--active"
+            bindtap="onNotifyTap"
+          >
+            <t-badge dot="{{notifyUnread > 0}}">
+              <t-icon name="notification" size="34rpx" />
+            </t-badge>
           </view>
-          <view class="my-profile-card__setting" hover-class="my-profile-card__setting--active" bindtap="onSettingTap">
-            <t-icon name="setting" size="32rpx" />
-            <text>设置</text>
+          <view
+            class="my-profile-card__action"
+            hover-class="my-profile-card__action--active"
+            bindtap="onSettingTap"
+          >
+            <t-icon name="setting" size="34rpx" />
           </view>
         </view>
       </view>
@@ -43,16 +52,26 @@
         </view>
       </view>
 
-      <t-cell
-        wx:if="{{!isLoad}}"
-        title="请先登录 / 注册"
-        bordered="{{false}}"
-        t-class-title="my-page__login-title"
-        t-class-center="my-page__login-center"
-        bindtap="onLogin"
-      >
-        <t-avatar slot="left-icon" icon="user" size="large" />
-      </t-cell>
+      <view wx:if="{{!isLoad}}" class="my-login-card">
+        <t-cell
+          title="请先登录 / 注册"
+          bordered="{{false}}"
+          t-class-title="my-page__login-title"
+          t-class-center="my-page__login-center"
+          bindtap="onLogin"
+        >
+          <t-avatar slot="left-icon" icon="user" size="large" />
+        </t-cell>
+        <view
+          class="my-profile-card__action my-profile-card__notify my-login-card__notify"
+          hover-class="my-profile-card__action--active"
+          bindtap="onNotifyTap"
+        >
+          <t-badge dot="{{notifyUnread > 0}}">
+            <t-icon name="notification" size="34rpx" />
+          </t-badge>
+        </view>
+      </view>
 
       <t-divider t-class="my-page__divider" />
 

@@ -4,43 +4,53 @@
   </view>
 
   <block wx:else>
-    <!-- 全页展示 edit 预览模式样式 -->
     <scroll-view
       scroll-y
-      class="preview-scroll preview-scroll--fullpage"
+      enhanced
+      show-scrollbar="{{false}}"
+      class="preview-scroll"
       enable-back-to-top="{{true}}"
-      scroll-anchoring="{{true}}"
     >
-      <towxml
-        wx:if="{{renderedContent}}"
-        nodes="{{renderedContent}}"
-        type="markdown"
-        class="preview-render"
-      />
-      <view wx:else class="preview-empty-content">
-        <t-icon name="file" size="80" color="#c9cdd4" />
-        <text class="preview-empty-text">暂无预览内容</text>
-        <text class="preview-empty-subtext">文档可能为空或加载失败</text>
+      <view class="preview-card">
+        <view class="preview-hero">
+          <text wx:if="{{categoryName}}" class="preview-hero__category">{{categoryName}}</text>
+          <text class="preview-hero__title">{{docTitle || '无标题'}}</text>
+          <view wx:if="{{displayDate || viewCount !== ''}}" class="preview-hero__meta">
+            <text wx:if="{{displayDate}}" class="preview-hero__meta-item">{{displayDate}}</text>
+            <text wx:if="{{displayDate && viewCount !== ''}}" class="preview-hero__meta-dot">·</text>
+            <text wx:if="{{viewCount !== ''}}" class="preview-hero__meta-item">{{viewCount}} 阅读</text>
+          </view>
+        </view>
+
+        <view class="preview-body">
+          <towxml
+            wx:if="{{renderedContent}}"
+            nodes="{{renderedContent}}"
+            type="markdown"
+            class="preview-render"
+          />
+          <view wx:else class="preview-empty-content">
+            <t-icon name="file" size="80rpx" color="#c9cdd4" />
+            <text class="preview-empty-text">暂无预览内容</text>
+            <text class="preview-empty-subtext">文档可能为空或加载失败</text>
+          </view>
+        </view>
       </view>
+      <view class="preview-scroll-spacer" />
     </scroll-view>
 
-    <view class="doc-preview-footer">
-      <t-button
-        wx:if="{{showSelfQuiz}}"
-        theme="light"
-        size="large"
-        block
-        loading="{{selfQuizSubmitting}}"
-        bindtap="onSelfQuizComplete"
-      >
-        完成自测领积分
-      </t-button>
-      <t-button theme="primary" size="large" block bindtap="onGoEdit" wx:if="{{docId}}">
-        编辑
-      </t-button>
-      <button class="doc-preview-share-btn" open-type="share">
-        分享给好友
-      </button>
+    <view class="preview-footer" wx:if="{{docId}}">
+      <view class="preview-footer__dock">
+        <view class="preview-footer__item" hover-class="preview-footer__item--active" bindtap="onGoEdit">
+          <t-icon name="edit-1" size="40rpx" color="#0052d9" />
+          <text class="preview-footer__label">编辑</text>
+        </view>
+        <view class="preview-footer__divider" />
+        <button class="preview-footer__item preview-footer__share" open-type="share" hover-class="preview-footer__item--active">
+          <t-icon name="share" size="40rpx" color="#0052d9" />
+          <text class="preview-footer__label">分享</text>
+        </button>
+      </view>
     </view>
   </block>
 </view>

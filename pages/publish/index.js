@@ -3,7 +3,7 @@ import { authApi as categoryApi } from '~/api/request/api_category';
 import { CategoryParams, CategorySuggestParams } from '~/api/param/param_category';
 import { QuestionPublishParams } from '~/api/param/param_publish';
 import { consumePendingPublish } from '~/utils/aiChatStorage';
-import { isFallbackCategory, isFallbackCategoryId, toCascaderNode, applyCascaderChange, findCascaderPath, filterCascaderOptions, findFallbackCascaderNode } from '~/utils/categorySuggest';
+import { isFallbackCategory, isFallbackCategoryId, toCascaderNode, applyCascaderChange, findCascaderPath, searchCascaderFlat, resolveCascaderSelection, findFallbackCascaderNode } from '~/utils/categorySuggest';
 import Message from 'tdesign-miniprogram/message/index';
 // 获取应用实例
 const app = getApp();
@@ -41,18 +41,24 @@ Page({
     categoryLevel2: [],
     /** 当前选中的一级 id */
     selectedParentCategory: '',
-    /** Cascader 全量树（搜索过滤前） */
+    /** Cascader 全量树 */
     categoryCascaderOptionsAll: [],
-    /** Cascader 展示用树（可被搜索过滤） */
+    /** Cascader 展示用树（搜索时保持全量，避免改写 options 导致内部选中索引错乱） */
     categoryCascaderOptions: [],
     categoryCascaderVisible: false,
     categoryCascaderValue: '',
     categoryCascaderKeyword: '',
+    /** 搜索扁平结果（独立列表选中，不经 Cascader 内部状态） */
+    categoryCascaderSearchResults: [],
     categoryCascaderSubTitles: ['选择一级分类', '选择二级分类'],
     /** 分类列表加载中 */
     categoryLoading: false,
-    /** 找不到合适分类：展开反馈面板 */
-    showCategoryMissPanel: false,
+    /** 级联内：找不到分类联动面板 */
+    showCascaderMissPanel: false,
+    /** 级联内建议名草稿（确认后写入 categorySuggestName） */
+    cascaderMissSuggest: '',
+    /** 当前是否选中兜底「其他」（表单精简回显） */
+    isFallbackCategorySelected: false,
     /** 用户建议的分类名称（选「其他」时必填） */
     categorySuggestName: '',
     
@@ -159,19 +165,53 @@ Page({
       wx.showToast({ title: '暂无分类', icon: 'none' });
       return;
     }
+    const isFallback = !!this.data.isFallbackCategorySelected;
     this.setData({
       categoryCascaderVisible: true,
       categoryCascaderKeyword: '',
-      categoryCascaderOptions: all
+      categoryCascaderSearchResults: [],
+      // 已选「其他」时直接进入建议面板，方便改建议名
+      showCascaderMissPanel: isFallback,
+      cascaderMissSuggest: this.data.categorySuggestName || '',
+      categoryCascaderOptions: all,
+      categoryCascaderValue: isFallback ? '' : this.data.selectedCategory || ''
     });
   },
 
-  closeCategoryCascader() {
+  /** 从发布页直接打开级联并进入「找不到分类」面板 */
+  openCategoryCascaderMiss() {
+    if (this.data.categoryLoading) return;
+    const all = this.data.categoryCascaderOptionsAll || [];
+    if (!all.length) {
+      wx.showToast({ title: '暂无分类', icon: 'none' });
+      return;
+    }
+    this.setData({
+      categoryCascaderVisible: true,
+      categoryCascaderKeyword: '',
+      categoryCascaderSearchResults: [],
+      showCascaderMissPanel: true,
+      cascaderMissSuggest: this.data.categorySuggestName || '',
+      categoryCascaderOptions: all,
+      categoryCascaderValue: ''
+    });
+  },
+
+  closeCategoryCascader(e) {
+    // 业务侧主动选中关闭时，忽略 Cascader/Popup 回抛的 close，避免竞态覆盖
+    if (this._cascaderClosingBySelect) return;
+    // 选中完成会先 change 再 close；此处若再 setData 会与 change 竞态，把选中值盖掉
+    const trigger = e && e.detail && e.detail.trigger;
+    if (trigger === 'finish') return;
+
     const all = this.data.categoryCascaderOptionsAll || this.data.categoryCascaderOptions || [];
     this.setData({
       categoryCascaderVisible: false,
       categoryCascaderKeyword: '',
-      categoryCascaderOptions: all
+      categoryCascaderSearchResults: [],
+      showCascaderMissPanel: false,
+      categoryCascaderOptions: all,
+      categoryCascaderValue: this.data.selectedCategory || ''
     });
   },
 
@@ -179,26 +219,118 @@ Page({
     const keyword = (e.detail && (e.detail.value !== undefined ? e.detail.value : e.detail)) || '';
     const kw = String(keyword);
     const all = this.data.categoryCascaderOptionsAll || [];
+    const trimmed = kw.trim();
+    // 搜索时临时清空 Cascader value，避免底部 tabs 仍显示上次选中路径；表单 selectedCategory 保持不变
     this.setData({
       categoryCascaderKeyword: kw,
-      categoryCascaderOptions: filterCascaderOptions(all, kw)
+      categoryCascaderSearchResults: trimmed ? searchCascaderFlat(all, trimmed) : [],
+      categoryCascaderValue: trimmed ? '' : this.data.selectedCategory || '',
+      showCascaderMissPanel: false
     });
   },
 
   onCategoryCascaderSearchClear() {
-    const all = this.data.categoryCascaderOptionsAll || [];
     this.setData({
       categoryCascaderKeyword: '',
-      categoryCascaderOptions: all
+      categoryCascaderSearchResults: [],
+      categoryCascaderValue: this.data.selectedCategory || ''
     });
   },
 
-  /** Cascader 内「找不到」→ 选中「其他」并打开建议面板 */
-  onCascaderSelectFallback() {
+  openCascaderMissPanel() {
+    const kw = String(this.data.categoryCascaderKeyword || '').trim();
+    const suggest =
+      String(this.data.cascaderMissSuggest || '').trim() ||
+      String(this.data.categorySuggestName || '').trim() ||
+      (kw && kw !== '其他' ? kw : '');
+    this.setData({
+      showCascaderMissPanel: true,
+      cascaderMissSuggest: suggest,
+      categoryCascaderValue: ''
+    });
+  },
+
+  closeCascaderMissPanel() {
+    const suggest = String(this.data.categorySuggestName || '').trim();
+    const patch = {
+      showCascaderMissPanel: false,
+      categoryCascaderValue: this.data.selectedCategory || ''
+    };
+    // 尚未确认建议名时，取消本次临时选中的「其他」
+    if (this.data.isFallbackCategorySelected && !suggest) {
+      patch.selectedCategory = '';
+      patch.selectedParentCategory = '';
+      patch.categoryName = '';
+      patch.isFallbackCategorySelected = false;
+      patch.categoryCascaderValue = '';
+    }
+    this.setData(patch, () => this.updatePreviewContent());
+  },
+
+  onCascaderMissSuggestChange(e) {
+    const value = (e.detail && e.detail.value) || '';
+    this.setData({ cascaderMissSuggest: String(value) });
+  },
+
+  /** 搜索结果直接选中并回写发布页（不依赖 Cascader change） */
+  onCategorySearchResultTap(e) {
+    const value = e.currentTarget.dataset.value;
+    if (value === undefined || value === null || value === '') return;
+    const all = this.data.categoryCascaderOptionsAll || [];
+    const patch = resolveCascaderSelection(all, { value });
+    if (!patch.categoryName && !patch.selectedCategory) {
+      wx.showToast({ title: '分类无效，请重试', icon: 'none' });
+      return;
+    }
+    const data = {
+      categoryCascaderVisible: false,
+      categoryCascaderKeyword: '',
+      categoryCascaderSearchResults: [],
+      showCascaderMissPanel: false,
+      categoryCascaderOptions: all,
+      categoryCascaderValue: patch.categoryCascaderValue,
+      selectedCategory: patch.selectedCategory,
+      selectedParentCategory: patch.selectedParentCategory,
+      categoryName: patch.categoryName,
+      categoryLevel2: [],
+      isFallbackCategorySelected: !!patch.isFallback
+    };
+    if (patch.isFallback) {
+      // 搜索命中「其他」→ 进入建议面板，不直接关闭
+      this.setData({
+        categoryCascaderKeyword: '',
+        categoryCascaderSearchResults: [],
+        showCascaderMissPanel: true,
+        cascaderMissSuggest:
+          String(this.data.categorySuggestName || '').trim() ||
+          String(this.data.cascaderMissSuggest || '').trim(),
+        categoryCascaderValue: '',
+        selectedCategory: patch.selectedCategory,
+        selectedParentCategory: patch.selectedParentCategory,
+        categoryName: patch.categoryName,
+        isFallbackCategorySelected: true
+      });
+      return;
+    }
+    data.categorySuggestName = '';
+    this._cascaderClosingBySelect = true;
+    this.setData(data, () => {
+      this._cascaderClosingBySelect = false;
+      this.updatePreviewContent();
+    });
+  },
+
+  /** 级联内确认：选用「其他」+ 建议名 */
+  onConfirmCascaderMiss() {
     const all = this.data.categoryCascaderOptionsAll || this.data.categoryCascaderOptions || [];
     const hit = findFallbackCascaderNode(all);
     if (!hit || !hit.leaf) {
       wx.showToast({ title: '暂无「其他」分类，请联系客服', icon: 'none' });
+      return;
+    }
+    const suggest = String(this.data.cascaderMissSuggest || '').trim();
+    if (!suggest) {
+      wx.showToast({ title: '请填写建议分类名称', icon: 'none' });
       return;
     }
     const selectedOptions = hit.parent
@@ -211,28 +343,28 @@ Page({
       value: hit.leaf.value,
       selectedOptions
     });
-    // 搜索框里的词可作为建议名预填（若用户还没填）
-    const kw = String(this.data.categoryCascaderKeyword || '').trim();
-    const suggest =
-      String(this.data.categorySuggestName || '').trim() ||
-      (kw && kw !== '其他' ? kw : '');
+    this._cascaderClosingBySelect = true;
     this.setData(
       {
         categoryCascaderVisible: false,
         categoryCascaderKeyword: '',
+        categoryCascaderSearchResults: [],
+        showCascaderMissPanel: false,
         categoryCascaderOptions: all,
         categoryCascaderValue: patch.categoryCascaderValue,
         selectedCategory: patch.selectedCategory,
         selectedParentCategory: patch.selectedParentCategory,
-        categoryName: patch.categoryName,
+        categoryName: suggest ? `${patch.categoryName}（建议：${suggest}）` : patch.categoryName,
         categoryLevel2: [],
-        showCategoryMissPanel: true,
-        categorySuggestName: suggest
+        isFallbackCategorySelected: true,
+        categorySuggestName: suggest,
+        cascaderMissSuggest: suggest
       },
       () => {
+        this._cascaderClosingBySelect = false;
         this.updatePreviewContent();
         wx.showToast({
-          title: suggest ? '已选「其他」，请确认建议名' : '已选「其他」，请填写建议分类',
+          title: '已选「其他」，建议已保存',
           icon: 'none',
           duration: 2000
         });
@@ -241,27 +373,42 @@ Page({
   },
 
   onCategoryCascaderChange(e) {
-    const patch = applyCascaderChange(e.detail || {});
     const all = this.data.categoryCascaderOptionsAll || [];
+    // 始终用全量树解析路径，避免二次选择时 selectedOptions 不完整
+    const patch = resolveCascaderSelection(all, e.detail || {});
     const data = {
       categoryCascaderVisible: false,
       categoryCascaderKeyword: '',
+      categoryCascaderSearchResults: [],
+      showCascaderMissPanel: false,
       categoryCascaderOptions: all,
       categoryCascaderValue: patch.categoryCascaderValue,
       selectedCategory: patch.selectedCategory,
       selectedParentCategory: patch.selectedParentCategory,
       categoryName: patch.categoryName,
-      categoryLevel2: []
+      categoryLevel2: [],
+      isFallbackCategorySelected: !!patch.isFallback
     };
     if (patch.isFallback) {
-      data.showCategoryMissPanel = true;
+      // 从列表直接点到「其他」→ 打开级联内建议面板，而不是直接关掉
+      data.categoryCascaderVisible = true;
+      data.showCascaderMissPanel = true;
+      data.cascaderMissSuggest =
+        String(this.data.categorySuggestName || '').trim() ||
+        String(this.data.cascaderMissSuggest || '').trim();
+      data.categoryCascaderValue = '';
+    } else {
+      data.categorySuggestName = '';
     }
-    this.setData(data, () => this.updatePreviewContent());
-  },
-
-  toggleCategoryMissPanel() {
-    this.setData({
-      showCategoryMissPanel: !this.data.showCategoryMissPanel
+    if (patch.isFallback) {
+      // 不走关闭竞态标记：面板仍打开
+      this.setData(data, () => this.updatePreviewContent());
+      return;
+    }
+    this._cascaderClosingBySelect = true;
+    this.setData(data, () => {
+      this._cascaderClosingBySelect = false;
+      this.updatePreviewContent();
     });
   },
 
@@ -507,9 +654,7 @@ Page({
     return {
       categoryCascaderValue: id,
       categoryName,
-      showCategoryMissPanel: isFallback
-        ? true
-        : this.data.showCategoryMissPanel
+      isFallbackCategorySelected: !!isFallback
     };
   },
 
@@ -982,7 +1127,9 @@ Page({
       categoryLevel2: [],
       categoryCascaderValue: '',
       categorySuggestName: '',
-      showCategoryMissPanel: false,
+      isFallbackCategorySelected: false,
+      showCascaderMissPanel: false,
+      cascaderMissSuggest: '',
       images: [],
       renderedContent: null,
       cursorPosition: 0,
@@ -1057,7 +1204,7 @@ Page({
       images: draft.images || [],
       previewFullContent: draft.previewFullContent || '',
       categorySuggestName: draft.categorySuggestName || '',
-      showCategoryMissPanel: !!(draft.categorySuggestName && String(draft.categorySuggestName).trim())
+      isFallbackCategorySelected: !!(draft.categorySuggestName && String(draft.categorySuggestName).trim())
     };
 
     let categoryPatch = {
@@ -1164,7 +1311,7 @@ Page({
     if (this._isSelectedFallbackCategory()) {
       const suggest = String(this.data.categorySuggestName || '').trim();
       if (!suggest) {
-        this.setData({ showCategoryMissPanel: true });
+        this.openCategoryCascaderMiss();
         wx.showToast({
           title: '请填写建议分类名称',
           icon: 'none',
@@ -1254,7 +1401,9 @@ Page({
         categoryLevel2: [],
         categoryCascaderValue: '',
         categorySuggestName: '',
-        showCategoryMissPanel: false,
+        isFallbackCategorySelected: false,
+        showCascaderMissPanel: false,
+        cascaderMissSuggest: '',
         images: [],
         renderedContent: null,
         contentHistory: [],

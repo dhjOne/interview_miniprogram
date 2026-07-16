@@ -1,9 +1,6 @@
 import { authApi } from '~/api/request/api_question';
 import { QuestionParams } from '~/api/param/param_question';
-import { resolveAuthorId } from '~/utils/author';
-import { completeSelfQuiz } from '~/utils/points';
 
-const app = getApp();
 const { renderMarkdown } = require('../../../utils/towxmlLoader');
 
 function unwrapDetail(res) {
@@ -15,41 +12,34 @@ function unwrapDetail(res) {
   return d && typeof d === 'object' ? d : {};
 }
 
-function buildFullPreviewContent(docTitle, categoryName, markdownContent) {
-  let fullContent = '';
-  if (docTitle) {
-    fullContent += `<div style="text-align: center; margin-bottom: 40rpx;">\n`;
-    fullContent += `  <h1 style="font-size: 48rpx; font-weight: 700; color: #1d2129; margin: 0;">${docTitle}</h1>\n`;
-    if (categoryName) {
-      fullContent += `  <div style="text-align: right; margin: 0;">\n`;
-      fullContent += `    <span style="background: #165dff; color: white; padding: 4rpx 16rpx; border-radius: 16rpx; font-size: 24rpx; display: inline-block;">${categoryName}</span>\n`;
-      fullContent += `  </div>\n`;
-    }
-    fullContent += `</div>\n\n`;
+/** 列表/详情日期：YYYY-MM-DD */
+function formatDateYMD(value) {
+  if (value === undefined || value === null || value === '') return '';
+  const s = String(value).trim();
+  const m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (m) {
+    const mo = `${m[2]}`.padStart(2, '0');
+    const d = `${m[3]}`.padStart(2, '0');
+    return `${m[1]}-${mo}-${d}`;
   }
-  fullContent += markdownContent || '';
-  return fullContent;
-}
-
-function resolveCurrentUserId() {
-  const user = app.getUserInfo && app.getUserInfo();
-  if (!user) return '';
-  return String(user.id ?? user.userId ?? user.user_id ?? '');
-}
-
-function isPublishedStatus(row) {
-  const status = row.status ?? row.docStatus ?? row.doc_status;
-  return Number(status) === 2;
+  const d = new Date(s.replace(/-/g, '/'));
+  if (Number.isNaN(d.getTime())) return s.slice(0, 10) || '';
+  const y = d.getFullYear();
+  const mo = `${d.getMonth() + 1}`.padStart(2, '0');
+  const day = `${d.getDate()}`.padStart(2, '0');
+  return `${y}-${mo}-${day}`;
 }
 
 Page({
   data: {
     loading: true,
     docId: '',
+    docTitle: '',
+    categoryName: '',
+    displayDate: '',
+    viewCount: '',
     shareTitle: '',
-    renderedContent: null,
-    showSelfQuiz: false,
-    selfQuizSubmitting: false
+    renderedContent: null
   },
 
   onLoad(options) {
@@ -63,7 +53,7 @@ Page({
     this._load(id);
     if (options.share === '1') {
       setTimeout(() => {
-        wx.showToast({ title: '可点击下方分享给好友', icon: 'none' });
+        wx.showToast({ title: '可点击下方分享', icon: 'none' });
       }, 400);
     }
   },
@@ -83,24 +73,26 @@ Page({
       const markdownContent = row.content || row.markdownContent || '';
       const categoryName =
         row.categoryName || row.category_name || row.categoryLabel || '';
-      const full = row.previewFullContent || row.preview_full_content || '';
-      const md = full && String(full).trim() ? String(full) : 
-      buildFullPreviewContent(docTitle, categoryName, markdownContent);
+      const rawTime =
+        row.updatedAt ?? row.updated_at ?? row.createdAt ?? row.created_at ?? row.createAt;
+      const displayDate = formatDateYMD(rawTime);
+      const viewRaw = row.viewCount ?? row.view_count;
+      const viewCount =
+        viewRaw === undefined || viewRaw === null || viewRaw === '' ? '' : String(viewRaw);
 
       const shareTitle = docTitle || '文档预览';
-      const renderedContent = md
-        ? await renderMarkdown(md, { theme: 'light', base: '', events: {} })
+      const renderedContent = markdownContent
+        ? await renderMarkdown(String(markdownContent), { theme: 'light', base: '', events: {} })
         : null;
-
-      const authorId = resolveAuthorId(row);
-      const currentUserId = resolveCurrentUserId();
-      const showSelfQuiz = !!(currentUserId && authorId && currentUserId === authorId && isPublishedStatus(row));
 
       this.setData({
         loading: false,
+        docTitle,
+        categoryName,
+        displayDate,
+        viewCount,
         renderedContent,
-        shareTitle,
-        showSelfQuiz
+        shareTitle
       });
     } catch (e) {
       console.error(e);
@@ -120,20 +112,6 @@ Page({
         console.log('跳转失败', res);
       }
     });
-  },
-
-  async onSelfQuizComplete() {
-    const id = this.data.docId;
-    if (!id || this.data.selfQuizSubmitting) return;
-    this.setData({ selfQuizSubmitting: true });
-    try {
-      await completeSelfQuiz(id);
-      wx.showToast({ title: '自测完成，积分已发放', icon: 'success' });
-    } catch (e) {
-      wx.showToast({ title: (e && e.message) || '提交失败', icon: 'none' });
-    } finally {
-      this.setData({ selfQuizSubmitting: false });
-    }
   },
 
   onShareAppMessage() {

@@ -245,7 +245,7 @@
 .my-profile {
   flex: 1;
   min-width: 0;
-  padding-right: 176rpx;
+  padding-right: 160rpx;
 
   &__name {
     font-size: 34rpx;
@@ -267,11 +267,22 @@
   }
 }
 
+.my-login-card {
+  position: relative;
+
+  &__notify {
+    position: absolute;
+    z-index: 2;
+    top: 24rpx;
+    right: 24rpx;
+  }
+}
+
 .my-profile-card {
   position: relative;
   padding: 30rpx 28rpx 26rpx;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow: visible;
   background:
     radial-gradient(circle at 88% 12%, rgba(0, 82, 217, 0.14) 0, rgba(0, 82, 217, 0) 168rpx),
     linear-gradient(135deg, var(--app-card-bg, #fff) 0%, #f7faff 100%);
@@ -308,12 +319,14 @@
     gap: 12rpx;
   }
 
-  &__action,
-  &__setting {
+  &__action {
     display: flex;
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
+    width: 64rpx;
+    height: 64rpx;
+    border-radius: 50%;
     color: var(--td-brand-color, #0052d9);
     background: rgba(255, 255, 255, 0.86);
     border: 1rpx solid rgba(0, 82, 217, 0.12);
@@ -326,24 +339,11 @@
     }
   }
 
-  &__action {
-    width: 64rpx;
-    height: 64rpx;
-    border-radius: 50%;
+  &__notify {
+    overflow: visible;
   }
 
-  &__setting {
-    height: 64rpx;
-    min-width: 120rpx;
-    gap: 8rpx;
-    padding: 0 20rpx;
-    border-radius: 999rpx;
-    font-size: 24rpx;
-    font-weight: 600;
-  }
-
-  &__action--active,
-  &__setting--active {
+  &__action--active {
     opacity: 0.82;
     transform: scale(0.96);
   }

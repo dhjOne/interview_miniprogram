@@ -119,6 +119,7 @@ Page({
     
     // 筛选条件（categoryId 与 DocumentParams / 列表接口一致）
     filterVisible: false,
+    hasActiveFilter: false,
     filterOptions: {
       categoryId: '',
       timeRange: '',
@@ -265,6 +266,14 @@ Page({
     this.setData({ categoryBarTitle: short });
   },
 
+  /** 是否存在生效中的筛选（分类 / 时间） */
+  _computeHasActiveFilter(filterOptions = this.data.filterOptions) {
+    const fo = filterOptions || {};
+    const hasCategory = fo.categoryId !== '' && fo.categoryId !== undefined && fo.categoryId !== null;
+    const hasTime = fo.timeRange !== '' && fo.timeRange !== undefined && fo.timeRange !== null;
+    return !!(hasCategory || hasTime);
+  },
+
   toggleCategoryDropdown() {
     this.setData({
       categoryDropdownOpen: !this.data.categoryDropdownOpen
@@ -339,8 +348,7 @@ Page({
           page,
           total: 0,
           hasMore,
-          loading: false,
-          showCreateBtn: docList.length > 0 // 新增一个数据字段
+          loading: false
         });
         return;
       }
@@ -359,8 +367,7 @@ Page({
         page,
         total,
         hasMore,
-        loading: false,
-        showCreateBtn: docList.length > 0 // 新增一个数据字段
+        loading: false
       });
     } catch (error) {
       console.error('加载文档列表失败:', error);
@@ -437,7 +444,10 @@ onTabChange(e) {
 
   // 确认筛选
   onConfirmFilter() {
-    this.setData({ filterVisible: false });
+    this.setData({
+      filterVisible: false,
+      hasActiveFilter: this._computeHasActiveFilter()
+    });
     this.loadDocList(true);
   },
 

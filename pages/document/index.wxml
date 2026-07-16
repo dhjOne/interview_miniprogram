@@ -1,38 +1,58 @@
 <view class="question-list-container doc-manage">
   <view class="question-list-sticky">
-  <!-- 顶部筛选栏 -->
-  <view class="filter-bar">
-    <view class="sort-options">
-      <view class="sort-item {{sortType === 'time' ? 'active' : ''}}"
-        data-value="time-{{sortOrder === 'desc' ? 'asc' : 'desc'}}" bindtap="onSortChange">
-        <text>时间</text>
-        <t-icon name="{{sortType === 'time' ? (sortOrder === 'desc' ? 'caret-down' : 'caret-up') : 'swap'}}"
-          size="32rpx" />
+    <view class="ql-filter">
+      <!-- 状态 Tab -->
+      <t-tabs value="{{activeTab}}" bind:tap="onTabTap" bind:change="onTabChange" t-class="doc-tabs">
+        <t-tab-panel label="全部" value="all" />
+        <t-tab-panel label="审核中" value="progress" />
+        <t-tab-panel label="已发布" value="published" />
+        <t-tab-panel label="草稿箱" value="draft" />
+        <t-tab-panel label="已下架" value="offline" />
+      </t-tabs>
+
+      <!-- 排序（与题库分段控件同款） -->
+      <view class="ql-filter__sort-row">
+        <text class="ql-filter__sort-label">排序</text>
+        <view class="ql-sort-segment">
+          <view
+            class="ql-sort-segment__item {{sortType === 'time' ? 'ql-sort-segment__item--active' : ''}}"
+            data-value="time-{{sortOrder === 'desc' ? 'asc' : 'desc'}}"
+            bindtap="onSortChange"
+          >
+            时间
+            <t-icon
+              name="{{sortType === 'time' ? (sortOrder === 'desc' ? 'caret-down' : 'caret-up') : 'swap'}}"
+              size="28rpx"
+            />
+          </view>
+          <view
+            class="ql-sort-segment__item {{sortType === 'title' ? 'ql-sort-segment__item--active' : ''}}"
+            data-value="title-{{sortOrder === 'desc' ? 'asc' : 'desc'}}"
+            bindtap="onSortChange"
+          >
+            标题
+            <t-icon
+              wx:if="{{sortType === 'title'}}"
+              name="{{sortOrder === 'desc' ? 'caret-down' : 'caret-up'}}"
+              size="28rpx"
+            />
+          </view>
+        </view>
+        <view class="doc-filter-btn {{hasActiveFilter ? 'doc-filter-btn--active' : ''}}" bindtap="onFilterClick">
+          <t-icon name="filter" size="32rpx" />
+          <text>筛选</text>
+          <view wx:if="{{hasActiveFilter}}" class="doc-filter-btn__dot" />
+        </view>
       </view>
-      <view class="sort-item {{sortType === 'title' ? 'active' : ''}}"
-        data-value="title-{{sortOrder === 'desc' ? 'asc' : 'desc'}}" bindtap="onSortChange">
-        <text>标题</text>
+
+      <view class="ql-filter__meta" wx:if="{{!loading || docList.length > 0}}">
+        <view class="ql-filter__meta-left">
+          <text class="ql-filter__count">共 {{total}} 条</text>
+          <text wx:if="{{hasActiveFilter}}" class="ql-filter__dot">·</text>
+          <text wx:if="{{hasActiveFilter}}" class="ql-filter__hint">已筛选</text>
+        </view>
       </view>
     </view>
-
-    <view class="filter-btn" bindtap="onFilterClick">
-      <t-icon name="filter" size="36rpx" />
-      <text>筛选</text>
-    </view>
-  </view>
-
-  <!-- 状态Tab -->
-  <t-tabs value="{{activeTab}}" bind:tap="onTabTap" bind:change="onTabChange">
-    <t-tab-panel label="全部" value="all" />
-    <t-tab-panel label="审核中" value="progress" />
-    <t-tab-panel label="已发布" value="published" />
-    <t-tab-panel label="草稿箱" value="draft" />
-    <t-tab-panel label="已下架" value="offline" />
-  </t-tabs>
-
-  <view class="list-subbar" wx:if="{{!loading || docList.length > 0}}">
-    <text class="list-subbar-text">共 {{total}} 条</text>
-  </view>
   </view>
 
   <view class="questions-section">
@@ -44,7 +64,8 @@
       refresher-enabled="{{true}}"
       bindrefresherrefresh="onPullDownRefresh"
       bindscrolltolower="onReachBottom"
-      lower-threshold="120">
+      lower-threshold="120"
+    >
       <view id="list-top" class="list-top-anchor" />
       <view class="question-list">
         <block wx:for="{{docList}}" wx:key="id" wx:for-index="idx">
@@ -60,7 +81,9 @@
                     wx:if="{{item.statusTag}}"
                     size="small"
                     theme="{{item.statusTag.theme}}"
-                    class="question-diff-tag">
+                    variant="light"
+                    class="question-diff-tag"
+                  >
                     {{item.statusTag.text}}
                   </t-tag>
                 </view>
@@ -74,7 +97,7 @@
                     {{item.viewCount}} 浏览
                   </text>
                   <text class="meta-item">
-                    <t-icon name="app" size="24rpx" />
+                    <t-icon name="chat" size="24rpx" />
                     {{item.commentCount}} 评论
                   </text>
                   <text class="meta-item">
@@ -84,7 +107,7 @@
                 </view>
               </view>
               <view class="question-actions" catchtap="onOpenActions" data-id="{{item.id}}">
-                <t-icon name="more" size="40rpx" color="#bbb" class="collect-icon" />
+                <t-icon name="more" size="40rpx" color="#c0c4cc" class="collect-icon" />
               </view>
             </view>
           </view>
@@ -106,9 +129,12 @@
         <text class="empty-text" wx:elif="{{docType === 'draft'}}">暂无草稿</text>
         <text class="empty-text" wx:elif="{{docType === 'offline'}}">暂无已下架文档</text>
         <text class="empty-text" wx:else>暂无文档</text>
-        <text class="empty-desc">调整筛选或发布一篇文档</text>
-        <t-button theme="primary" size="large" bindtap="onCreateDoc" class="empty-btn">
+        <text class="empty-desc">{{hasActiveFilter ? '试试调整筛选条件' : '发布一篇技术文档开始创作'}}</text>
+        <t-button theme="primary" size="large" bindtap="onCreateDoc" class="empty-btn" wx:if="{{!hasActiveFilter}}">
           发布文档
+        </t-button>
+        <t-button theme="light" variant="outline" size="large" bindtap="onFilterClick" class="empty-btn" wx:else>
+          调整筛选
         </t-button>
       </view>
 
@@ -117,8 +143,6 @@
       </view>
     </scroll-view>
   </view>
-
-
 
   <!-- 筛选弹窗 -->
   <td-popup visible="{{filterVisible}}" placement="top" overlayProps="{{ { background: 'rgba(0,0,0,0.4)' } }}">
@@ -129,14 +153,16 @@
       </view>
 
       <view class="filter-content">
-        <!-- 分类：筛选项内下拉，风格与时间筛选一致 -->
         <view class="filter-section filter-section--category">
           <text class="filter-label">分类</text>
           <view class="filter-select {{categoryDropdownOpen ? 'filter-select--open' : ''}}">
             <view class="filter-select-trigger" bindtap="toggleCategoryDropdown">
               <text class="filter-select-text">{{categoryBarTitle}}</text>
-              <t-icon name="{{categoryDropdownOpen ? 'chevron-up' : 'chevron-down'}}" size="40rpx"
-                class="filter-select-chevron" />
+              <t-icon
+                name="{{categoryDropdownOpen ? 'chevron-up' : 'chevron-down'}}"
+                size="40rpx"
+                class="filter-select-chevron"
+              />
             </view>
             <view class="filter-select-panel" wx:if="{{categoryDropdownOpen}}">
               <scroll-view scroll-y class="filter-select-scroll" show-scrollbar="{{true}}">
@@ -145,7 +171,8 @@
                   wx:key="index"
                   class="filter-select-item {{filterOptions.categoryId == item.value ? 'active' : ''}}"
                   data-index="{{index}}"
-                  bindtap="onCategoryOptionTap">
+                  bindtap="onCategoryOptionTap"
+                >
                   {{item.label}}
                 </view>
               </scroll-view>
@@ -153,13 +180,16 @@
           </view>
         </view>
 
-        <!-- 时间范围筛选 -->
         <view class="filter-section">
           <text class="filter-label">时间范围</text>
           <view class="filter-options">
             <block wx:for="{{timeRanges}}" wx:key="value">
-              <view class="filter-option {{filterOptions.timeRange === item.value ? 'active' : ''}}"
-                data-key="timeRange" data-value="{{item.value}}" bindtap="onFilterChange">
+              <view
+                class="filter-option {{filterOptions.timeRange === item.value ? 'active' : ''}}"
+                data-key="timeRange"
+                data-value="{{item.value}}"
+                bindtap="onFilterChange"
+              >
                 {{item.label}}
               </view>
             </block>
@@ -175,16 +205,25 @@
   </td-popup>
 
   <!-- 操作菜单 -->
-  <td-popup visible="{{actionsVisible}}" placement="bottom" overlayProps="{{ { background: 'rgba(0,0,0,0.45)' } }}"
-    bind:visible-change="onActionsPopupVisibleChange">
+  <td-popup
+    visible="{{actionsVisible}}"
+    placement="bottom"
+    overlayProps="{{ { background: 'rgba(0,0,0,0.45)' } }}"
+    bind:visible-change="onActionsPopupVisibleChange"
+  >
     <view class="actions-popup">
       <view class="actions-popup__handle" />
       <text class="actions-popup__title">文档操作</text>
       <view class="actions-popup__sheet">
-        <view class="action-item" hover-class="action-item--hover" data-action="edit" bindtap="onDocAction"
-          wx:if="{{currentDocStatus === 'draft' || currentDocStatus === 'published' || currentDocStatus === 'offline'}}">
+        <view
+          class="action-item"
+          hover-class="action-item--hover"
+          data-action="edit"
+          bindtap="onDocAction"
+          wx:if="{{currentDocStatus === 'draft' || currentDocStatus === 'published' || currentDocStatus === 'offline'}}"
+        >
           <view class="action-item__icon action-item__icon--edit">
-            <t-icon name="edit" size="40rpx" color="#07c160" />
+            <t-icon name="edit" size="40rpx" color="#0052d9" />
           </view>
           <text class="action-item__label">编辑</text>
         </view>
@@ -194,16 +233,23 @@
           </view>
           <text class="action-item__label">预览</text>
         </view>
-        <button class="action-item action-item--share" open-type="share"
-          wx:if="{{currentDocStatus === 'published'}}">
+        <button
+          class="action-item action-item--share"
+          open-type="share"
+          wx:if="{{currentDocStatus === 'published'}}"
+        >
           <view class="action-item__icon action-item__icon--share">
             <t-icon name="share" size="40rpx" color="#ed7b2f" />
           </view>
           <text class="action-item__label">分享</text>
         </button>
-        <view class="action-item action-item--danger" hover-class="action-item--hover-danger" data-action="delete"
+        <view
+          class="action-item action-item--danger"
+          hover-class="action-item--hover-danger"
+          data-action="delete"
           bindtap="onDocAction"
-          wx:if="{{currentDocStatus === 'progress' || currentDocStatus === 'draft' || currentDocStatus === 'published'}}">
+          wx:if="{{currentDocStatus === 'progress' || currentDocStatus === 'draft' || currentDocStatus === 'published'}}"
+        >
           <view class="action-item__icon action-item__icon--delete">
             <t-icon name="delete" size="40rpx" color="#d54941" />
           </view>

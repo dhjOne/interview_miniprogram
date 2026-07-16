@@ -1,7 +1,6 @@
 {
   "navigationBarTitleText": "文档预览",
   "usingComponents": {
-    "t-button": "/miniprogram_npm/tdesign-miniprogram/button/button",
     "t-loading": "/miniprogram_npm/tdesign-miniprogram/loading/loading",
     "t-icon": "/miniprogram_npm/tdesign-miniprogram/icon/icon",
     "towxml": "/subpackages/towxml/towxml"

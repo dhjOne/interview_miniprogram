@@ -1,30 +1,61 @@
 <view class="uc-redeem">
+  <image class="uc-redeem__nav-bg" src="/static/bg_navbar.png" mode="aspectFill" />
   <t-navbar left-arrow title="积分兑换" fixed safe-area-inset-top />
-  <view class="uc-redeem__content">
+
+  <view class="uc-redeem__body">
     <view class="uc-redeem__balance">
-      <text class="uc-redeem__balance-label">可用积分</text>
-      <text class="uc-redeem__balance-value">{{displayAvailable}}</text>
+      <view>
+        <text class="uc-redeem__balance-label">可用积分</text>
+        <text class="uc-redeem__balance-value">{{displayAvailable}}</text>
+      </view>
+      <view class="uc-redeem__balance-icon">
+        <t-icon name="shop" size="40rpx" color="#fff" />
+      </view>
     </view>
 
     <view class="uc-redeem__tabs">
-      <view class="uc-redeem__tab {{tab === 'shop' ? 'uc-redeem__tab--active' : ''}}" data-tab="shop" bindtap="onTabTap">兑换商城</view>
-      <view class="uc-redeem__tab {{tab === 'orders' ? 'uc-redeem__tab--active' : ''}}" data-tab="orders" bindtap="onTabTap">兑换记录</view>
+      <view
+        class="uc-redeem__tab {{tab === 'shop' ? 'uc-redeem__tab--active' : ''}}"
+        data-tab="shop"
+        bindtap="onTabTap"
+      >
+        兑换商城
+      </view>
+      <view
+        class="uc-redeem__tab {{tab === 'orders' ? 'uc-redeem__tab--active' : ''}}"
+        data-tab="orders"
+        bindtap="onTabTap"
+      >
+        兑换记录
+      </view>
     </view>
 
     <view wx:if="{{tab === 'shop'}}">
       <view wx:if="{{loadingShop}}" class="uc-redeem__loading">
         <t-loading size="48rpx" text="加载商品…" />
       </view>
-      <view wx:elif="{{itemList.length === 0}}" class="uc-redeem__empty">暂无可兑换商品</view>
+      <view wx:elif="{{itemList.length === 0}}" class="uc-redeem__empty">
+        <view class="uc-redeem__empty-icon">
+          <t-icon name="shop" size="64rpx" color="#c5cdd8" />
+        </view>
+        <text class="uc-redeem__empty-t">暂无可兑换商品</text>
+        <text class="uc-redeem__empty-d">稍后再来看看吧</text>
+      </view>
       <view wx:else class="uc-redeem__list">
         <view wx:for="{{itemList}}" wx:key="id" class="uc-redeem__item">
+          <view class="uc-redeem__item-icon">
+            <t-icon name="gift" size="40rpx" color="#0052d9" />
+          </view>
           <view class="uc-redeem__item-main">
             <text class="uc-redeem__item-name">{{item.itemName}}</text>
             <text class="uc-redeem__item-type">{{item.itemType || '权益'}}</text>
-            <text class="uc-redeem__item-limit" wx:if="{{item.dailyLimitPerUser}}">每日限兑 {{item.dailyLimitPerUser}} 次</text>
+            <text class="uc-redeem__item-limit" wx:if="{{item.dailyLimitPerUser}}">
+              每日限兑 {{item.dailyLimitPerUser}} 次
+            </text>
           </view>
           <view class="uc-redeem__item-right">
-            <text class="uc-redeem__item-cost">{{item.costPoints}} 积分</text>
+            <text class="uc-redeem__item-cost">{{item.costPoints}}</text>
+            <text class="uc-redeem__item-cost-unit">积分</text>
             <t-button
               size="small"
               theme="primary"
@@ -45,7 +76,13 @@
       <view wx:if="{{loadingOrders}}" class="uc-redeem__loading">
         <t-loading size="48rpx" text="加载记录…" />
       </view>
-      <view wx:elif="{{orderList.length === 0}}" class="uc-redeem__empty">暂无兑换记录</view>
+      <view wx:elif="{{orderList.length === 0}}" class="uc-redeem__empty">
+        <view class="uc-redeem__empty-icon">
+          <t-icon name="file" size="64rpx" color="#c5cdd8" />
+        </view>
+        <text class="uc-redeem__empty-t">暂无兑换记录</text>
+        <text class="uc-redeem__empty-d">兑换后的订单会出现在这里</text>
+      </view>
       <view wx:else class="uc-redeem__list">
         <view wx:for="{{orderList}}" wx:key="id" class="uc-redeem__order">
           <view class="uc-redeem__order-main">

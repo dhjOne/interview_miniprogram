@@ -88,7 +88,8 @@
 
       <view wx:else class="empty-state empty-state--page">
         <t-icon name="folder-open" size="72rpx" color="#cbd5e1" />
-        <text class="empty-state__title">暂无分类</text>
+        <text class="empty-state__title">{{categoryScope === 'career' ? '暂无匹配你职业的分类' : '暂无分类'}}</text>
+        <text wx:if="{{categoryScope === 'career'}}" class="empty-state__desc">可切换到「全部」查看完整题库</text>
       </view>
     </block>
   </view>

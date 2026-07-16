@@ -1,60 +1,37 @@
 <view class="publish-page">
-  <!-- 页面头部 -->
-  <view class="page-header">
-    <view class="header-row">
-      <view class="header-icon-wrap">
-        <t-icon name="file" size="40" color="#165dff" />
-      </view>
-      <view class="header-texts">
-        <view class="header-title">技术文档</view>
-        <view class="header-subtitle">Markdown · 预览 · 代码高亮</view>
-      </view>
-    </view>
-  </view>
-
-  <!-- 标题输入 -->
-  <view class="form-section form-section-card">
-    <view class="section-label">
-      <text>文档标题</text>
-      <text class="required">*</text>
-    </view>
-    <t-textarea placeholder="请输入文档标题（2-50字）" maxlength="50" value="{{docTitle}}" bind:change="onTitleChange" autosize />
-  </view>
-
-  <!-- 分类选择（Cascader 一级 → 二级；「其他」兜底 + 建议） -->
-  <view class="form-section form-section-card category-section">
-    <view class="section-label">
-      <text>文档分类</text>
-      <text class="required">*</text>
+  <!-- 元信息：标题 + 分类 -->
+  <view class="meta-card">
+    <view class="meta-title-row">
+      <text class="meta-field-label">标题<text class="required">*</text></text>
+      <t-textarea
+        class="meta-title-input"
+        placeholder="添加文档标题（2-50字）"
+        maxlength="50"
+        value="{{docTitle}}"
+        bind:change="onTitleChange"
+        autosize
+      />
     </view>
 
-    <view wx:if="{{categoryLoading}}" class="category-loading">分类加载中…</view>
-    <block wx:elif="{{categoryCascaderOptions.length}}">
-      <view class="category-cascader-trigger {{categoryName ? 'category-cascader-trigger--filled' : ''}}" bind:tap="openCategoryCascader">
-        <view class="category-cascader-trigger-main">
-          <text class="category-cascader-trigger-label">{{categoryName || '请选择文档分类'}}</text>
-          <text class="category-cascader-trigger-hint" wx:if="{{!categoryName}}">一级 / 二级，点此打开</text>
+    <view class="meta-divider"></view>
+
+    <view class="meta-category-row">
+      <text class="meta-field-label">分类<text class="required">*</text></text>
+      <view wx:if="{{categoryLoading}}" class="category-loading">分类加载中…</view>
+      <block wx:elif="{{categoryCascaderOptionsAll.length}}">
+        <view
+          class="category-cascader-trigger {{categoryName ? 'category-cascader-trigger--filled' : ''}}"
+          bind:tap="openCategoryCascader"
+        >
+          <view class="category-cascader-trigger-main">
+            <text class="category-cascader-trigger-label">{{categoryName || '请选择文档分类'}}</text>
+          </view>
+          <t-icon name="chevron-right" size="40rpx" color="#86909c" />
         </view>
-        <t-icon name="chevron-right" size="40rpx" color="#86909c" />
-      </view>
-    </block>
-    <view wx:else class="category-empty">
-      <text>暂无分类</text>
-      <text class="category-retry" bind:tap="retryLoadCategories">点击重试</text>
-    </view>
-
-    <view class="category-miss">
-      <view class="category-miss-trigger" bind:tap="toggleCategoryMissPanel">
-        <text class="category-miss-trigger-text">找不到合适的分类？</text>
-        <t-icon name="{{showCategoryMissPanel ? 'chevron-up' : 'chevron-down'}}" size="32rpx" color="#86909c" />
-      </view>
-      <view class="category-miss-panel" wx:if="{{showCategoryMissPanel}}">
-        <text class="category-miss-tip">请在级联选择器中选择「其他」作为兜底，并填写建议名称；审核通过后我们会补充正式分类。也可联系客服反馈。</text>
-        <t-input class="category-miss-input" placeholder="建议分类名称（选「其他」时必填，如：Rust）"
-          value="{{categorySuggestName}}" maxlength="30" bind:change="onCategorySuggestChange" clearable />
-        <button class="category-miss-contact" open-type="contact" bindcontact="onCategoryContact">
-          联系客服反馈
-        </button>
+      </block>
+      <view wx:else class="category-empty">
+        <text>暂无分类</text>
+        <text class="category-retry" bind:tap="retryLoadCategories">点击重试</text>
       </view>
     </view>
   </view>
@@ -71,67 +48,128 @@
     bind:close="closeCategoryCascader"
   >
     <view slot="header" class="cascader-header" catch:tap="noop">
-      <view class="cascader-header-row">
-        <view class="cascader-header-search">
-          <t-search
-            value="{{categoryCascaderKeyword}}"
-            placeholder="搜索分类"
-            shape="round"
-            clearable
-            bind:change="onCategoryCascaderSearch"
-            bind:clear="onCategoryCascaderSearchClear"
-          />
-        </view>
-        <view class="cascader-header-miss" bind:tap="onCascaderSelectFallback">
-          <t-icon name="add-circle" size="36rpx" color="#165dff" />
-          <text>找不到</text>
+      <view class="cascader-search" wx:if="{{!showCascaderMissPanel}}">
+        <t-icon name="search" size="36rpx" color="#86909c" />
+        <input
+          class="cascader-search-input"
+          value="{{categoryCascaderKeyword}}"
+          placeholder="搜索分类名称"
+          placeholder-class="cascader-search-placeholder"
+          confirm-type="search"
+          bindinput="onCategoryCascaderSearch"
+        />
+        <view
+          class="cascader-search-clear"
+          wx:if="{{categoryCascaderKeyword}}"
+          catch:tap="onCategoryCascaderSearchClear"
+        >
+          <t-icon name="close-circle-filled" size="36rpx" color="#c9cdd4" />
         </view>
       </view>
-      <view class="cascader-header-tip" wx:if="{{categoryCascaderKeyword && !categoryCascaderOptions.length}}">
-        未找到「{{categoryCascaderKeyword}}」，可点右上角「找不到」选「其他」并提交建议
+
+      <!-- 找不到分类：级联内联动面板 -->
+      <view class="cascader-miss-cover" wx:if="{{showCascaderMissPanel}}">
+        <view class="cascader-miss-back" bind:tap="closeCascaderMissPanel">
+          <t-icon name="chevron-left" size="40rpx" color="#4e5969" />
+          <text>返回选择</text>
+        </view>
+        <view class="cascader-miss-card">
+          <text class="cascader-miss-title">找不到合适分类？</text>
+          <text class="cascader-miss-desc">可先选用「其他」作为兜底，并填写你期望的分类名；审核通过后我们会补充正式分类。也可直接联系客服反馈。</text>
+          <t-input
+            class="cascader-miss-input"
+            placeholder="建议分类名称（必填，如：Rust）"
+            value="{{cascaderMissSuggest}}"
+            maxlength="30"
+            bind:change="onCascaderMissSuggestChange"
+            clearable
+          />
+          <view class="cascader-miss-primary" bind:tap="onConfirmCascaderMiss">
+            使用「其他」分类
+          </view>
+          <button class="cascader-miss-contact" open-type="contact" bindcontact="onCategoryContact">
+            联系客服反馈
+          </button>
+        </view>
+      </view>
+
+      <!-- 搜索遮罩 -->
+      <view class="cascader-search-cover" wx:elif="{{categoryCascaderKeyword}}">
+        <scroll-view scroll-y class="cascader-search-panel" wx:if="{{categoryCascaderSearchResults.length}}">
+          <view class="cascader-search-count">找到 {{categoryCascaderSearchResults.length}} 个相关分类</view>
+          <view
+            class="cascader-search-item {{selectedCategory == item.value ? 'cascader-search-item--active' : ''}}"
+            wx:for="{{categoryCascaderSearchResults}}"
+            wx:key="value"
+            data-value="{{item.value}}"
+            bind:tap="onCategorySearchResultTap"
+          >
+            <view class="cascader-search-item-main">
+              <text class="cascader-search-item-title">{{item.label}}</text>
+              <text class="cascader-search-item-path" wx:if="{{item.parentLabel}}">{{item.parentLabel}}</text>
+            </view>
+            <t-icon
+              name="{{selectedCategory == item.value ? 'check' : 'chevron-right'}}"
+              size="36rpx"
+              color="{{selectedCategory == item.value ? '#165dff' : '#c9cdd4'}}"
+            />
+          </view>
+          <view class="cascader-search-footer" bind:tap="openCascaderMissPanel">
+            没有想要的？选用「其他」并建议
+          </view>
+        </scroll-view>
+
+        <view class="cascader-search-empty" wx:else>
+          <view class="cascader-search-empty-icon">
+            <t-icon name="search" size="64rpx" color="#c9cdd4" />
+          </view>
+          <text class="cascader-search-empty-title">未找到「{{categoryCascaderKeyword}}」</text>
+          <text class="cascader-search-empty-desc">换个关键词，或选用「其他」并提交建议</text>
+          <view class="cascader-search-empty-btn" bind:tap="openCascaderMissPanel">
+            找不到合适分类
+          </view>
+        </view>
+      </view>
+
+      <view class="cascader-search-hint" wx:else>
+        <text>也可直接在下方逐级选择</text>
+        <text class="cascader-search-hint-link" bind:tap="openCascaderMissPanel">找不到合适分类？</text>
       </view>
     </view>
   </t-cascader>
 
   <!-- Markdown 编辑器区域 -->
-  <view class="form-section form-section-card editor-section">
-    <view class="section-label">
-      <text>文档内容</text>
-      <text class="required">*</text>
-      <view class="word-count">
-        {{wordCount}} / {{maxLength}}
+  <view class="editor-card">
+    <view class="editor-card-header">
+      <view class="editor-card-title">
+        <text>正文</text>
+        <text class="required">*</text>
       </view>
+      <view class="word-count">{{wordCount}} / {{maxLength}}</view>
     </view>
 
     <!-- 编辑器模式切换 -->
     <t-tabs value="{{activeTab}}" bind:change="onTabChange" class="editor-tabs">
       <!-- 编辑模式 -->
-      <t-tab-panel label="编辑模式" value="edit">
+      <t-tab-panel label="编辑" value="edit" t-class="publish-tab-panel-edit">
         <view class="editor-container">
           <!-- 工具栏头部 -->
           <view class="toolbar-header">
-            <!-- 编辑工具下拉按钮 -->
             <view class="toolbar-dropdown-btn" bind:tap="toggleToolbarDropdown">
-              <t-icon name="edit" size="18" />
-              <text class="dropdown-btn-text">Markdown 工具</text>
-              <t-icon name="{{showToolbarDropdown ? 'chevron-up' : 'chevron-down'}}" size="14" class="dropdown-arrow" />
+              <t-icon name="edit" size="36rpx" color="#165dff" />
+              <text class="dropdown-btn-text">插入</text>
+              <t-icon name="{{showToolbarDropdown ? 'chevron-up' : 'chevron-down'}}" size="28rpx" color="#86909c" />
             </view>
 
-            <!-- 右侧操作按钮 -->
             <view class="toolbar-right-actions">
-              <view class="toolbar-action-btn" bind:tap="undoAction" wx:if="{{canUndo}}">
-                <t-icon name="undo" size="18" />
-                <text class="action-btn-text">撤销</text>
+              <view class="toolbar-icon-btn" bind:tap="undoAction" wx:if="{{canUndo}}" aria-label="撤销">
+                <t-icon name="undo" size="40rpx" color="#4e5969" />
               </view>
-
-              <view class="toolbar-action-btn" bind:tap="redoAction" wx:if="{{canRedo}}">
-                <t-icon name="redo" size="18" />
-                <text class="action-btn-text">重做</text>
+              <view class="toolbar-icon-btn" bind:tap="redoAction" wx:if="{{canRedo}}" aria-label="重做">
+                <t-icon name="redo" size="40rpx" color="#4e5969" />
               </view>
-
-              <view class="toolbar-action-btn clear-btn" bind:tap="showClearConfirmDialog">
-                <t-icon name="delete" size="18" />
-                <text class="action-btn-text">清除</text>
+              <view class="toolbar-icon-btn toolbar-icon-btn--danger" bind:tap="showClearConfirmDialog" aria-label="清除">
+                <t-icon name="delete" size="40rpx" color="#f53f3f" />
               </view>
             </view>
           </view>
@@ -286,7 +324,7 @@
       </t-tab-panel>
 
       <!-- 预览模式（使用 towxml） -->
-      <t-tab-panel label="预览模式" value="preview">
+      <t-tab-panel label="预览" value="preview">
         <view class="preview-container">
           <scroll-view scroll-y class="preview-scroll" enable-back-to-top="true" scroll-anchoring="true"
             scroll-top="{{previewScrollTop}}">
@@ -408,13 +446,20 @@
 
   <!-- 底部操作栏 -->
   <view class="action-bar">
-    <t-button theme="default" size="large" block bindtap="saveDraft">
-      保存草稿
-    </t-button>
-    <t-button theme="primary" size="large" block bindtap="publishDocument" loading="{{isPublishing}}"
-      disabled="{{!docTitle || !markdownContent || !selectedCategory}}">
-      发布文档
-    </t-button>
+    <view class="action-bar-draft" bind:tap="saveDraft">保存草稿</view>
+    <view class="action-bar-publish-wrap">
+      <t-button
+        theme="primary"
+        size="large"
+        block
+        shape="round"
+        bindtap="publishDocument"
+        loading="{{isPublishing}}"
+        disabled="{{!docTitle || !markdownContent || !selectedCategory}}"
+      >
+        {{editDocId ? '保存修改' : '发布文档'}}
+      </t-button>
+    </view>
   </view>
 
   <!-- 清除确认弹窗 -->
@@ -422,7 +467,7 @@
     cancel-btn="取消" bind:confirm="clearContent" bind:cancel="hideClearConfirmDialog" confirm-btn-theme="danger" />
 
   <!-- 发布确认弹窗 -->
-  <t-dialog visible="{{showConfirmDialog}}" title="确认发布" content="请确认文档内容无误，发布后不可修改。" confirm-btn="确认发布"
+  <t-dialog visible="{{showConfirmDialog}}" title="{{editDocId ? '确认保存' : '确认发布'}}" content="{{editDocId ? '确认保存当前修改？' : '请确认文档内容无误，发布后不可修改。'}}" confirm-btn="{{editDocId ? '确认保存' : '确认发布'}}"
     cancel-btn="再检查一下" bind:confirm="confirmPublish" bind:cancel="cancelPublish" />
 
   <!-- 消息组件 -->

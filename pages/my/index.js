@@ -8,6 +8,9 @@ import {
 import { fetchPointAccount } from '~/utils/points';
 import { fetchPersonalInfo, syncCachedUserInfo } from '~/utils/userProfile';
 import { fetchCreatorPreview } from '~/utils/creatorCenter';
+import { socialApi } from '~/api/request/api_social';
+
+const NOTIFY_URL = '/pages/ucenter/notifications/index';
 
 const app = getApp();
 Page({
@@ -16,6 +19,7 @@ Page({
   data: {
     isLoad: false,
     historyCount: 0,
+    notifyUnread: 0,
     carousel: [
       { image: '/static/home/card0.png', title: '广告宣传' },
       { image: '/static/home/card1.png', title: '重点文献' },
@@ -39,12 +43,6 @@ Page({
         icon: 'leaderboard',
         type: 'ranking',
         url: '/pages/ucenter/ranking/index'
-      },
-      {
-        name: '互动通知',
-        icon: 'notification',
-        type: 'notifications',
-        url: '/pages/ucenter/notifications/index'
       },
       {
         name: '联系客服',
@@ -130,15 +128,40 @@ Page({
           personalInfo: cached
         });
       }
-      await Promise.all([this.loadSocialStats(), this.loadCreatorPreview()]);
+      await Promise.all([
+        this.loadSocialStats(),
+        this.loadCreatorPreview(),
+        this.loadNotificationPreview()
+      ]);
     } else {
       this.setData({
         isLoad: false,
         personalInfo: {},
         socialStats: this._buildSocialStatsDisplay(null),
-        creatorPreviewText: '登录后管理作品与数据'
+        creatorPreviewText: '登录后管理作品与数据',
+        notifyUnread: 0
       });
     }
+  },
+
+  async loadNotificationPreview() {
+    try {
+      const res = await socialApi.getNotifications({ page: 1, limit: 20 });
+      const data = res.data || {};
+      const rows = data.rows || data.list || [];
+      const apiUnread = data.unreadCount ?? data.unreadTotal ?? data.unread;
+      const unreadFromList = rows.filter((item) => !item.isRead).length;
+      const notifyUnread =
+        apiUnread != null ? Math.max(0, Number(apiUnread) || 0) : unreadFromList;
+      this.setData({ notifyUnread });
+    } catch (e) {
+      console.warn('[my] notification preview failed', e);
+      this.setData({ notifyUnread: 0 });
+    }
+  },
+
+  onNotifyTap() {
+    app.navigateToLogin({ url: NOTIFY_URL });
   },
 
   _buildCreatorPreviewText(preview) {
@@ -217,10 +240,6 @@ Page({
     wx.navigateTo({
       url: '/pages/login/login'
     });
-  },
-
-  onNavigateTo() {
-    app.navigateToLogin({ url: '/pages/my/info-edit/index' });
   },
 
   onSettingTap() {

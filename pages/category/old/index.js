@@ -208,13 +208,20 @@ Page({
     try {
       const info = await fetchPersonalInfo();
       const hasProfession = hasProfessionSelected(info.professionCodes);
+      const prevHasProfession = this.data.hasProfession;
       const patch = { isLoggedIn: true, hasProfession };
-      if (!hasProfession || preferredScope === 'all') {
+
+      if (!hasProfession) {
         patch.categoryScope = 'all';
-      } else if (preferredScope === 'career' || (isInit && getLocalSettings().defaultQuestionScope === 'career')) {
-        patch.categoryScope = 'career';
+      } else if (preferredScope === 'career' || preferredScope === 'all') {
+        patch.categoryScope = preferredScope;
+      } else if (isInit || !prevHasProfession) {
+        const defaultScope = getLocalSettings().defaultQuestionScope;
+        patch.categoryScope = defaultScope === 'all' ? 'all' : 'career';
       }
-      const scopeChanged = patch.categoryScope !== undefined && patch.categoryScope !== this.data.categoryScope;
+
+      const scopeChanged =
+        patch.categoryScope !== undefined && patch.categoryScope !== this.data.categoryScope;
       this.setData(patch);
       if (scopeChanged && !isInit) {
         await this.loadCategories();

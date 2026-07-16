@@ -1,31 +1,46 @@
 <view class="uc-invite">
-  <t-navbar left-arrow title="邀请码" fixed safe-area-inset-top />
-  <view class="uc-invite__content">
+  <image class="uc-invite__nav-bg" src="/static/bg_navbar.png" mode="aspectFill" />
+  <t-navbar left-arrow title="邀请好友" fixed safe-area-inset-top />
+
+  <view class="uc-invite__body">
+    <view class="uc-invite__hero">
+      <text class="uc-invite__hero-title">邀请创作者，双方得积分</text>
+      <text class="uc-invite__hero-desc">好友注册并首题过审后，你和对方都可获得奖励</text>
+    </view>
+
     <view class="uc-invite__card">
       <text class="uc-invite__label">我的邀请码</text>
       <view wx:if="{{loading}}" class="uc-invite__loading">
         <t-loading size="40rpx" text="加载中…" />
       </view>
       <block wx:else>
-        <text class="uc-invite__code">{{inviteCode}}</text>
-        <text class="uc-invite__desc">邀请创作者注册并首题过审，双方均可获得积分奖励</text>
-        <t-button theme="light" size="medium" shape="round" bind:tap="onCopyCode">复制邀请码</t-button>
+        <view class="uc-invite__code-box">
+          <text class="uc-invite__code">{{inviteCode}}</text>
+        </view>
+        <text class="uc-invite__hint">分享给好友，让对方在注册后 7 天内完成绑定</text>
+        <view class="uc-invite__copy" hover-class="uc-invite__copy--active" bindtap="onCopyCode">
+          <t-icon name="file-copy" size="32rpx" color="#fff" />
+          <text>复制邀请码</text>
+        </view>
       </block>
     </view>
 
     <view class="uc-invite__card">
       <text class="uc-invite__label">绑定他人邀请码</text>
-      <text class="uc-invite__desc uc-invite__desc--block">注册后 7 天内可绑定一次，被邀请人首题过审后触发奖励</text>
-      <t-input
-        value="{{bindCode}}"
-        placeholder="请输入邀请码"
-        clearable
-        bind:change="onBindInput"
-      />
+      <text class="uc-invite__hint uc-invite__hint--block">注册后 7 天内可绑定一次，被邀请人首题过审后触发奖励</text>
+      <view class="uc-invite__input-wrap">
+        <t-input
+          value="{{bindCode}}"
+          placeholder="请输入邀请码"
+          clearable
+          borderless
+          bind:change="onBindInput"
+        />
+      </view>
       <t-button
         class="uc-invite__bind-btn"
         theme="primary"
-        size="medium"
+        size="large"
         block
         shape="round"
         loading="{{binding}}"

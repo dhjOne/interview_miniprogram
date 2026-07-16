@@ -49,7 +49,9 @@ Page({
   },
 
   onPullDownRefresh() {
-    return this.reload();
+    return this.reload().finally(() => {
+      wx.stopPullDownRefresh();
+    });
   },
 
   reload() {

@@ -6,9 +6,11 @@ export const authApi = {
   // 获取分类信息
   // @param {Object} categoryParams - 分类查询参数
   getCategories: (categoryParams, options = {}) => {
-    const url = categoryParams?.scope === 'career'
+    const scope = categoryParams?.scope
+    const url = scope === 'career'
       ? '/repository/category/career'
       : '/repository/category'
+    console.log('[api_category] getCategories scope=', scope, '→', url)
     return http.get(url, categoryParams, {
       showLoading: false,
       ...options

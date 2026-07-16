@@ -1,13 +1,26 @@
 <view class="uc-appeals">
+  <image class="uc-appeals__nav-bg" src="/static/bg_navbar.png" mode="aspectFill" />
   <t-navbar left-arrow title="我的申诉" fixed safe-area-inset-top />
-  <view class="uc-appeals__content">
-    <view class="uc-appeals__tip">如对「已追回」的积分有异议，可在积分明细中发起申诉，处理结果将显示在此。</view>
+
+  <view class="uc-appeals__body">
+    <view class="uc-appeals__tip">
+      <t-icon name="info-circle-filled" size="32rpx" color="#0052d9" />
+      <text class="uc-appeals__tip-text">
+        如对「已追回」的积分有异议，可在积分明细中发起申诉，处理结果将显示在此。
+      </text>
+    </view>
 
     <view wx:if="{{loading && appealList.length === 0}}" class="uc-appeals__loading">
       <t-loading size="48rpx" text="加载中…" />
     </view>
 
-    <view wx:elif="{{appealList.length === 0}}" class="uc-appeals__empty">暂无申诉记录</view>
+    <view wx:elif="{{appealList.length === 0}}" class="uc-appeals__empty">
+      <view class="uc-appeals__empty-icon">
+        <t-icon name="file" size="64rpx" color="#c5cdd8" />
+      </view>
+      <text class="uc-appeals__empty-t">暂无申诉记录</text>
+      <text class="uc-appeals__empty-d">发起申诉后可在这里查看进度</text>
+    </view>
 
     <view wx:else class="uc-appeals__list">
       <view wx:for="{{appealList}}" wx:key="id" class="uc-appeals__row">

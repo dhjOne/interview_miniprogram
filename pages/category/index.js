@@ -127,6 +127,7 @@ Page({
 
   async onShow() {
     console.log('页面显示');
+    // 从个人中心选完职业返回时，会在此切到「我的职业」并重新拉分类
     await this.refreshProfessionScope(false);
     const now = Date.now();
     const shouldRefresh =
@@ -196,13 +197,24 @@ Page({
     try {
       const info = await fetchPersonalInfo();
       const hasProfession = hasProfessionSelected(info.professionCodes);
+      const prevHasProfession = this.data.hasProfession;
       const patch = { isLoggedIn: true, hasProfession };
-      if (!hasProfession || preferredScope === 'all') {
+
+      if (!hasProfession) {
+        // 未选职业只能看全部
         patch.categoryScope = 'all';
-      } else if (preferredScope === 'career' || (isInit && getLocalSettings().defaultQuestionScope === 'career')) {
-        patch.categoryScope = 'career';
+      } else if (preferredScope === 'career' || preferredScope === 'all') {
+        // 显式意图（设置页跳转 / 登录回跳）优先
+        patch.categoryScope = preferredScope;
+      } else if (isInit || !prevHasProfession) {
+        // 首次进入，或刚在个人中心选完职业回来 → 按默认设置切到「我的职业」
+        const defaultScope = getLocalSettings().defaultQuestionScope;
+        patch.categoryScope = defaultScope === 'all' ? 'all' : 'career';
       }
-      const scopeChanged = patch.categoryScope !== undefined && patch.categoryScope !== this.data.categoryScope;
+      // 其余情况保留用户当前手动切换的 Tab
+
+      const scopeChanged =
+        patch.categoryScope !== undefined && patch.categoryScope !== this.data.categoryScope;
       this.setData(patch);
       if (scopeChanged && !isInit) {
         await this.loadPrimaryCategories();
@@ -217,22 +229,24 @@ Page({
 
   /**
    * 加载一级分类（categoryId = 0）
-   * @param {{ preserveSelection?: boolean }} [opts]
+   * @param {{ preserveSelection?: boolean, scope?: string }} [opts]
    * @returns {Promise<boolean>}
    */
   async loadPrimaryCategories(opts = {}) {
     const preserveSelection = !!opts.preserveSelection;
+    const scope = opts.scope || this.data.categoryScope;
 
     try {
       if (!preserveSelection) {
         this.setData({ loading: true });
       }
 
-      const categoryParams = new CategoryParams(null, 0, this.data.categoryScope);
+      const categoryParams = new CategoryParams(null, 0, scope);
       categoryParams.page = 1;
       categoryParams.limit = 100;
       categoryParams.sortField = 'sort_order';
       categoryParams.order = 'asc';
+      console.log('[category] 加载一级分类 scope=', scope, 'url=', scope === 'career' ? '/repository/category/career' : '/repository/category');
       const response = await authApi.getCategories(categoryParams);
       console.log('一级分类：', response);
 
@@ -254,7 +268,7 @@ Page({
       });
 
       if (currentPrimaryId) {
-        await this.loadSecondaryCategories();
+        await this.loadSecondaryCategories({ scope });
       } else {
         this.setData({
           secondaryCategories: [],
@@ -268,7 +282,7 @@ Page({
       return true;
     } catch (error) {
       console.error('加载分类失败:', error);
-      this.showErrorMessage('网络错误，请重试');
+      this.showErrorMessage(error?.message || '网络错误，请重试');
       this.setData({
         primaryCategories: [],
         secondaryCategories: [],
@@ -288,12 +302,12 @@ Page({
 
   /**
    * 根据当前一级分类加载二级分类。
-   * @param {{ refresh?: boolean }} [opts]
+   * @param {{ refresh?: boolean, scope?: string }} [opts]
    */
   async loadSecondaryCategories(opts = {}) {
     const refresh = opts.refresh !== false;
     const parentId = this.data.currentPrimaryId;
-    const requestScope = this.data.categoryScope;
+    const requestScope = opts.scope || this.data.categoryScope;
     const nextPage = refresh ? 1 : this.data.secondaryPage + 1;
 
     if (
@@ -326,11 +340,12 @@ Page({
     }
 
     try {
-      const categoryParams = new CategoryParams(null, parentId, this.data.categoryScope);
+      const categoryParams = new CategoryParams(null, parentId, requestScope);
       categoryParams.sortField = 'sort_order';
       categoryParams.order = 'asc';
       categoryParams.page = nextPage;
       categoryParams.limit = this.data.secondaryPageSize;
+      console.log('[category] 加载二级分类 parentId=', parentId, 'scope=', requestScope);
       const response = await authApi.getCategories(categoryParams);
       console.log('二级分类：', response);
 
@@ -361,7 +376,7 @@ Page({
       });
     } catch (error) {
       console.error('加载二级分类失败:', error);
-      this.showErrorMessage('加载分类失败');
+      this.showErrorMessage(error?.message || '加载分类失败');
       const patch = {
         categoryLoading: false,
         secondaryLoadingMore: false
@@ -492,7 +507,7 @@ Page({
       secondaryHasMore: true,
       secondaryLoadingMore: false
     });
-    await this.loadPrimaryCategories();
+    await this.loadPrimaryCategories({ scope });
   },
 
   goRelease() {

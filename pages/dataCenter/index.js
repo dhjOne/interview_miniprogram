@@ -32,6 +32,15 @@ Page({
   },
 
   onLoad() {
+    this._skipShowRefresh = true;
+    this.refresh();
+  },
+
+  onShow() {
+    if (this._skipShowRefresh) {
+      this._skipShowRefresh = false;
+      return;
+    }
     this.refresh();
   },
 

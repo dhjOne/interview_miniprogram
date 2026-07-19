@@ -110,7 +110,8 @@
         "visits/index",
         "notifications/index",
         "blacklist/index",
-        "profile/index"
+        "profile/index",
+        "business/index"
       ]
     },
     {

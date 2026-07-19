@@ -1,151 +1,125 @@
-<view class="uc-favorite">
+<view class="uc-fav">
   <t-message id="t-message" />
   <t-navbar left-arrow title="收藏夹" fixed safe-area-inset-top />
-  <view class="uc-favorite__inner question-list-container">
-    <view class="question-list-sticky">
-      <view class="ql-filter">
-        <view class="ql-filter__search">
-          <t-search
-            value="{{searchValue}}"
-            placeholder="搜索已收藏题目…"
-            action="搜索"
-            bind:change="onSearchChange"
-            bind:submit="onSearchSubmit"
-            bind:action-click="onSearchAction"
-            bind:clear="onSearchClear"
-            shape="round"
-            t-class="ql-filter-search"
-            t-class-input-container="ql-filter-search__box"
-            t-class-input="ql-filter-search__input"
-            t-class-action="ql-filter-search__action"
-          />
-        </view>
 
-        <view class="ql-filter__sort-row">
-          <text class="ql-filter__sort-label">排序</text>
-          <view
-            class="ql-sort-segment {{sortSwipePulse ? 'ql-sort-segment--pulse' : ''}}"
-            bindtouchstart="onSortSwipeStart"
-            bindtouchend="onSortSwipeEnd"
-          >
-            <view
-              class="ql-sort-segment__thumb"
-              style="width: {{sortThumbWidth}}%; transform: translateX({{sortThumbOffset}}%);"
-            />
-            <view
-              wx:for="{{sortChips}}"
-              wx:key="value"
-              class="ql-sort-segment__item {{sortType === item.value ? 'ql-sort-segment__item--active' : ''}}"
-              data-sort="{{item.value}}"
-              bindtap="onSortTap"
-            >
-              {{item.label}}
-            </view>
-          </view>
+  <view class="uc-fav__summary">
+    <view class="uc-fav__summary-main">
+      <view class="uc-fav__summary-icon">
+        <t-icon name="heart-filled" size="40rpx" color="#e34d59" />
+      </view>
+      <view class="uc-fav__summary-copy">
+        <view class="uc-fav__summary-title-row">
+          <text class="uc-fav__summary-count">{{totalCount}}</text>
+          <text class="uc-fav__summary-unit">道收藏</text>
         </view>
-        <text class="ql-filter__swipe-tip">左右滑动可切换排序</text>
-
-        <view class="ql-filter__meta" wx:if="{{listHeaderReady}}">
-          <view class="ql-filter__meta-left">
-            <text class="ql-filter__count">共 {{totalCount}} 道已收藏</text>
-          </view>
-          <text wx:if="{{searchValue}}" class="ql-filter__hint">关键词「{{searchValue}}」</text>
-        </view>
+        <text class="uc-fav__summary-desc">
+          {{searchValue ? '正在筛选「' + searchValue + '」' : '收藏的题目会集中出现在这里'}}
+        </text>
       </view>
     </view>
+  </view>
 
-    <view class="questions-section">
-      <scroll-view
-        class="questions-scroll"
-        scroll-y
-        enhanced
-        show-scrollbar="{{false}}"
-        scroll-into-view="{{scrollIntoView}}"
-        scroll-with-animation
-        bindscrolltolower="loadMore"
-        bindtouchstart="onSortSwipeStart"
-        bindtouchend="onSortSwipeEnd"
-        lower-threshold="120">
-        <view id="list-top" class="list-top-anchor" />
-        <view class="question-list">
-          <block wx:for="{{questionList}}" wx:key="id" wx:for-index="idx">
-            <view
-              class="question-item"
-              bindtap="onQuestionClick"
-              data-id="{{item.id}}"
-              data-title="{{item.title}}">
-              <view class="question-header">
-                <view class="question-index">
-                  <text class="index-number">{{(page - 1) * pageSize + idx + 1}}</text>
-                </view>
-                <view class="question-main">
-                  <view class="question-title-row">
-                    <text class="question-title">{{item.title || '无标题'}}</text>
-                    <t-tag
-                      wx:if="{{item.difficultyTag}}"
-                      size="small"
-                      theme="{{item.difficultyTag.theme}}"
-                      class="question-diff-tag">
-                      {{item.difficultyTag.text}}
-                    </t-tag>
-                  </view>
-                  <view class="question-meta">
-                    <text class="meta-item">
-                      <t-icon name="time" size="24rpx" />
-                      {{item.displayDate}}
-                    </text>
-                    <text class="meta-item">
-                      <t-icon name="view" size="24rpx" />
-                      {{item.viewCount}} 浏览
-                    </text>
-                    <text class="meta-item">
-                      <t-icon name="app" size="24rpx" />
-                      {{item.commentCount}} 评论
-                    </text>
-                    <text class="meta-item">
-                      <t-icon name="thumb-up" size="24rpx" />
-                      {{item.likeCount}} 点赞
-                    </text>
-                  </view>
-                </view>
-                <view class="question-actions" catchtap="onCollect" data-id="{{item.id}}">
-                  <t-icon
-                    name="{{item.isCollected ? 'heart-filled' : 'heart'}}"
-                    size="40rpx"
-                    color="{{item.isCollected ? '#e34d59' : '#c0c4cc'}}"
-                    class="collect-icon"
-                  />
-                </view>
-              </view>
-              <view wx:if="{{item.description}}" class="question-description">
-                <text class="description-text">{{item.description}}</text>
-              </view>
+  <view class="uc-fav__toolbar">
+    <view class="uc-fav__search">
+      <t-search
+        value="{{searchValue}}"
+        placeholder="搜索已收藏题目…"
+        action="搜索"
+        bind:change="onSearchChange"
+        bind:submit="onSearchSubmit"
+        bind:action-click="onSearchAction"
+        bind:clear="onSearchClear"
+        shape="round"
+        t-class="uc-fav-search"
+        t-class-input-container="uc-fav-search__box"
+        t-class-input="uc-fav-search__input"
+        t-class-action="uc-fav-search__action"
+      />
+    </view>
+
+    <scroll-view class="uc-fav__chips" scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="uc-fav__chips-row">
+        <view
+          wx:for="{{sortChips}}"
+          wx:key="value"
+          class="uc-fav__chip {{sortType === item.value ? 'uc-fav__chip--active' : ''}}"
+          data-sort="{{item.value}}"
+          bindtap="onSortTap"
+        >{{item.label}}</view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <view wx:if="{{loading && questionList.length === 0}}" class="uc-fav__loading">
+    <t-loading size="40rpx" text="加载中…" />
+  </view>
+
+  <view wx:elif="{{questionList.length === 0 && loadAttempted}}" class="uc-fav__empty">
+    <view class="uc-fav__empty-icon">
+      <t-icon name="heart" size="72rpx" color="#f9a8b0" />
+    </view>
+    <text class="uc-fav__empty-title">{{searchValue ? '没有匹配的收藏' : '还没有收藏题目'}}</text>
+    <text class="uc-fav__empty-desc">
+      {{searchValue ? '试试其他关键词，或清空搜索查看全部' : '在题库点心形即可收藏，方便下次复习'}}
+    </text>
+    <view
+      wx:if="{{searchValue}}"
+      class="uc-fav__empty-btn uc-fav__empty-btn--ghost"
+      hover-class="uc-fav__empty-btn--active"
+      bindtap="onSearchClear"
+    >清空搜索</view>
+    <view
+      wx:else
+      class="uc-fav__empty-btn"
+      hover-class="uc-fav__empty-btn--active"
+      bindtap="goBrowse"
+    >去刷题</view>
+  </view>
+
+  <view wx:else class="uc-fav__list">
+    <view
+      wx:for="{{questionList}}"
+      wx:key="id"
+      class="uc-fav__card"
+      hover-class="uc-fav__card--active"
+      bindtap="onQuestionClick"
+      data-id="{{item.id}}"
+      data-title="{{item.title}}"
+    >
+      <view class="uc-fav__card-head">
+        <view class="uc-fav__card-index">{{index + 1}}</view>
+        <view class="uc-fav__card-main">
+          <view class="uc-fav__title-row">
+            <text class="uc-fav__title">{{item.title || '无标题'}}</text>
+            <view wx:if="{{item.difficultyTag}}" class="uc-fav__diff uc-fav__diff--{{item.difficultyTag.theme}}">
+              {{item.difficultyTag.text}}
             </view>
-          </block>
-        </view>
-
-        <view class="list-footer" wx:if="{{questionList.length > 0}}">
-          <view class="list-footer-inner" wx:if="{{loading}}">
-            <t-loading size="36rpx" text="加载中…" />
           </view>
-          <t-divider wx:elif="{{!hasMore}}" align="center" content="没有更多了" />
-        </view>
-
-        <view wx:if="{{questionList.length === 0 && !loading && loadAttempted}}" class="uc-favorite__empty">
-          <view class="uc-favorite__empty-icon">
-            <t-icon name="heart" size="80rpx" color="#c8c9cc" />
+          <view class="uc-fav__meta">
+            <text class="uc-fav__meta-item">{{item.displayDate}}</text>
+            <text class="uc-fav__meta-dot">·</text>
+            <text class="uc-fav__meta-item">{{item.viewCount}} 浏览</text>
+            <text wx:if="{{item.likeCount > 0}}" class="uc-fav__meta-dot">·</text>
+            <text wx:if="{{item.likeCount > 0}}" class="uc-fav__meta-item">{{item.likeCount}} 赞</text>
           </view>
-          <text class="uc-favorite__empty-title">暂无收藏题目</text>
-          <text class="uc-favorite__empty-desc">在题库中点击心形图标即可收藏，或换关键词再搜</text>
-          <t-button theme="primary" size="medium" bindtap="goBrowse" class="uc-favorite__empty-btn">
-            去刷题
-          </t-button>
         </view>
+        <view
+          class="uc-fav__heart"
+          catchtap="onCollect"
+          data-id="{{item.id}}"
+          hover-class="uc-fav__heart--active"
+        >
+          <t-icon name="heart-filled" size="40rpx" color="#e34d59" />
+        </view>
+      </view>
+      <view wx:if="{{item.description}}" class="uc-fav__desc">{{item.description}}</view>
+    </view>
 
-        <view wx:if="{{questionList.length === 0 && loading}}" class="list-loading-center">
-          <t-loading size="48rpx" text="加载中…" />
-        </view>
-      </scroll-view>
+    <view class="uc-fav__footer">
+      <view wx:if="{{loading}}">
+        <t-loading size="36rpx" text="加载中…" />
+      </view>
+      <text wx:elif="{{!hasMore}}" class="uc-fav__end">— 已加载全部收藏 —</text>
     </view>
   </view>
 </view>

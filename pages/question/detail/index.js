@@ -388,14 +388,11 @@ Page({
 
         this.setData(patch);
 
-        try {
-          trackQuestionBrowse({
-            id: questionDetail.id ?? this.data.questionId,
-            title: questionDetail.title
-          });
-        } catch (e) {
-          // 浏览记录失败不影响详情页
-        }
+        // 浏览历史：详情加载成功后记录（失败不影响阅读）
+        trackQuestionBrowse({
+          id: questionDetail.id ?? this.data.questionId,
+          title: questionDetail.title
+        }).catch(() => {});
 
         this.loadCommentCount();
         

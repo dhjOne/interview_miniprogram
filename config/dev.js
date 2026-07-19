@@ -4,8 +4,8 @@ export default {
   env: 'develop',
   
   // API 基础配置
-  baseUrl: 'http://localhost:9991',
-  // baseUrl: 'https://considerable-competitions-thousand-which.trycloudflare.com',
+  // baseUrl: 'http://localhost:9991',
+  baseUrl: 'https://clearing-wishlist-trailer-scanning.trycloudflare.com',
   // baseUrl: 'https://175vq12004jn.vicp.fun',
   apiPrefix: '/api',
   

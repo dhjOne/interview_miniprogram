@@ -150,6 +150,7 @@ Page({
     const { type = 'all' } = options;
     const docType = normalizeTabDocType(type);
 
+    this._skipShowRefresh = true;
     this.setData({
       docType,
       activeTab: docType
@@ -158,6 +159,15 @@ Page({
     // 获取分类列表
     this.getCategories();
     // 加载文档列表
+    this.loadDocList(true);
+  },
+
+  onShow() {
+    if (this._skipShowRefresh) {
+      this._skipShowRefresh = false;
+      return;
+    }
+    this.getCategories();
     this.loadDocList(true);
   },
 

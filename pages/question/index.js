@@ -1,11 +1,21 @@
 // pages/question/index.js
 import Message from 'tdesign-miniprogram/message/index';
 import { authApi } from '~/api/request/api_question';
-// import { QuestionParams } from '~/api/param/param_question';
 import {
   QuestionLikeOrCollectParams,
   QuestionParams
 } from '~/api/param/param_question';
+import {
+  dismissBannerItemToday,
+  dismissBannerToday,
+  fetchBannersByPosition,
+  filterDismissedBanners,
+  interleaveFeedItems,
+  isBannerDismissedToday,
+  openBannerLink,
+  POSITION_QUESTION_FEED,
+  POSITION_QUESTION_TOP
+} from '~/utils/banners';
 
 
 const app = getApp();
@@ -71,7 +81,9 @@ Page({
       { label: '最新', value: 'latest' },
       { label: '最热', value: 'hot' }
     ],
-    questionList: [],
+    displayList: [],
+    questionCount: 0,
+    topBanner: null,
     totalCount: 0,
     loading: false,
     hasMore: true,
@@ -88,6 +100,8 @@ Page({
   },
 
   _sortSwipeTouch: null,
+  _questions: [],
+  _feedAds: [],
 
   onLoad(options) {
     const { categoryId, categoryName, secondaryCategoryId, secondaryCategoryName, keyword, search } = options;
@@ -95,6 +109,9 @@ Page({
     const finalCategoryName = safeDecodeURIComponent(categoryName || secondaryCategoryName);
     const initialKeyword = safeDecodeURIComponent(keyword || search || '');
 
+    this._skipShowRefresh = true;
+    this._questions = [];
+    this._feedAds = [];
     this.setData({
       categoryId: finalCategoryId,
       categoryName: finalCategoryName,
@@ -106,6 +123,16 @@ Page({
     });
 
     this._updateSortThumb(this.data.sortType);
+    this.loadOpsSlots();
+    this.loadQuestions(true);
+  },
+
+  onShow() {
+    if (this._skipShowRefresh) {
+      this._skipShowRefresh = false;
+      return;
+    }
+    // 从题目详情返回时刷新列表（点赞/收藏等状态）
     this.loadQuestions(true);
   },
 
@@ -118,13 +145,40 @@ Page({
   },
 
   onPullDownRefresh() {
-    return this.loadQuestions(true);
+    return Promise.all([this.loadOpsSlots(), this.loadQuestions(true)]);
   },
 
   onPageScroll(e) {
     const top = (e.detail && e.detail.scrollTop) || 0;
     this.setData({
       showBackTop: top > 400
+    });
+  },
+
+  async loadOpsSlots() {
+    const [feedAds, topList] = await Promise.all([
+      fetchBannersByPosition(POSITION_QUESTION_FEED),
+      fetchBannersByPosition(POSITION_QUESTION_TOP)
+    ]);
+    this._feedAds = filterDismissedBanners(feedAds || []);
+    const topBanner =
+      !isBannerDismissedToday(POSITION_QUESTION_TOP) && topList && topList.length
+        ? topList[0]
+        : null;
+    this.setData({ topBanner });
+    this._rebuildDisplayList();
+  },
+
+  _rebuildDisplayList() {
+    const searching = !!(this.data.searchValue && this.data.searchValue.trim());
+    const displayList = interleaveFeedItems(this._questions, this._feedAds, {
+      every: searching ? 12 : 10,
+      minBeforeFirst: 4,
+      idPrefix: 'q-ad'
+    });
+    this.setData({
+      displayList,
+      questionCount: this._questions.length
     });
   },
 
@@ -163,21 +217,21 @@ Page({
         const newList = rawList.map(normalizeQuestionRow);
 
         if (refresh) {
+          this._questions = newList;
           this.setData({
-            questionList: newList,
             totalCount: total,
             page: 1,
             hasMore: newList.length < total
           });
         } else {
-          const merged = [...this.data.questionList, ...newList];
+          this._questions = [...this._questions, ...newList];
           this.setData({
-            questionList: merged,
             totalCount: total,
             page: requestPage,
-            hasMore: merged.length < total
+            hasMore: this._questions.length < total
           });
         }
+        this._rebuildDisplayList();
       } else {
         Message.error({
           context: this,
@@ -195,6 +249,24 @@ Page({
     } finally {
       this.setData({ loading: false, listHeaderReady: true });
     }
+  },
+
+  onOpsBannerTap(e) {
+    const item = (e.detail && e.detail.item) || e.currentTarget?.dataset?.item;
+    openBannerLink(item);
+  },
+
+  onTopBannerDismiss() {
+    dismissBannerToday(POSITION_QUESTION_TOP);
+    this.setData({ topBanner: null });
+  },
+
+  onFeedBannerDismiss(e) {
+    const item = (e.detail && e.detail.item) || null;
+    if (!item || item.id == null) return;
+    dismissBannerItemToday(item.id);
+    this._feedAds = filterDismissedBanners(this._feedAds || []);
+    this._rebuildDisplayList();
   },
 
   onSearchChange(e) {
@@ -309,9 +381,8 @@ Page({
   },
 
   async onCollect(e) {
-    console.log('-----e----',e)
     const questionId = e.currentTarget.dataset.id;
-    const question = this.data.questionList.find((item) => item.id === questionId);
+    const question = this._questions.find((item) => item.id === questionId);
     if (!question) return;
 
     try {
@@ -319,13 +390,13 @@ Page({
       const response = await authApi.toggleCollect(collectQuestion);
 
       if (response.code == '0000') {
-        const updatedList = this.data.questionList.map((item) => {
+        this._questions = this._questions.map((item) => {
           if (item.id === questionId) {
             return { ...item, isCollected: !item.isCollected };
           }
           return item;
         });
-        this.setData({ questionList: updatedList });
+        this._rebuildDisplayList();
         Message.success({
           context: this,
           offset: [20, 32],

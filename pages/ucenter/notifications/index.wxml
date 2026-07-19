@@ -1,33 +1,75 @@
-<view class="notification-page">
-  <t-navbar left-arrow title="互动通知" fixed safe-area-inset-top />
+<view class="notify-page">
+  <t-navbar left-arrow title="消息通知" fixed safe-area-inset-top />
 
-  <view class="notification-page__body">
-    <view wx:if="{{!loading && loadDone && !list.length}}" class="notification-empty">
-      <t-icon name="notification" size="88rpx" color="#d9d9d9" />
-      <text>暂无互动通知</text>
+  <view class="notify-page__toolbar">
+    <scroll-view class="notify-chips" scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="notify-chips__row">
+        <view
+          wx:for="{{tabs}}"
+          wx:key="value"
+          class="notify-chip {{activeTab === item.value ? 'notify-chip--active' : ''}}"
+          data-value="{{item.value}}"
+          bindtap="onChipTap"
+        >{{item.label}}</view>
+      </view>
+    </scroll-view>
+    <view
+      class="notify-page__read-all {{markingAll ? 'notify-page__read-all--disabled' : ''}}"
+      bindtap="onMarkAllRead"
+    >全部已读</view>
+  </view>
+
+  <view class="notify-page__body">
+    <view wx:if="{{!loading && loadDone && !list.length}}" class="notify-empty">
+      <view class="notify-empty__icon">
+        <t-icon name="notification" size="72rpx" color="#c5c8ce" />
+      </view>
+      <text class="notify-empty__title">暂无{{emptyLabel}}消息</text>
+      <text class="notify-empty__desc">互动、审核和系统提醒会出现在这里</text>
     </view>
 
-    <view
-      wx:for="{{list}}"
-      wx:key="id"
-      class="notification-card {{item.isRead ? '' : 'notification-card--unread'}}"
-      data-id="{{item.id}}"
-      data-index="{{index}}"
-      bindtap="onNotificationTap"
-    >
-      <view class="notification-card__main">
-        <view class="notification-card__head">
-          <text class="notification-card__title">{{item.title}}</text>
-          <text wx:if="{{!item.isRead}}" class="notification-card__dot"></text>
+    <view class="notify-list" wx:else>
+      <view
+        wx:for="{{list}}"
+        wx:key="id"
+        class="notify-item {{item.isRead ? '' : 'notify-item--unread'}}"
+        hover-class="notify-item--active"
+        data-id="{{item.id}}"
+        data-index="{{index}}"
+        bindtap="onNotificationTap"
+      >
+        <view class="notify-item__avatar-wrap">
+          <image
+            wx:if="{{item.hasActor}}"
+            class="notify-item__avatar"
+            src="{{item.actorAvatar}}"
+            mode="aspectFill"
+          />
+          <view wx:else class="notify-item__avatar notify-item__avatar--tone-{{item.typeTone}}">
+            <t-icon name="{{item.typeIcon}}" size="40rpx" color="#fff" />
+          </view>
+          <view class="notify-item__badge notify-item__badge--{{item.typeTone}}">
+            <t-icon name="{{item.typeIcon}}" size="20rpx" color="#fff" />
+          </view>
         </view>
-        <text class="notification-card__content">{{item.content || '你有一条新的互动通知'}}</text>
-        <text class="notification-card__time">{{item.timeText}}</text>
+
+        <view class="notify-item__main">
+          <view class="notify-item__row">
+            <text class="notify-item__title">{{item.displayTitle}}</text>
+            <text class="notify-item__time">{{item.timeText}}</text>
+          </view>
+          <text class="notify-item__content">{{item.displayContent}}</text>
+          <view class="notify-item__meta">
+            <text class="notify-item__tag">{{item.typeLabel}}</text>
+            <view wx:if="{{!item.isRead}}" class="notify-item__dot" />
+          </view>
+        </view>
       </view>
     </view>
 
-    <view class="notification-page__footer">
+    <view class="notify-page__footer">
       <t-loading wx:if="{{loading}}" size="36rpx" text="加载中..." />
-      <t-divider wx:elif="{{list.length && !hasMore}}" content="没有更多了" />
+      <text wx:elif="{{list.length && !hasMore}}" class="notify-page__end">没有更多了</text>
     </view>
   </view>
 </view>

@@ -116,7 +116,13 @@
         indicator-color="rgba(255,255,255,0.45)"
         indicator-active-color="#ffffff"
       >
-        <swiper-item wx:for="{{carousel}}" wx:key="title" class="my-page__swiper-item">
+        <swiper-item
+          wx:for="{{carousel}}"
+          wx:key="id"
+          class="my-page__swiper-item"
+          data-item="{{item}}"
+          bindtap="onCarouselTap"
+        >
           <image src="{{item.image}}" mode="aspectFill" class="my-page__swiper-img" />
           <view class="my-page__swiper-mask" />
           <view class="my-page__swiper-caption">{{item.title}}</view>
@@ -134,33 +140,94 @@
       </view>
 
       <view class="my-page__service-row">
-        <block wx:for="{{service}}" wx:key="type" wx:for-item="item">
+        <view
+          wx:for="{{service}}"
+          wx:key="type"
+          class="my-service-tile my-service-tile--{{item.type}}"
+          hover-class="my-service-tile--active"
+          data-item="{{item}}"
+          bindtap="onServiceItemTap"
+        >
+          <view class="my-service-tile__icon">
+            <t-icon name="{{item.icon}}" size="44rpx" />
+          </view>
+          <text class="my-service-tile__text">{{item.name}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 更多服务 -->
+    <view class="my-page__card my-page__card--more">
+      <view class="my-page__section-head my-page__section-head--row">
+        <view class="my-page__section-head-main">
+          <text class="my-page__section-title">更多服务</text>
+          <text class="my-page__section-desc">合作洽谈与使用支持</text>
+        </view>
+      </view>
+
+      <view class="my-more-row">
+        <block wx:for="{{moreServices}}" wx:key="type">
           <button
             wx:if="{{item.type === 'contact'}}"
-            class="my-service-tile my-service-tile--contact my-service-tile--btn"
-            hover-class="my-service-tile--active"
+            class="my-more-card my-more-card--contact my-more-card--btn"
+            hover-class="my-more-card--active"
             open-type="contact"
             bindcontact="handleContact"
           >
-            <view class="my-service-tile__icon">
-              <t-icon name="{{item.icon}}" size="44rpx" />
+            <view class="my-more-card__icon">
+              <t-icon name="{{item.icon}}" size="40rpx" />
             </view>
-            <text class="my-service-tile__text">{{item.name}}</text>
+            <view class="my-more-card__body">
+              <text class="my-more-card__name">{{item.name}}</text>
+              <text class="my-more-card__desc">{{item.desc}}</text>
+            </view>
+            <t-icon name="chevron-right" size="32rpx" class="my-more-card__arrow" />
           </button>
           <view
             wx:else
-            class="my-service-tile my-service-tile--{{item.type}}"
-            hover-class="my-service-tile--active"
+            class="my-more-card my-more-card--{{item.type}}"
+            hover-class="my-more-card--active"
             data-item="{{item}}"
-            bindtap="onServiceItemTap"
+            bindtap="onMoreServiceTap"
           >
-            <view class="my-service-tile__icon">
-              <t-icon name="{{item.icon}}" size="44rpx" />
+            <view class="my-more-card__icon">
+              <t-icon name="{{item.icon}}" size="40rpx" />
             </view>
-            <text class="my-service-tile__text">{{item.name}}</text>
+            <view class="my-more-card__body">
+              <text class="my-more-card__name">{{item.name}}</text>
+              <text class="my-more-card__desc">{{item.desc}}</text>
+            </view>
+            <t-icon name="chevron-right" size="32rpx" class="my-more-card__arrow" />
           </view>
         </block>
       </view>
+    </view>
+
+    <!-- 页脚备案与联系信息 -->
+    <view class="my-footer">
+      <text class="my-footer__brand">{{siteInfo.productName}}</text>
+      <text class="my-footer__slogan">{{siteInfo.slogan}}</text>
+
+      <view class="my-footer__contacts">
+        <view class="my-footer__link" hover-class="my-footer__link--active" bindtap="onCallPhone">
+          <t-icon name="call" size="28rpx" />
+          <text>{{siteInfo.phone}}</text>
+        </view>
+        <view class="my-footer__dot" />
+        <view class="my-footer__link" hover-class="my-footer__link--active" bindtap="onCopyEmail">
+          <t-icon name="mail" size="28rpx" />
+          <text>复制邮箱</text>
+        </view>
+      </view>
+
+      <view class="my-footer__legal">
+        <text class="my-footer__legal-link" bindtap="onOpenAgreement">用户协议</text>
+        <text class="my-footer__sep">·</text>
+        <text class="my-footer__legal-link" bindtap="onOpenAgreement">隐私政策</text>
+      </view>
+
+      <text class="my-footer__icp">{{siteInfo.icp}}</text>
+      <text class="my-footer__copy">{{siteInfo.copyright}}</text>
     </view>
   </view>
 </view>

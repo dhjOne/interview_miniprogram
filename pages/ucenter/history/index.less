@@ -1,56 +1,330 @@
-@import '../../question/question-list.shared.less';
+@hist-brand: #0052d9;
+@hist-ink: #0f172a;
+@hist-muted: #64748b;
+@hist-subtle: #94a3b8;
+@hist-border: rgba(15, 23, 42, 0.06);
+@hist-page: #f5f7fb;
 
 .uc-history {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: @hist-page;
   box-sizing: border-box;
+  padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
+  --td-brand-color: @hist-brand;
 
-  &__tip-bar {
+  &__summary {
+    margin: 16rpx 24rpx 8rpx;
+    padding: 28rpx 28rpx 24rpx;
+    border-radius: 28rpx;
+    background: linear-gradient(145deg, #ffffff 0%, #f8fbff 100%);
+    border: 1rpx solid @hist-border;
+    box-shadow: 0 10rpx 36rpx rgba(15, 23, 42, 0.04);
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
-    padding: 16rpx 24rpx 20rpx;
-    background: #fff;
-    border-bottom: 1rpx solid #f0f0f0;
+    gap: 20rpx;
   }
 
-  &__tip {
-    font-size: 24rpx;
-    color: #999;
+  &__summary-main {
+    display: flex;
+    align-items: flex-start;
+    gap: 20rpx;
+    min-width: 0;
     flex: 1;
-    padding-right: 16rpx;
-    line-height: 1.4;
+  }
+
+  &__summary-icon {
+    width: 72rpx;
+    height: 72rpx;
+    border-radius: 20rpx;
+    background: rgba(0, 82, 217, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  &__summary-copy {
+    min-width: 0;
+    padding-top: 4rpx;
+  }
+
+  &__summary-title-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8rpx;
+  }
+
+  &__summary-count {
+    font-size: 48rpx;
+    font-weight: 700;
+    color: @hist-ink;
+    line-height: 1;
+    letter-spacing: -1rpx;
+  }
+
+  &__summary-unit {
+    font-size: 26rpx;
+    color: @hist-muted;
+    font-weight: 500;
+  }
+
+  &__summary-desc {
+    display: block;
+    margin-top: 10rpx;
+    font-size: 24rpx;
+    color: @hist-subtle;
+    line-height: 1.45;
+  }
+
+  &__summary-side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 16rpx;
+    flex-shrink: 0;
+  }
+
+  &__sync {
+    display: inline-flex;
+    align-items: center;
+    gap: 6rpx;
+    padding: 8rpx 14rpx;
+    border-radius: 999rpx;
+    background: rgba(15, 23, 42, 0.04);
+    font-size: 22rpx;
+    color: @hist-muted;
+    line-height: 1;
+
+    &--cloud {
+      background: rgba(0, 82, 217, 0.08);
+      color: @hist-brand;
+    }
+  }
+
+  &__clear {
+    padding: 8rpx 4rpx;
+    font-size: 24rpx;
+    color: @hist-brand;
+    font-weight: 500;
+
+    &--active {
+      opacity: 0.65;
+    }
   }
 
   &__loading {
-    padding: 120rpx 0;
+    padding: 160rpx 0;
     display: flex;
     justify-content: center;
   }
 
-  &__empty-wrap {
-    padding: 80rpx 48rpx 48rpx;
+  &__empty {
+    margin: 80rpx 48rpx 0;
+    padding: 72rpx 40rpx;
+    border-radius: 28rpx;
+    background: #fff;
+    border: 1rpx solid @hist-border;
     display: flex;
     flex-direction: column;
     align-items: center;
+    text-align: center;
   }
 
-  &__cta {
+  &__empty-icon {
+    width: 120rpx;
+    height: 120rpx;
+    border-radius: 40rpx;
+    background: rgba(148, 163, 184, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 28rpx;
+  }
+
+  &__empty-title {
+    font-size: 32rpx;
+    font-weight: 600;
+    color: @hist-ink;
+  }
+
+  &__empty-desc {
+    margin-top: 12rpx;
+    font-size: 24rpx;
+    color: @hist-subtle;
+    line-height: 1.5;
+  }
+
+  &__empty-btn {
     margin-top: 40rpx;
-    min-width: 280rpx;
+    min-width: 240rpx;
+    height: 72rpx;
+    padding: 0 40rpx;
+    border-radius: 999rpx;
+    background: linear-gradient(145deg, @hist-brand 0%, #366ef4 100%);
+    color: #fff;
+    font-size: 28rpx;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 12rpx 28rpx rgba(0, 82, 217, 0.24);
+
+    &--active {
+      opacity: 0.88;
+      transform: scale(0.98);
+    }
   }
-}
 
-.question-item--history {
-  position: relative;
-  padding-right: 72rpx;
-}
+  &__groups {
+    padding: 8rpx 24rpx 0;
+  }
 
-.uc-history__remove {
-  position: absolute;
-  right: 16rpx;
-  top: 50%;
-  transform: translateY(-50%);
-  padding: 12rpx;
-  z-index: 2;
+  &__group {
+    margin-bottom: 28rpx;
+  }
+
+  &__group-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8rpx 8rpx 16rpx;
+  }
+
+  &__group-label {
+    font-size: 28rpx;
+    font-weight: 700;
+    color: @hist-ink;
+  }
+
+  &__group-count {
+    font-size: 22rpx;
+    color: @hist-subtle;
+  }
+
+  &__card {
+    background: #fff;
+    border-radius: 28rpx;
+    border: 1rpx solid @hist-border;
+    box-shadow: 0 10rpx 36rpx rgba(15, 23, 42, 0.04);
+    overflow: hidden;
+  }
+
+  &__item {
+    display: flex;
+    align-items: stretch;
+    gap: 8rpx;
+    padding: 28rpx 24rpx 28rpx 20rpx;
+    position: relative;
+    background: #fff;
+
+    &--last {
+      /* no divider needed via content border */
+    }
+
+    &--active {
+      background: rgba(0, 82, 217, 0.03);
+    }
+
+    &:not(.uc-history__item--last)::after {
+      content: '';
+      position: absolute;
+      left: 68rpx;
+      right: 24rpx;
+      bottom: 0;
+      height: 1rpx;
+      background: #f1f5f9;
+    }
+  }
+
+  &__rail {
+    width: 28rpx;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 12rpx;
+    flex-shrink: 0;
+  }
+
+  &__dot {
+    width: 14rpx;
+    height: 14rpx;
+    border-radius: 50%;
+    background: @hist-brand;
+    box-shadow: 0 0 0 6rpx rgba(0, 82, 217, 0.12);
+    flex-shrink: 0;
+  }
+
+  &__line {
+    flex: 1;
+    width: 2rpx;
+    margin-top: 8rpx;
+    background: rgba(0, 82, 217, 0.12);
+    min-height: 40rpx;
+  }
+
+  &__content {
+    flex: 1;
+    min-width: 0;
+    padding-right: 8rpx;
+  }
+
+  &__title {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    font-size: 30rpx;
+    font-weight: 600;
+    color: @hist-ink;
+    line-height: 1.4;
+  }
+
+  &__meta {
+    margin-top: 14rpx;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12rpx;
+  }
+
+  &__tag {
+    max-width: 280rpx;
+    padding: 4rpx 14rpx;
+    border-radius: 999rpx;
+    background: rgba(0, 82, 217, 0.08);
+    color: @hist-brand;
+    font-size: 22rpx;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__time {
+    font-size: 22rpx;
+    color: @hist-subtle;
+  }
+
+  &__remove {
+    width: 56rpx;
+    height: 56rpx;
+    margin-top: 2rpx;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    &--active {
+      background: rgba(15, 23, 42, 0.06);
+    }
+  }
+
+  &__footer {
+    padding: 12rpx 0 32rpx;
+    text-align: center;
+    font-size: 22rpx;
+    color: #cbd5e1;
+  }
 }

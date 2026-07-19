@@ -148,7 +148,8 @@ class Request {
       console.log('响应数据:', res)
       console.groupEnd()
 
-      if (res.statusCode !== 200) {
+      const statusCode = Number(res.statusCode)
+      if (statusCode !== 200) {
         throw this._handleHttpError(res)
       }
 
@@ -248,15 +249,19 @@ class Request {
 
   // 处理HTTP错误
   _handleHttpError(response) {
-    const { statusCode, data } = response
-    
-    switch(statusCode) {
+    const statusCode = Number(response.statusCode)
+    const data = response.data
+    const bizCode = data && data.code != null ? String(data.code).trim() : ''
+
+    // 后端登录过期：HTTP 401 + body.code=C105（也可能仅有其一）
+    if (statusCode === 401 || bizCode === 'C105') {
+      this._handleUnauthorized(data?.message)
+      return new BusinessError(401, data?.message || '未授权，请重新登录')
+    }
+
+    switch (statusCode) {
       case 400:
         return new BusinessError(400, data?.message || '请求参数错误')
-      case 401:
-        // token过期，可以在这里触发重新登录
-        this._handleUnauthorized()
-        return new BusinessError(401, data?.message || '未授权，请重新登录')
       case 403:
         return new BusinessError(403, data?.message || '权限不足')
       case 404:
@@ -282,7 +287,7 @@ class Request {
     const data = responseData.data
 
     if (code === 'C105') {
-      this._handleUnauthorized()
+      this._handleUnauthorized(message)
     } else if (code === this._getSessionExpiredCode()) {
       console.warn('[ECDH] C111 重试仍失败，不跳登录')
     }
@@ -303,11 +308,17 @@ class Request {
     return new BusinessError(-1, '未知网络错误', error)
   }
 
+  /** 登录成功后调用，允许下次 token 过期再次跳转 */
+  clearUnauthorizedLock() {
+    this._unauthorizedRedirecting = false
+  }
+
   // 处理未授权（token过期）
-  _handleUnauthorized() {
+  _handleUnauthorized(message) {
     if (this._unauthorizedRedirecting) return
     this._unauthorizedRedirecting = true
-    console.log("处理未授权（token过期）")
+    console.log('处理未授权（token过期）')
+
     try {
       wx.removeStorageSync('access_token')
       wx.removeStorageSync('refresh_token')
@@ -328,8 +339,15 @@ class Request {
 
     const pages = getCurrentPages()
     const currentPage = pages[pages.length - 1]
-    let returnUrl = ''
+    const currentRoute = currentPage && currentPage.route ? String(currentPage.route) : ''
 
+    // 已在登录页时不要再跳，避免死循环；解锁以便登录成功后可再次拦截
+    if (currentRoute.includes('pages/login/login') || currentRoute.includes('pages/loginCode/')) {
+      this._unauthorizedRedirecting = false
+      return
+    }
+
+    let returnUrl = ''
     if (currentPage) {
       const route = currentPage.route
       const options = currentPage.options || {}
@@ -337,50 +355,53 @@ class Request {
         .map((key) => `${key}=${options[key]}`)
         .join('&')
       returnUrl = `/${route}${params ? '?' + params : ''}`
-
       try {
         wx.setStorageSync('return_url', returnUrl)
+        wx.setStorageSync('login_referrer', returnUrl)
       } catch (error) {
         console.error('存储返回URL失败:', error)
       }
     }
 
-    let referrerQ = ''
-    try {
-      const app = getApp()
-      const ref =
-        app && typeof app.getCurrentPagePath === 'function'
-          ? app.getCurrentPagePath()
-          : returnUrl
-      if (ref) {
-        referrerQ = '&referrer=' + encodeURIComponent(ref)
-        try {
-          wx.setStorageSync('login_referrer', ref)
-        } catch (err) {
-          // ignore
-        }
-      }
-    } catch (e) {
-      if (returnUrl) {
-        referrerQ = '&referrer=' + encodeURIComponent(returnUrl)
-        try {
-          wx.setStorageSync('login_referrer', returnUrl)
-        } catch (err) {
-          // ignore
-        }
-      }
-    }
-
-    const loginUrl = `/pages/login/login?from=token_expired${referrerQ}${
+    // 过长 URL 会导致 navigate 失败；referrer/return 已写入 storage，query 只带必要参数
+    const loginUrl = `/pages/login/login?from=token_expired${
       returnUrl ? '&return=' + encodeURIComponent(returnUrl) : ''
     }`
-    wx.redirectTo({
-      url: loginUrl,
-      fail: () => {
-        this._unauthorizedRedirecting = false
-        wx.reLaunch({ url: loginUrl })
-      }
-    })
+
+    const tip = message || '登录已过期，请重新登录'
+    try {
+      wx.showToast({ title: tip, icon: 'none', duration: 2000 })
+    } catch (e) {
+      // ignore
+    }
+
+    const goLogin = () => {
+      wx.reLaunch({
+        url: loginUrl,
+        success: () => {
+          // 进入登录页后解锁，避免登录成功后再过期时无法跳转
+          this._unauthorizedRedirecting = false
+        },
+        fail: (err) => {
+          console.error('跳转登录页失败:', err)
+          this._unauthorizedRedirecting = false
+          wx.redirectTo({
+            url: loginUrl,
+            complete: () => {
+              this._unauthorizedRedirecting = false
+            }
+          })
+        }
+      })
+    }
+
+    // 稍延后跳转，避免与页面 catch 里的 toast 抢态
+    setTimeout(goLogin, 100)
+
+    // 兜底：若跳转异常卡住，数秒后解锁
+    setTimeout(() => {
+      this._unauthorizedRedirecting = false
+    }, 5000)
   }
 
 

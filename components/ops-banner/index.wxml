@@ -1,0 +1,32 @@
+<view
+  wx:if="{{item}}"
+  class="ops-banner ops-banner--{{variant}}"
+  bindtap="onTap"
+  hover-class="ops-banner--hover"
+>
+  <image
+    wx:if="{{item.image}}"
+    class="ops-banner__img"
+    src="{{item.image}}"
+    mode="aspectFill"
+  />
+  <view wx:else class="ops-banner__img ops-banner__img--placeholder">
+    <t-icon name="image" size="36rpx" color="#94a3b8" />
+  </view>
+
+  <view class="ops-banner__body">
+    <view class="ops-banner__meta">
+      <text class="ops-banner__badge">{{badgeText}}</text>
+      <text class="ops-banner__title">{{item.title}}</text>
+    </view>
+  </view>
+
+  <view
+    wx:if="{{dismissible}}"
+    class="ops-banner__close"
+    catchtap="onDismiss"
+    hover-class="ops-banner__close--hover"
+  >
+    <t-icon name="close" size="28rpx" color="#94a3b8" />
+  </view>
+</view>

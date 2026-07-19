@@ -22,7 +22,7 @@ function formatDateYMD(value) {
 }
 
 function normalizeQuestionRow(row) {
-  const isCollected = !!(row.isCollected ?? row.collected);
+  const isCollected = !!(row.isCollected ?? row.collected ?? true);
   const difficulty = row.difficulty ?? row.difficultyLevel;
   let difficultyTag = null;
   const n = Number(difficulty);
@@ -61,17 +61,29 @@ Page({
     hasMore: true,
     page: 1,
     pageSize: 20,
-    listHeaderReady: false,
-    scrollIntoView: '',
-    loadAttempted: false,
-    sortThumbWidth: 33.333,
-    sortThumbOffset: 0,
-    sortSwipePulse: false
+    loadAttempted: false
   },
 
-  _sortSwipeTouch: null,
+  onShow() {
+    if (this._skipShowRefresh) {
+      this._skipShowRefresh = false;
+      return;
+    }
+    this.loadQuestions(true);
+  },
 
-  onShow() {},
+  onLoad() {
+    this._skipShowRefresh = true;
+    this.loadQuestions(true);
+  },
+
+  onPullDownRefresh() {
+    return this.loadQuestions(true);
+  },
+
+  onReachBottom() {
+    this.loadMore();
+  },
 
   _sortParams() {
     const map = {
@@ -84,14 +96,16 @@ Page({
 
   async loadQuestions(refresh = false) {
     if (this.data.loading) return;
+    if (!refresh && !this.data.hasMore) return;
 
     const requestPage = refresh ? 1 : this.data.page + 1;
     this.setData({ loading: true });
 
     try {
-      const title = this.data.searchValue && this.data.searchValue.trim()
-        ? this.data.searchValue.trim()
-        : null;
+      const title =
+        this.data.searchValue && this.data.searchValue.trim()
+          ? this.data.searchValue.trim()
+          : null;
       const questionParams = new QuestionParams(title, null, null, 'collected');
       const [sortField, order] = this._sortParams();
       questionParams.sortField = sortField;
@@ -141,18 +155,9 @@ Page({
       });
       this.setData({ loadAttempted: true });
     } finally {
-      this.setData({ loading: false, listHeaderReady: true });
+      this.setData({ loading: false });
       wx.stopPullDownRefresh();
     }
-  },
-
-  onLoad() {
-    this._updateSortThumb(this.data.sortType);
-    this.loadQuestions(true);
-  },
-
-  onPullDownRefresh() {
-    return this.loadQuestions(true);
   },
 
   onSearchChange(e) {
@@ -161,11 +166,8 @@ Page({
 
   triggerSearch(keyword) {
     const value = (keyword ?? this.data.searchValue ?? '').trim();
-    this.setData({ searchValue: value, scrollIntoView: 'list-top' }, () => {
+    this.setData({ searchValue: value }, () => {
       this.loadQuestions(true);
-      setTimeout(() => {
-        this.setData({ scrollIntoView: '' });
-      }, 300);
     });
   },
 
@@ -178,89 +180,17 @@ Page({
   },
 
   onSearchClear() {
-    this.setData({ searchValue: '', scrollIntoView: 'list-top' }, () => {
+    this.setData({ searchValue: '' }, () => {
       this.loadQuestions(true);
-      setTimeout(() => {
-        this.setData({ scrollIntoView: '' });
-      }, 300);
-    });
-  },
-
-  _sortValues() {
-    return this.data.sortChips.map((c) => c.value);
-  },
-
-  _sortIndex(sortType) {
-    const idx = this._sortValues().indexOf(sortType);
-    return idx < 0 ? 0 : idx;
-  },
-
-  _updateSortThumb(sortType) {
-    const count = this.data.sortChips.length || 3;
-    const idx = this._sortIndex(sortType);
-    this.setData({
-      sortThumbWidth: 100 / count,
-      sortThumbOffset: idx * 100
-    });
-  },
-
-  _pulseSortSegment() {
-    this.setData({ sortSwipePulse: true });
-    clearTimeout(this._sortPulseTimer);
-    this._sortPulseTimer = setTimeout(() => {
-      this.setData({ sortSwipePulse: false });
-    }, 280);
-  },
-
-  applySort(sort, fromSwipe = false) {
-    if (!sort || sort === this.data.sortType) return;
-    this._updateSortThumb(sort);
-    if (fromSwipe) {
-      this._pulseSortSegment();
-      wx.vibrateShort({ type: 'light' });
-    }
-    this.setData({ sortType: sort, scrollIntoView: 'list-top' }, () => {
-      this.loadQuestions(true);
-      setTimeout(() => {
-        this.setData({ scrollIntoView: '' });
-      }, 300);
     });
   },
 
   onSortTap(e) {
-    this.applySort(e.currentTarget.dataset.sort, false);
-  },
-
-  onSortSwipeStart(e) {
-    const touch = e.touches && e.touches[0];
-    if (!touch) return;
-    this._sortSwipeTouch = {
-      x: touch.clientX,
-      y: touch.clientY
-    };
-  },
-
-  onSortSwipeEnd(e) {
-    const start = this._sortSwipeTouch;
-    this._sortSwipeTouch = null;
-    if (!start) return;
-    const touch = e.changedTouches && e.changedTouches[0];
-    if (!touch) return;
-
-    const dx = touch.clientX - start.x;
-    const dy = touch.clientY - start.y;
-    const SWIPE_MIN = 48;
-
-    if (Math.abs(dx) < SWIPE_MIN) return;
-    if (Math.abs(dx) < Math.abs(dy) * 1.25) return;
-
-    const order = this._sortValues();
-    const cur = this._sortIndex(this.data.sortType);
-    const next =
-      dx < 0
-        ? order[(cur + 1) % order.length]
-        : order[(cur - 1 + order.length) % order.length];
-    this.applySort(next, true);
+    const sort = e.currentTarget.dataset.sort;
+    if (!sort || sort === this.data.sortType) return;
+    this.setData({ sortType: sort }, () => {
+      this.loadQuestions(true);
+    });
   },
 
   loadMore() {
@@ -290,7 +220,7 @@ Page({
         } else {
           const updatedList = this.data.questionList.map((item) => {
             if (item.id === questionId) {
-              return { ...item, isCollected: !item.isCollected };
+              return { ...item, isCollected: true };
             }
             return item;
           });

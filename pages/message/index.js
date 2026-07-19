@@ -14,6 +14,7 @@ Page({
 
   /** 生命周期函数--监听页面加载 */
   onLoad(options) {
+    this._skipShowRefresh = true;
     this.getMessageList();
     // 处理接收到的数据
     socket.onMessage((data) => {
@@ -40,6 +41,11 @@ Page({
   /** 生命周期函数--监听页面显示 */
   onShow() {
     currentUser = null;
+    if (this._skipShowRefresh) {
+      this._skipShowRefresh = false;
+      return;
+    }
+    this.getMessageList();
   },
 
   /** 生命周期函数--监听页面隐藏 */

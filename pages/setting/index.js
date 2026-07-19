@@ -31,12 +31,12 @@ Page({
           desc: '完善昵称、简介、职业方向'
         },
         {
-          title: '面试练习提醒',
+          title: '消息通知提醒',
           icon: 'notification',
           type: 'notify',
           switchable: true,
           switchKey: 'notifyEnabled',
-          desc: '接收练习、收藏和互动提醒'
+          desc: '关闭后将不再接收互动与审核类通知'
         }
       ],
       [

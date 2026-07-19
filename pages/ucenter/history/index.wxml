@@ -2,74 +2,98 @@
   <t-message id="t-message" />
   <t-navbar left-arrow title="浏览历史" fixed safe-area-inset-top />
 
-  <view class="uc-history__inner question-list-container">
-    <view class="question-list-sticky">
-      <view class="uc-history__tip-bar">
-        <text class="uc-history__tip">{{tipText}}</text>
-        <t-button
-          wx:if="{{list.length > 0}}"
-          theme="light"
-          size="extra-small"
-          variant="outline"
-          bindtap="onClearAll"
-        >
-          清空
-        </t-button>
+  <view class="uc-history__summary">
+    <view class="uc-history__summary-main">
+      <view class="uc-history__summary-icon">
+        <t-icon name="browse" size="40rpx" color="#0052d9" />
+      </view>
+      <view class="uc-history__summary-copy">
+        <view class="uc-history__summary-title-row">
+          <text class="uc-history__summary-count">{{totalCount}}</text>
+          <text class="uc-history__summary-unit">条足迹</text>
+        </view>
+        <text class="uc-history__summary-desc">{{tipText}}</text>
       </view>
     </view>
+    <view class="uc-history__summary-side">
+      <view class="uc-history__sync {{useServer ? 'uc-history__sync--cloud' : ''}}">
+        <t-icon
+          name="{{useServer ? 'cloud' : 'mobile'}}"
+          size="24rpx"
+          color="{{useServer ? '#0052d9' : '#64748b'}}"
+        />
+        <text>{{syncLabel}}</text>
+      </view>
+      <view
+        wx:if="{{totalCount > 0}}"
+        class="uc-history__clear"
+        hover-class="uc-history__clear--active"
+        bindtap="onClearAll"
+      >
+        清空
+      </view>
+    </view>
+  </view>
 
-    <view class="questions-section">
-      <scroll-view class="questions-scroll" scroll-y enhanced show-scrollbar="{{false}}">
-        <view wx:if="{{loading}}" class="uc-history__loading">
-          <t-loading size="40rpx" text="加载中…" />
+  <view wx:if="{{loading}}" class="uc-history__loading">
+    <t-loading size="40rpx" text="加载中…" />
+  </view>
+
+  <view wx:elif="{{totalCount === 0}}" class="uc-history__empty">
+    <view class="uc-history__empty-icon">
+      <t-icon name="browse" size="72rpx" color="#94a3b8" />
+    </view>
+    <text class="uc-history__empty-title">还没有学习足迹</text>
+    <text class="uc-history__empty-desc">去题库看几道题，这里会帮你记下进度</text>
+    <view class="uc-history__empty-btn" hover-class="uc-history__empty-btn--active" bindtap="goPractice">
+      去刷题
+    </view>
+  </view>
+
+  <view wx:else class="uc-history__groups">
+    <block wx:for="{{groups}}" wx:key="key" wx:for-item="group">
+      <view class="uc-history__group">
+        <view class="uc-history__group-head">
+          <text class="uc-history__group-label">{{group.label}}</text>
+          <text class="uc-history__group-count">{{group.count}} 题</text>
         </view>
 
-        <view wx:elif="{{list.length === 0}}" class="uc-history__empty-wrap">
-          <t-empty description="暂无浏览记录" />
-          <t-button theme="primary" size="medium" bindtap="goPractice" class="uc-history__cta">
-            去刷题
-          </t-button>
-        </view>
+        <view class="uc-history__card">
+          <block wx:for="{{group.items}}" wx:key="id" wx:for-item="item" wx:for-index="itemIndex">
+            <view
+              class="uc-history__item {{itemIndex === group.items.length - 1 ? 'uc-history__item--last' : ''}}"
+              hover-class="uc-history__item--active"
+              bindtap="onQuestionTap"
+              data-id="{{item.id}}"
+              data-title="{{item.title}}"
+            >
+              <view class="uc-history__rail">
+                <view class="uc-history__dot" />
+                <view wx:if="{{itemIndex !== group.items.length - 1}}" class="uc-history__line" />
+              </view>
 
-        <view wx:else class="question-list">
-          <block wx:for="{{list}}" wx:key="id">
-            <view class="question-item question-item--history">
-              <view
-                class="question-header"
-                bindtap="onQuestionTap"
-                data-id="{{item.id}}"
-                data-title="{{item.title}}"
-              >
-                <view class="question-index">
-                  <text class="index-number">{{item.idx}}</text>
-                </view>
-                <view class="question-main">
-                  <view class="question-title-row">
-                    <text class="question-title">{{item.title}}</text>
-                  </view>
-                  <view class="question-meta">
-                    <text class="meta-item" wx:if="{{item.categoryName}}">
-                      <t-icon name="folder-open" size="24rpx" />
-                      {{item.categoryName}}
-                    </text>
-                    <text class="meta-item">
-                      <t-icon name="time" size="24rpx" />
-                      {{item.timeText}}
-                    </text>
-                  </view>
+              <view class="uc-history__content">
+                <text class="uc-history__title">{{item.title}}</text>
+                <view class="uc-history__meta">
+                  <text wx:if="{{item.categoryName}}" class="uc-history__tag">{{item.categoryName}}</text>
+                  <text class="uc-history__time">{{item.timeText}}</text>
                 </view>
               </view>
+
               <view
                 class="uc-history__remove"
                 catchtap="onRemoveOne"
                 data-id="{{item.id}}"
+                hover-class="uc-history__remove--active"
               >
-                <t-icon name="close-circle" size="44rpx" color="#bbb" />
+                <t-icon name="close" size="28rpx" color="#94a3b8" />
               </view>
             </view>
           </block>
         </view>
-      </scroll-view>
-    </view>
+      </view>
+    </block>
+
+    <view class="uc-history__footer">— 仅展示最近学习记录 —</view>
   </view>
 </view>

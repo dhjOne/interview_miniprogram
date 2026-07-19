@@ -79,8 +79,18 @@ Page({
     }
 
     this.setData(patch);
+    this._skipShowRefresh = true;
     this.loadProfile();
     this.loadArticles(true);
+  },
+
+  onShow() {
+    if (this._skipShowRefresh) {
+      this._skipShowRefresh = false;
+      return;
+    }
+    if (!this.data.userId) return;
+    this.reloadPage();
   },
 
   onReachBottom() {
@@ -138,7 +148,11 @@ Page({
         nextPage,
         this.data.pageSize
       );
-      const allMerged = isRefresh ? list : [...this.data.allArticleList, ...list];
+      const labeled = (list || []).map((item) => ({
+        ...item,
+        categoryLabel: this._categoryLabel(item.category)
+      }));
+      const allMerged = isRefresh ? labeled : [...this.data.allArticleList, ...labeled];
       const hasMore = allMerged.length < total;
 
       const profile = { ...this.data.profile };
@@ -302,6 +316,11 @@ Page({
       return list;
     }
     return list.filter(item => item.category === category);
+  },
+
+  _categoryLabel(category) {
+    const map = { tech: '技术', life: '生活', news: '资讯', other: '其他' };
+    return map[category] || '';
   },
 
   updateCategoryCounts(list, categories) {

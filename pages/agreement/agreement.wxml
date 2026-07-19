@@ -4,12 +4,14 @@
       <view class="agreement-hero">
         <text class="agreement-hero-brand">{{productName}}</text>
         <text class="agreement-hero-title">用户服务协议</text>
-        <text class="agreement-hero-desc">请仔细阅读以下条款，您的使用行为将视为对本协议的接受。</text>
+        <text class="agreement-hero-desc" wx:if="{{viewOnly}}">以下为平台服务条款，供您查阅。</text>
+        <text class="agreement-hero-desc" wx:else>请仔细阅读以下条款，您的使用行为将视为对本协议的接受。</text>
       </view>
 
       <view class="agreement-card">
         <view class="agreement-alert">
-          <text class="agreement-alert-text">重要提示：请您在注册或登录前仔细阅读本《用户服务协议》（以下简称"本协议"）。一旦您完成注册或登录操作，即表示您已充分阅读、理解并同意接受本协议的全部内容。如您不同意本协议的任意内容，请立即停止使用本服务。</text>
+          <text class="agreement-alert-text" wx:if="{{viewOnly}}">本《用户服务协议》说明了您在使用【{{productName}}】服务时的权利与义务，请仔细阅读。</text>
+          <text class="agreement-alert-text" wx:else>重要提示：请您在注册或登录前仔细阅读本《用户服务协议》（以下简称"本协议"）。一旦您完成注册或登录操作，即表示您已充分阅读、理解并同意接受本协议的全部内容。如您不同意本协议的任意内容，请立即停止使用本服务。</text>
         </view>
 
         <view class="agreement-body">
@@ -112,11 +114,11 @@
         </view>
       </view>
 
-      <view class="agreement-bottom-spacer" />
+      <view class="agreement-bottom-spacer {{viewOnly ? 'agreement-bottom-spacer--view' : ''}}" />
     </view>
   </scroll-view>
 
-  <view class="agreement-footer">
+  <view class="agreement-footer" wx:if="{{!viewOnly}}">
     <view class="agreement-ack">
       <checkbox class="agreement-ck" checked="{{isAgreed}}" color="#2047c9" bindtap="onCheckboxChange" />
       <text class="agreement-ck-label" bindtap="onCheckboxChange">我已阅读并同意《用户服务协议》</text>

@@ -1,21 +1,41 @@
 import { socialApi } from '~/api/request/api_social';
+import {
+  NOTIFY_TABS,
+  normalizeNotificationRow,
+  navigateByNotification
+} from '~/utils/notifications';
 
-function formatTime(value) {
-  if (!value) return '';
-  return String(value).replace('T', ' ').slice(0, 16);
-}
+const EMPTY_LABEL = {
+  all: '',
+  interact: '互动',
+  audit: '审核',
+  system: '系统'
+};
 
 Page({
   data: {
+    tabs: NOTIFY_TABS,
+    activeTab: 'all',
+    emptyLabel: '',
     list: [],
     page: 1,
     pageSize: 20,
     hasMore: true,
     loading: false,
-    loadDone: false
+    loadDone: false,
+    markingAll: false
   },
 
   onLoad() {
+    this._skipShowRefresh = true;
+    this.reload();
+  },
+
+  onShow() {
+    if (this._skipShowRefresh) {
+      this._skipShowRefresh = false;
+      return;
+    }
     this.reload();
   },
 
@@ -27,12 +47,25 @@ Page({
     this.loadList(false);
   },
 
+  onChipTap(e) {
+    const value = e.currentTarget.dataset.value;
+    if (!value || value === this.data.activeTab) return;
+    this.setData(
+      {
+        activeTab: value,
+        emptyLabel: EMPTY_LABEL[value] || ''
+      },
+      () => this.reload()
+    );
+  },
+
   reload() {
     this.setData({
       list: [],
       page: 0,
       hasMore: true,
-      loadDone: false
+      loadDone: false,
+      emptyLabel: EMPTY_LABEL[this.data.activeTab] || ''
     });
     return this.loadList(true);
   },
@@ -43,15 +76,16 @@ Page({
     const nextPage = isRefresh ? 1 : this.data.page + 1;
     this.setData({ loading: true });
     try {
-      const res = await socialApi.getNotifications({
+      const params = {
         page: nextPage,
         limit: this.data.pageSize
-      });
+      };
+      if (this.data.activeTab && this.data.activeTab !== 'all') {
+        params.category = this.data.activeTab;
+      }
+      const res = await socialApi.getNotifications(params);
       const data = res.data || {};
-      const rows = (data.rows || data.list || []).map(item => ({
-        ...item,
-        timeText: formatTime(item.createdAt || item.createTime)
-      }));
+      const rows = (data.rows || data.list || []).map(normalizeNotificationRow);
       const total = Number(data.total || rows.length);
       const list = isRefresh ? rows : this.data.list.concat(rows);
       this.setData({
@@ -69,15 +103,41 @@ Page({
     }
   },
 
+  async onMarkAllRead() {
+    if (this.data.markingAll) return;
+    if (!this.data.list.some((item) => !item.isRead)) {
+      wx.showToast({ title: '暂无未读通知', icon: 'none' });
+      return;
+    }
+    this.setData({ markingAll: true });
+    try {
+      await socialApi.markAllNotificationsRead();
+      const list = this.data.list.map((item) => ({ ...item, isRead: 1 }));
+      this.setData({ list });
+      wx.showToast({ title: '已全部标为已读', icon: 'none' });
+    } catch (e) {
+      wx.showToast({ title: e?.message || '操作失败', icon: 'none' });
+    } finally {
+      this.setData({ markingAll: false });
+    }
+  },
+
   async onNotificationTap(e) {
     const { id, index } = e.currentTarget.dataset;
     if (!id) return;
-    const key = `list[${index}].isRead`;
-    this.setData({ [key]: 1 });
-    try {
-      await socialApi.markNotificationRead(id);
-    } catch (err) {
-      console.warn('[notifications] 标记已读失败', err);
+    const item = this.data.list[index];
+    if (!item) return;
+
+    if (!item.isRead) {
+      const key = `list[${index}].isRead`;
+      this.setData({ [key]: 1 });
+      try {
+        await socialApi.markNotificationRead(id);
+      } catch (err) {
+        console.warn('[notifications] 标记已读失败', err);
+      }
     }
+
+    navigateByNotification(item);
   }
 });

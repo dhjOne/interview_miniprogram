@@ -1,90 +1,170 @@
 <view class="uc-rank">
   <t-navbar left-arrow title="刷题排行" fixed safe-area-inset-top />
-  <view class="uc-rank__content">
-    <view class="uc-rank__hero">
-      <view class="uc-rank__hero-title">本周刷题榜</view>
-      <view class="uc-rank__hero-sub">以刷题/作答次数综合排序，坚持就会有收获</view>
+
+  <view class="uc-rank__hero">
+    <view class="uc-rank__hero-glow" />
+    <view class="uc-rank__hero-top">
+      <view class="uc-rank__hero-copy">
+        <text class="uc-rank__hero-eyebrow">WEEKLY LEADERBOARD</text>
+        <text class="uc-rank__hero-title">本周刷题榜</text>
+        <text class="uc-rank__hero-sub">打开题目详情即计入本周次数 · {{weekLabel}}</text>
+      </view>
+      <view class="uc-rank__hero-badge">
+        <t-icon name="chart" size="40rpx" color="#fff" />
+      </view>
     </view>
 
     <view wx:if="{{myRankInfo}}" class="uc-rank__me">
-      <t-avatar
-        class="uc-rank__me-avatar"
-        image="{{myRankInfo.avatar || defaultAvatar}}"
-        size="96rpx"
-      />
+      <t-avatar image="{{myRankInfo.avatar || defaultAvatar}}" size="88rpx" />
       <view class="uc-rank__me-mid">
-        <text class="uc-rank__me-name">我的排名</text>
-        <text class="uc-rank__me-stat">已刷 {{myRankInfo.count || 0}} 题</text>
+        <text class="uc-rank__me-name">{{myRankInfo.nickname || '我'}}</text>
+        <text class="uc-rank__me-stat">本周已刷 {{myRankInfo.count || 0}} 次</text>
       </view>
-      <view class="uc-rank__me-right">
-        <text class="uc-rank__me-rank">第 {{myRankInfo.rank > 0 ? myRankInfo.rank : '—'}} 名</text>
+      <view class="uc-rank__me-rank-box">
+        <text class="uc-rank__me-rank-label">我的名次</text>
+        <text class="uc-rank__me-rank-value">
+          {{myRankInfo.rank > 0 ? myRankInfo.rank : '—'}}
+        </text>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{loading && rankList.length === 0 && !loadError}}" class="uc-rank__loading">
+    <t-loading size="48rpx" text="加载中…" />
+  </view>
+
+  <block wx:elif="{{loadDone && !loadError}}">
+    <view wx:if="{{hasPodium}}" class="uc-rank__podium">
+      <view class="uc-rank__podium-item uc-rank__podium-item--2 {{podium.second ? '' : 'is-empty'}}">
+        <view class="uc-rank__crown uc-rank__crown--silver">2</view>
+        <t-avatar
+          wx:if="{{podium.second}}"
+          class="uc-rank__podium-avatar"
+          image="{{podium.second.avatar || defaultAvatar}}"
+          size="96rpx"
+        />
+        <view wx:else class="uc-rank__podium-avatar uc-rank__podium-avatar--empty">
+          <t-icon name="user" size="40rpx" color="#cbd5e1" />
+        </view>
+        <text class="uc-rank__podium-name">{{podium.second ? podium.second.nickname : '虚位以待'}}</text>
+        <text class="uc-rank__podium-count">{{podium.second ? podium.second.count + ' 次' : '—'}}</text>
+        <view class="uc-rank__stage uc-rank__stage--2" />
+      </view>
+
+      <view class="uc-rank__podium-item uc-rank__podium-item--1 {{podium.first ? '' : 'is-empty'}}">
+        <view class="uc-rank__crown uc-rank__crown--gold">1</view>
+        <t-avatar
+          wx:if="{{podium.first}}"
+          class="uc-rank__podium-avatar uc-rank__podium-avatar--gold"
+          image="{{podium.first.avatar || defaultAvatar}}"
+          size="120rpx"
+        />
+        <view wx:else class="uc-rank__podium-avatar uc-rank__podium-avatar--gold uc-rank__podium-avatar--empty">
+          <t-icon name="user" size="48rpx" color="#fbbf24" />
+        </view>
+        <text class="uc-rank__podium-name">{{podium.first ? podium.first.nickname : '虚位以待'}}</text>
+        <text class="uc-rank__podium-count">{{podium.first ? podium.first.count + ' 次' : '—'}}</text>
+        <view class="uc-rank__stage uc-rank__stage--1" />
+      </view>
+
+      <view class="uc-rank__podium-item uc-rank__podium-item--3 {{podium.third ? '' : 'is-empty'}}">
+        <view class="uc-rank__crown uc-rank__crown--bronze">3</view>
+        <t-avatar
+          wx:if="{{podium.third}}"
+          class="uc-rank__podium-avatar"
+          image="{{podium.third.avatar || defaultAvatar}}"
+          size="96rpx"
+        />
+        <view wx:else class="uc-rank__podium-avatar uc-rank__podium-avatar--empty">
+          <t-icon name="user" size="40rpx" color="#cbd5e1" />
+        </view>
+        <text class="uc-rank__podium-name">{{podium.third ? podium.third.nickname : '虚位以待'}}</text>
+        <text class="uc-rank__podium-count">{{podium.third ? podium.third.count + ' 次' : '—'}}</text>
+        <view class="uc-rank__stage uc-rank__stage--3" />
       </view>
     </view>
 
-    <scroll-view
-      class="uc-rank__scroll"
-      scroll-y
-      enhanced
-      show-scrollbar="{{false}}"
-      bindscrolltolower="onReachBottom"
-      lower-threshold="100">
-      <view wx:if="{{loading && rankList.length === 0 && !loadError}}" class="uc-rank__loading">
-        <t-loading size="48rpx" text="加载中…" />
+    <view wx:if="{{top10List.length}}" class="uc-rank__board">
+      <view class="uc-rank__board-head">
+        <text class="uc-rank__board-title">TOP 10</text>
+        <text class="uc-rank__board-tip">第 4-10 名</text>
       </view>
-      <view class="uc-rank__list">
+      <view class="uc-rank__board-card">
         <view
-          wx:for="{{rankList}}"
+          wx:for="{{top10List}}"
           wx:key="rid"
-          class="uc-rank__row"
+          class="uc-rank__row {{index === top10List.length - 1 ? 'uc-rank__row--last' : ''}}"
         >
           <view class="uc-rank__badge {{item.rankClass}}">
             <text>{{item.rank}}</text>
           </view>
-          <t-avatar
-            class="uc-rank__av"
-            image="{{item.avatar || defaultAvatar}}"
-            size="88rpx"
-          />
+          <t-avatar image="{{item.avatar || defaultAvatar}}" size="80rpx" />
           <view class="uc-rank__main">
             <text class="uc-rank__name">{{item.nickname}}</text>
-            <text class="uc-rank__sub">继续加油</text>
+            <text class="uc-rank__sub">前十强 · 持续学习中</text>
           </view>
           <view class="uc-rank__val">
             <text class="uc-rank__num">{{item.count}}</text>
-            <text class="uc-rank__unit">题</text>
+            <text class="uc-rank__unit">次</text>
           </view>
         </view>
       </view>
+    </view>
 
-      <view class="uc-rank__foot" wx:if="{{rankList.length > 0}}">
-        <view wx:if="{{loading}}">
-          <t-loading size="36rpx" text="加载中…" />
-        </view>
-        <t-divider wx:elif="{{!hasMore}}" align="center" content="没有更多了" />
+    <view wx:if="{{moreList.length}}" class="uc-rank__board">
+      <view class="uc-rank__board-head">
+        <text class="uc-rank__board-title">更多排名</text>
+        <text class="uc-rank__board-tip">第 11 名起</text>
       </view>
-
-      <view wx:if="{{!loading && loadDone && rankList.length === 0 && !loadError}}" class="uc-rank__empty">
-        <t-icon name="chart" size="120rpx" color="#ddd" />
-        <text class="uc-rank__empty-t">暂无排行数据</text>
-        <text class="uc-rank__empty-d">多刷题即可上榜，也可以稍后再来</text>
-        <t-button
-          class="uc-rank__empty-btn"
-          theme="primary"
-          size="medium"
-          shape="round"
-          bind:tap="goCategory"
+      <view class="uc-rank__board-card">
+        <view
+          wx:for="{{moreList}}"
+          wx:key="rid"
+          class="uc-rank__row {{index === moreList.length - 1 ? 'uc-rank__row--last' : ''}}"
         >
-          去题库刷题
-        </t-button>
+          <view class="uc-rank__badge rank-n">
+            <text>{{item.rank}}</text>
+          </view>
+          <t-avatar image="{{item.avatar || defaultAvatar}}" size="80rpx" />
+          <view class="uc-rank__main">
+            <text class="uc-rank__name">{{item.nickname}}</text>
+            <text class="uc-rank__sub">持续学习中</text>
+          </view>
+          <view class="uc-rank__val">
+            <text class="uc-rank__num">{{item.count}}</text>
+            <text class="uc-rank__unit">次</text>
+          </view>
+        </view>
       </view>
+    </view>
 
-      <view wx:if="{{!loading && loadError}}" class="uc-rank__empty">
-        <t-icon name="error-circle" size="100rpx" color="#f5a524" />
-        <text class="uc-rank__empty-t">排行榜暂不可用</text>
-        <text class="uc-rank__empty-d">{{errorMessage || '服务升级中，请稍后再试'}}</text>
-        <t-button theme="light" size="medium" shape="round" bind:tap="reload">重试</t-button>
+    <view class="uc-rank__foot" wx:if="{{rankList.length > 0}}">
+      <view wx:if="{{loading}}">
+        <t-loading size="36rpx" text="加载中…" />
       </view>
-    </scroll-view>
+      <text wx:elif="{{!hasMore}}" class="uc-rank__end">— 本周榜单已全部展示 —</text>
+    </view>
 
+    <view wx:if="{{rankList.length === 0}}" class="uc-rank__empty">
+      <view class="uc-rank__empty-icon">
+        <t-icon name="chart" size="72rpx" color="#94a3b8" />
+      </view>
+      <text class="uc-rank__empty-t">本周还没有人上榜</text>
+      <text class="uc-rank__empty-d">打开题目详情开始刷题，坚持就会出现在这里</text>
+      <view class="uc-rank__empty-btn" hover-class="uc-rank__empty-btn--active" bindtap="goCategory">
+        去题库刷题
+      </view>
+    </view>
+  </block>
+
+  <view wx:if="{{!loading && loadError}}" class="uc-rank__empty">
+    <view class="uc-rank__empty-icon uc-rank__empty-icon--warn">
+      <t-icon name="error-circle" size="64rpx" color="#f59e0b" />
+    </view>
+    <text class="uc-rank__empty-t">排行榜暂不可用</text>
+    <text class="uc-rank__empty-d">{{errorMessage || '服务升级中，请稍后再试'}}</text>
+    <view class="uc-rank__empty-btn uc-rank__empty-btn--ghost" hover-class="uc-rank__empty-btn--active" bindtap="reload">
+      重试
+    </view>
   </view>
 </view>

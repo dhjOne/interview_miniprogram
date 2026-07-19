@@ -26,6 +26,15 @@
         </view>
       </view>
 
+      <ops-banner
+        wx:if="{{topBanner}}"
+        variant="top"
+        item="{{topBanner}}"
+        dismissible="{{true}}"
+        bind:tap="onOpsBannerTap"
+        bind:dismiss="onTopBannerDismiss"
+      />
+
       <view wx:if="{{primaryCategories.length}}" class="category-layout">
         <scroll-view class="category-rail" scroll-y show-scrollbar="{{false}}">
           <block wx:for="{{primaryCategories}}" wx:key="id">
@@ -49,9 +58,18 @@
           show-scrollbar="{{false}}"
         >
           <view class="category-main">
-            <view wx:if="{{secondaryCategories.length}}" class="secondary-list">
-              <block wx:for="{{secondaryCategories}}" wx:key="id">
+            <view wx:if="{{secondaryDisplayList.length}}" class="secondary-list">
+              <block wx:for="{{secondaryDisplayList}}" wx:key="_rowKey">
+                <ops-banner
+                  wx:if="{{item.rowType === 'ad'}}"
+                  variant="feed"
+                  item="{{item}}"
+                  dismissible="{{true}}"
+                  bind:tap="onOpsBannerTap"
+                  bind:dismiss="onFeedBannerDismiss"
+                />
                 <view
+                  wx:else
                   class="secondary-row"
                   bindtap="switchSecondaryCategory"
                   data-id="{{item.id}}"

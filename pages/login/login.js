@@ -1,6 +1,7 @@
 import { authApi } from '~/api/request/api_login';
 import { LoginParams } from '~/api/param/param_login'
 import { WxLoginParams } from '~/api/param/param_login'
+import http from '~/api/api_request';
 
 /** 与 app.json tabBar 一致，用于 switchTab / 非 Tab 用 reLaunch */
 const LOGIN_TAB_ROOTS = [
@@ -193,6 +194,11 @@ Page({
   // 处理登录成功后的跳转
   async handleLoginSuccess(result) {
     try {
+      // 允许下次 token 过期再次触发跳登录
+      if (http && typeof http.clearUnauthorizedLock === 'function') {
+        http.clearUnauthorizedLock();
+      }
+
       const app = getApp();
       if (result.data.userInfo) {
         app.setUserInfo(result.data.userInfo);

@@ -7,6 +7,7 @@
     "t-icon": "/miniprogram_npm/tdesign-miniprogram/icon/icon",
     "t-divider": "/miniprogram_npm/tdesign-miniprogram/divider/divider",
     "t-message": "/miniprogram_npm/tdesign-miniprogram/message/message",
-    "float-release-button": "/components/float-release-button/index"
+    "float-release-button": "/components/float-release-button/index",
+    "ops-banner": "/components/ops-banner/index"
   }
 }

@@ -2,7 +2,7 @@
 .my-page {
   min-height: calc(100vh - 56px);
   box-sizing: border-box;
-  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
+  padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
   background: var(--td-bg-color-page, #f5f5f5);
 
   --td-navbar-bg-color: transparent;
@@ -147,6 +147,10 @@
   }
 
   &__card--tools {
+    padding-bottom: 8rpx;
+  }
+
+  &__card--more {
     padding-bottom: 8rpx;
   }
 
@@ -413,27 +417,211 @@
   &--ranking .my-service-tile__icon svg {
     color: var(--td-success-color, #2ba471) !important;
   }
+}
 
-  &--contact .my-service-tile__icon {
-    background: rgba(0, 168, 112, 0.1);
+/* 更多服务：双卡横向入口 */
+.my-more-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 16rpx;
+  padding: 0 20rpx 20rpx;
+  box-sizing: border-box;
+}
+
+.my-more-card {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16rpx;
+  padding: 24rpx 18rpx 24rpx 20rpx;
+  border-radius: 20rpx;
+  box-sizing: border-box;
+  border: 1rpx solid transparent;
+  position: relative;
+  overflow: hidden;
+
+  &--business {
+    background:
+      radial-gradient(circle at 92% 18%, rgba(227, 115, 24, 0.16) 0, rgba(227, 115, 24, 0) 120rpx),
+      linear-gradient(145deg, #fff8f1 0%, #fff 72%);
+    border-color: rgba(227, 115, 24, 0.12);
   }
-  &--contact .my-service-tile__icon t-icon,
-  &--contact .my-service-tile__icon svg {
-    color: var(--td-success-color, #2ba471) !important;
+
+  &--contact {
+    background:
+      radial-gradient(circle at 92% 18%, rgba(0, 168, 112, 0.14) 0, rgba(0, 168, 112, 0) 120rpx),
+      linear-gradient(145deg, #f2fbf7 0%, #fff 72%);
+    border-color: rgba(0, 168, 112, 0.12);
+  }
+
+  &--active {
+    transform: scale(0.985);
+    opacity: 0.92;
+  }
+
+  &__icon {
+    width: 72rpx;
+    height: 72rpx;
+    border-radius: 18rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6rpx;
+  }
+
+  &__name {
+    font-size: 28rpx;
+    font-weight: 600;
+    color: var(--td-text-color-primary, rgba(0, 0, 0, 0.9));
+    line-height: 1.3;
+  }
+
+  &__desc {
+    font-size: 22rpx;
+    color: var(--td-text-color-placeholder, rgba(0, 0, 0, 0.4));
+    line-height: 1.35;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__arrow {
+    flex-shrink: 0;
+    color: rgba(0, 0, 0, 0.22) !important;
   }
 
   &--btn {
     margin: 0;
-    width: 100%;
+    width: auto;
     line-height: 1.2;
     font-size: inherit;
-    padding-left: 0;
-    padding-right: 0;
+    text-align: left;
 
     &::after {
       border: none;
     }
   }
+}
+
+.my-more-card--business .my-more-card__icon {
+  background: rgba(227, 115, 24, 0.14);
+
+  t-icon,
+  svg {
+    color: #e37318 !important;
+  }
+}
+
+.my-more-card--contact .my-more-card__icon {
+  background: rgba(0, 168, 112, 0.14);
+
+  t-icon,
+  svg {
+    color: #2ba471 !important;
+  }
+}
+
+/* 页脚：轻量备案区 */
+.my-footer {
+  margin-top: 36rpx;
+  padding: 8rpx 40rpx calc(24rpx + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.my-footer__brand {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: rgba(15, 23, 42, 0.55);
+  letter-spacing: 2rpx;
+  line-height: 1.4;
+}
+
+.my-footer__slogan {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: rgba(15, 23, 42, 0.32);
+  line-height: 1.45;
+}
+
+.my-footer__contacts {
+  margin-top: 28rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+}
+
+.my-footer__link {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8rpx;
+  padding: 10rpx 4rpx;
+  font-size: 24rpx;
+  color: var(--td-brand-color, #0052d9);
+
+  t-icon,
+  svg {
+    color: var(--td-brand-color, #0052d9) !important;
+  }
+}
+
+.my-footer__link--active {
+  opacity: 0.7;
+}
+
+.my-footer__dot {
+  width: 6rpx;
+  height: 6rpx;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.18);
+}
+
+.my-footer__legal {
+  margin-top: 22rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  font-size: 22rpx;
+  color: rgba(15, 23, 42, 0.36);
+}
+
+.my-footer__legal-link {
+  color: rgba(15, 23, 42, 0.42);
+}
+
+.my-footer__sep {
+  color: rgba(15, 23, 42, 0.22);
+}
+
+.my-footer__icp,
+.my-footer__copy {
+  margin-top: 12rpx;
+  font-size: 20rpx;
+  color: rgba(15, 23, 42, 0.28);
+  line-height: 1.5;
+}
+
+.my-footer__copy {
+  margin-top: 4rpx;
 }
 
 /* 图片弹窗样式 */

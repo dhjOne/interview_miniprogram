@@ -2,6 +2,8 @@
 Page({
   data: {
     isAgreed: false,
+    viewOnly: false,
+    fromPage: 'login',
     companyName: '面试胶囊小程序',
     productName: '面试胶囊',
     servicePhone: '400-xxx-xxxx',
@@ -10,10 +12,16 @@ Page({
   },
 
   onLoad(options) {
-    // 可以接收参数，比如从哪个页面跳转过来
+    const fromPage = (options && options.from) || 'login';
+    // 登录场景需要勾选确认；「我的」等入口仅查看
+    const viewOnly = fromPage !== 'login' && options.mode !== 'confirm';
     this.setData({
-      fromPage: options.from || 'login'
-    })
+      fromPage,
+      viewOnly
+    });
+    if (viewOnly) {
+      wx.setNavigationBarTitle({ title: '用户服务协议' });
+    }
   },
 
   // 复选框 / 整行点击切换

@@ -51,6 +51,15 @@
         <text wx:if="{{searchValue}}" class="ql-filter__hint">关键词「{{searchValue}}」</text>
       </view>
     </view>
+
+    <ops-banner
+      wx:if="{{topBanner}}"
+      variant="top"
+      item="{{topBanner}}"
+      dismissible="{{true}}"
+      bind:tap="onOpsBannerTap"
+      bind:dismiss="onTopBannerDismiss"
+    />
   </view>
 
   <view class="questions-section">
@@ -68,15 +77,24 @@
       lower-threshold="120">
       <view id="list-top" class="list-top-anchor" />
       <view class="question-list">
-        <block wx:for="{{questionList}}" wx:key="id" wx:for-index="idx">
+        <block wx:for="{{displayList}}" wx:key="_rowKey">
+          <ops-banner
+            wx:if="{{item.rowType === 'ad'}}"
+            variant="feed"
+            item="{{item}}"
+            dismissible="{{true}}"
+            bind:tap="onOpsBannerTap"
+            bind:dismiss="onFeedBannerDismiss"
+          />
           <view
+            wx:else
             class="question-item {{item.isCollected ? 'question-item--collected' : ''}}"
             bindtap="onQuestionClick"
             data-id="{{item.id}}"
             data-title="{{item.title}}">
             <view class="question-header">
               <view class="question-index">
-                <text class="index-number">{{(page - 1) * pageSize + idx + 1}}</text>
+                <text class="index-number">{{item.displayIndex}}</text>
               </view>
               <view class="question-main">
                 <view class="question-title-row">
@@ -125,14 +143,14 @@
         </block>
       </view>
 
-      <view class="list-footer" wx:if="{{questionList.length > 0}}">
+      <view class="list-footer" wx:if="{{questionCount > 0}}">
         <view class="list-footer-inner" wx:if="{{loading}}">
           <t-loading size="36rpx" text="加载中…" />
         </view>
         <t-divider wx:elif="{{!hasMore}}" align="center" content="没有更多了" />
       </view>
 
-      <view wx:if="{{questionList.length === 0 && !loading}}" class="empty-state">
+      <view wx:if="{{questionCount === 0 && !loading}}" class="empty-state">
         <t-icon name="info-circle-filled" size="120rpx" color="#ddd" />
         <text class="empty-text">{{searchValue ? '未找到相关题目' : '暂无题目'}}</text>
         <text class="empty-desc">{{searchValue ? '试试其他关键词，或清空搜索查看全部' : '换个关键词试试，或发布一道题'}}</text>
@@ -144,7 +162,7 @@
         </t-button>
       </view>
 
-      <view wx:if="{{questionList.length === 0 && loading}}" class="list-loading-center">
+      <view wx:if="{{questionCount === 0 && loading}}" class="list-loading-center">
         <t-loading size="48rpx" text="加载中…" />
       </view>
     </scroll-view>

@@ -5,6 +5,17 @@ import { fetchPersonalInfo } from '~/utils/userProfile';
 import { hasProfessionSelected } from '~/utils/profession';
 import { navigateToProfessionPage } from '~/utils/professionNav';
 import { getLocalSettings } from '~/utils/userSettings';
+import {
+  dismissBannerItemToday,
+  dismissBannerToday,
+  fetchBannersByPosition,
+  filterDismissedBanners,
+  interleaveFeedItems,
+  isBannerDismissedToday,
+  openBannerLink,
+  POSITION_CATEGORY_FEED,
+  POSITION_CATEGORY_TOP
+} from '~/utils/banners';
 
 const app = getApp();
 
@@ -80,8 +91,6 @@ Page({
     currentPrimaryId: null,
     navBarHeight: 90,
     loading: false,
-    lastRefreshTime: 0,
-    needRefresh: false,
     messageOffset: 100,
 
     categoryLoading: false,
@@ -96,12 +105,21 @@ Page({
     categoryScopeTabs: [
       { label: '我的职业', value: 'career' },
       { label: '全部', value: 'all' }
-    ]
+    ],
+    topBanner: null,
+    secondaryDisplayList: []
   },
+
+  _secondaryRows: [],
+  _categoryFeedAds: [],
 
   onLoad(options = {}) {
     console.log('页面加载开始');
+    this._skipShowRefresh = true;
+    this._secondaryRows = [];
+    this._categoryFeedAds = [];
     this.calculateNavBarHeight();
+    this.loadOpsSlots();
     this.initCategoryScope(options.scope).finally(() => this.loadPrimaryCategories());
 
     app.on('refreshQuestionBank', this.handleRefresh.bind(this));
@@ -113,39 +131,37 @@ Page({
 
   handleRefresh() {
     console.log('收到刷新指令');
-    this.setData({ needRefresh: true });
-
     if (this.data.currentPrimaryId) {
       this.refreshCurrentData();
+    } else {
+      this.loadPrimaryCategories();
     }
   },
 
   async onPullDownRefresh() {
-    await this.refreshProfessionScope(false);
+    await Promise.all([this.refreshProfessionScope(false), this.loadOpsSlots()]);
     return this.refreshCurrentData();
   },
 
   async onShow() {
     console.log('页面显示');
     // 从个人中心选完职业返回时，会在此切到「我的职业」并重新拉分类
+    const prevScope = this.data.categoryScope;
     await this.refreshProfessionScope(false);
-    const now = Date.now();
-    const shouldRefresh =
-      this.data.needRefresh ||
-      now - this.data.lastRefreshTime > 5 * 60 * 1000 ||
-      !this.data.primaryCategories.length;
 
-    if (shouldRefresh && this.data.currentPrimaryId) {
-      this.refreshCurrentData();
-      this.setData({ needRefresh: false });
+    // 首次进入由 onLoad 负责拉数，避免与 onShow 重复请求
+    if (this._skipShowRefresh) {
+      this._skipShowRefresh = false;
+      return;
     }
-  },
 
-  onHide() {
-    console.log('页面隐藏');
-    this.setData({
-      lastRefreshTime: Date.now()
-    });
+    // 职业 scope 变化时 refreshProfessionScope 已重新拉分类
+    if (this.data.categoryScope !== prevScope) {
+      return;
+    }
+
+    // 每次切回题库 Tab 静默刷新，保证分类/题目数是最新的
+    await this.loadPrimaryCategories({ preserveSelection: true });
   },
 
   async refreshCurrentData() {
@@ -272,20 +288,24 @@ Page({
       } else {
         this.setData({
           secondaryCategories: [],
+          secondaryDisplayList: [],
           categoryLoading: false,
           secondaryTotal: 0,
           secondaryHasMore: false,
           secondaryLoadingMore: false
         });
+        this._secondaryRows = [];
       }
 
       return true;
     } catch (error) {
       console.error('加载分类失败:', error);
       this.showErrorMessage(error?.message || '网络错误，请重试');
+      this._secondaryRows = [];
       this.setData({
         primaryCategories: [],
         secondaryCategories: [],
+        secondaryDisplayList: [],
         currentPrimaryId: null,
         categoryLoading: false,
         secondaryTotal: 0,
@@ -318,8 +338,10 @@ Page({
     }
 
     if (refresh) {
+      this._secondaryRows = [];
       this.setData({
         secondaryCategories: [],
+        secondaryDisplayList: [],
         secondaryPage: 1,
         secondaryTotal: 0,
         secondaryHasMore: true,
@@ -359,21 +381,22 @@ Page({
       const parsedTotal = Number(rawTotal);
       const hasTotal =
         rawTotal !== undefined && rawTotal !== null && !Number.isNaN(parsedTotal);
-      const secondaryCategories = refresh
+      this._secondaryRows = refresh
         ? newChunk
-        : [...this.data.secondaryCategories, ...newChunk];
+        : [...this._secondaryRows, ...newChunk];
       const secondaryHasMore = hasTotal
-        ? secondaryCategories.length < parsedTotal
+        ? this._secondaryRows.length < parsedTotal
         : rawRows.length >= this.data.secondaryPageSize;
 
       this.setData({
-        secondaryCategories,
+        secondaryCategories: this._secondaryRows,
         secondaryPage: nextPage,
-        secondaryTotal: hasTotal ? parsedTotal : secondaryCategories.length,
+        secondaryTotal: hasTotal ? parsedTotal : this._secondaryRows.length,
         secondaryHasMore,
         categoryLoading: false,
         secondaryLoadingMore: false
       });
+      this._rebuildSecondaryDisplay();
     } catch (error) {
       console.error('加载二级分类失败:', error);
       this.showErrorMessage(error?.message || '加载分类失败');
@@ -382,12 +405,60 @@ Page({
         secondaryLoadingMore: false
       };
       if (refresh) {
+        this._secondaryRows = [];
         patch.secondaryCategories = [];
+        patch.secondaryDisplayList = [];
         patch.secondaryTotal = 0;
         patch.secondaryHasMore = false;
       }
       this.setData(patch);
     }
+  },
+
+  async loadOpsSlots() {
+    const [feedAds, topList] = await Promise.all([
+      fetchBannersByPosition(POSITION_CATEGORY_FEED),
+      fetchBannersByPosition(POSITION_CATEGORY_TOP)
+    ]);
+    this._categoryFeedAds = filterDismissedBanners(feedAds || []);
+    const topBanner =
+      !isBannerDismissedToday(POSITION_CATEGORY_TOP) && topList && topList.length
+        ? topList[0]
+        : null;
+    this.setData({ topBanner });
+    this._rebuildSecondaryDisplay();
+  },
+
+  _rebuildSecondaryDisplay() {
+    const secondaryDisplayList = interleaveFeedItems(
+      this._secondaryRows || [],
+      this._categoryFeedAds || [],
+      {
+        every: 5,
+        minBeforeFirst: 4,
+        maxAds: 1,
+        idPrefix: 'cat-ad'
+      }
+    );
+    this.setData({ secondaryDisplayList });
+  },
+
+  onOpsBannerTap(e) {
+    const item = (e.detail && e.detail.item) || null;
+    openBannerLink(item);
+  },
+
+  onTopBannerDismiss() {
+    dismissBannerToday(POSITION_CATEGORY_TOP);
+    this.setData({ topBanner: null });
+  },
+
+  onFeedBannerDismiss(e) {
+    const item = (e.detail && e.detail.item) || null;
+    if (!item || item.id == null) return;
+    dismissBannerItemToday(item.id);
+    this._categoryFeedAds = filterDismissedBanners(this._categoryFeedAds || []);
+    this._rebuildSecondaryDisplay();
   },
 
   loadMoreSecondaryCategories() {
@@ -440,12 +511,14 @@ Page({
     this.setData({
       currentPrimaryId: categoryId,
       secondaryCategories: [],
+      secondaryDisplayList: [],
       secondaryPage: 1,
       secondaryTotal: 0,
       secondaryHasMore: true,
       secondaryLoadingMore: false,
       categoryLoading: true
     });
+    this._secondaryRows = [];
 
     try {
       await this.loadSecondaryCategories();
@@ -502,11 +575,13 @@ Page({
       categoryScope: scope,
       currentPrimaryId: null,
       secondaryCategories: [],
+      secondaryDisplayList: [],
       secondaryPage: 1,
       secondaryTotal: 0,
       secondaryHasMore: true,
       secondaryLoadingMore: false
     });
+    this._secondaryRows = [];
     await this.loadPrimaryCategories({ scope });
   },
 

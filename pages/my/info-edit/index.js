@@ -49,8 +49,18 @@ Page({
   },
 
   onLoad() {
+    this._skipShowRefresh = true;
     this.initAreaData();
     this.loadProfessionOptions();
+    this.loadPersonalInfo();
+  },
+
+  onShow() {
+    if (this._skipShowRefresh) {
+      this._skipShowRefresh = false;
+      return;
+    }
+    // 从职业选择页返回时同步最新职业信息
     this.loadPersonalInfo();
   },
 

@@ -79,9 +79,21 @@ export const socialApi = {
       showLoading: false
     }),
 
+  /** 通知未读数 */
+  getNotificationUnreadCount: () =>
+    http.get('/repository/user/social/notifications/unread-count', null, {
+      showLoading: false
+    }),
+
   /** 标记通知已读 */
   markNotificationRead: (notificationId) =>
     http.post(`/repository/user/social/notifications/${notificationId}/read`, null, {
+      showLoading: false
+    }),
+
+  /** 全部通知标记已读 */
+  markAllNotificationsRead: () =>
+    http.post('/repository/user/social/notifications/read-all', null, {
       showLoading: false
     }),
 

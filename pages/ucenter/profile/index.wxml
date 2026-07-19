@@ -1,5 +1,11 @@
 <view class="user-profile">
-  <t-navbar left-arrow title="个人主页" fixed safe-area-inset-top />
+  <t-navbar
+    left-arrow
+    title="{{profile.nickname || '个人主页'}}"
+    fixed
+    safe-area-inset-top
+    t-class="user-profile__navbar"
+  />
 
   <view class="user-profile__inner">
     <view wx:if="{{pageLoading}}" class="user-profile__loading">
@@ -7,181 +13,163 @@
     </view>
 
     <block wx:else>
-      <view class="profile-hero">
-        <view class="profile-hero__bg" aria-hidden="true" />
-        <view class="profile-hero__card">
-          <t-avatar image="{{profile.avatar || defaultAvatar}}" size="128rpx" />
-          <text class="profile-hero__name">{{profile.nickname}}</text>
-          <text wx:if="{{profile.bio}}" class="profile-hero__bio">{{profile.bio}}</text>
-          <text wx:else class="profile-hero__bio profile-hero__bio--muted">暂无个人简介</text>
-          <text wx:if="{{profile.auditStatus === 0}}" class="profile-hero__bio profile-hero__bio--muted">资料审核中</text>
-          <text wx:if="{{profile.auditStatus === 2}}" class="profile-hero__bio profile-hero__bio--muted">资料审核未通过</text>
+      <view class="profile-cover">
+        <view class="profile-cover__wash" />
+        <view class="profile-cover__glow" />
+      </view>
 
-          <view class="profile-stats">
-            <view class="profile-stats__item">
-              <text class="profile-stats__num">{{profile.followingCount}}</text>
-              <text class="profile-stats__label">关注</text>
-            </view>
-            <view class="profile-stats__divider" />
-            <view class="profile-stats__item">
-              <text class="profile-stats__num">{{profile.followerCount}}</text>
-              <text class="profile-stats__label">粉丝</text>
-            </view>
-            <view class="profile-stats__divider" />
-            <view class="profile-stats__item">
-              <text class="profile-stats__num">{{profile.publishCount}}</text>
-              <text class="profile-stats__label">发布</text>
-            </view>
-            <view class="profile-stats__divider" />
-            <view class="profile-stats__item">
-              <text class="profile-stats__num">{{profile.likeCount}}</text>
-              <text class="profile-stats__label">获赞</text>
+      <view class="profile-panel">
+        <view class="profile-identity">
+          <view class="profile-identity__avatar-ring">
+            <t-avatar
+              image="{{profile.avatar || defaultAvatar}}"
+              size="148rpx"
+            />
+          </view>
+          <view class="profile-identity__info">
+            <text class="profile-identity__name">{{profile.nickname}}</text>
+            <text wx:if="{{profile.bio}}" class="profile-identity__bio">{{profile.bio}}</text>
+            <text wx:else class="profile-identity__bio profile-identity__bio--muted">这个人很懒，还没有简介</text>
+            <view wx:if="{{profile.auditStatus === 0 || profile.auditStatus === 2}}" class="profile-identity__status">
+              <text wx:if="{{profile.auditStatus === 0}}">资料审核中</text>
+              <text wx:if="{{profile.auditStatus === 2}}">资料审核未通过</text>
             </view>
           </view>
+        </view>
 
-          <view class="profile-hero__action">
-            <t-button
-              wx:if="{{!isSelf}}"
-              block
-              shape="round"
-              theme="{{profile.isBlocked || profile.isBlockedByTarget ? 'light' : (profile.isFollowing ? 'light' : 'primary')}}"
-              variant="{{profile.isFollowing ? 'outline' : 'base'}}"
-              disabled="{{profile.isBlocked || profile.isBlockedByTarget}}"
-              bind:tap="onToggleFollow"
-            >
-              {{profile.isBlocked || profile.isBlockedByTarget ? '已限制互动' : (profile.isFollowing ? '已关注' : '关注 TA')}}
-            </t-button>
-            <t-button wx:else block shape="round" theme="light" variant="outline" disabled>
-              这是你自己
-            </t-button>
-            <t-button wx:if="{{!isSelf}}" block shape="round" theme="light" variant="outline" bind:tap="onMoreTap">
-              更多操作
-            </t-button>
+        <view class="profile-stats">
+          <view class="profile-stats__item">
+            <text class="profile-stats__num">{{profile.followingCount}}</text>
+            <text class="profile-stats__label">关注</text>
           </view>
+          <view class="profile-stats__item">
+            <text class="profile-stats__num">{{profile.followerCount}}</text>
+            <text class="profile-stats__label">粉丝</text>
+          </view>
+          <view class="profile-stats__item">
+            <text class="profile-stats__num">{{profile.publishCount}}</text>
+            <text class="profile-stats__label">发布</text>
+          </view>
+          <view class="profile-stats__item">
+            <text class="profile-stats__num">{{profile.likeCount}}</text>
+            <text class="profile-stats__label">获赞</text>
+          </view>
+        </view>
+
+        <view class="profile-actions" wx:if="{{!isSelf}}">
+          <t-button
+            class="profile-actions__follow"
+            shape="round"
+            size="medium"
+            theme="{{profile.isBlocked || profile.isBlockedByTarget ? 'light' : (profile.isFollowing ? 'light' : 'primary')}}"
+            variant="{{profile.isFollowing ? 'outline' : 'base'}}"
+            disabled="{{profile.isBlocked || profile.isBlockedByTarget}}"
+            bind:tap="onToggleFollow"
+          >
+            {{profile.isBlocked || profile.isBlockedByTarget ? '已限制互动' : (profile.isFollowing ? '已关注' : '关注')}}
+          </t-button>
+          <t-button
+            class="profile-actions__more"
+            shape="round"
+            size="medium"
+            theme="light"
+            variant="outline"
+            bind:tap="onMoreTap"
+          >
+            更多
+          </t-button>
+        </view>
+        <view class="profile-actions" wx:else>
+          <t-button class="profile-actions__self" shape="round" size="medium" theme="light" variant="outline" disabled>
+            当前账号主页
+          </t-button>
         </view>
       </view>
 
       <view wx:if="{{fromDemo}}" class="user-profile__demo-tip">
-        当前为演示数据，接入后端个人主页接口后将展示真实信息
+        当前为演示数据，接入后端后将展示真实信息
       </view>
 
-      <view class="profile-articles">
-        <view class="profile-articles__head">
-          <view class="profile-articles__head-main">
-            <view class="profile-articles__accent" />
-            <text class="profile-articles__title">发布的文章</text>
-          </view>
-          <view class="profile-articles__badge">
-            <text class="profile-articles__badge-num">{{articleList.length}}</text>
-            <text class="profile-articles__badge-unit">篇</text>
-          </view>
+      <view class="profile-feed">
+        <view class="profile-feed__head">
+          <text class="profile-feed__title">作品</text>
+          <text class="profile-feed__count">{{totalCount || articleList.length}} 篇</text>
         </view>
 
-        <!-- 新增：分类选项卡 -->
-        <scroll-view
-          class="profile-articles__tabs"
-          scroll-x
-          enhanced
-          show-scrollbar="{{false}}"
-        >
-          <view class="profile-articles__tab-wrapper">
+        <scroll-view class="profile-feed__tabs" scroll-x enhanced show-scrollbar="{{false}}">
+          <view class="profile-feed__tabs-row">
             <view
               wx:for="{{categories}}"
               wx:key="id"
-              class="profile-articles__tab"
-              class:profile-articles__tab--active="{{item.id === activeCategory}}"
+              class="profile-feed__tab {{item.id === activeCategory ? 'profile-feed__tab--active' : ''}}"
               data-category="{{item.id}}"
               bindtap="onCategoryChange"
             >
-              <text class="profile-articles__tab-name">{{item.name}}</text>
-              <view wx:if="{{item.count > 0}}" class="profile-articles__tab-count">{{item.count}}</view>
+              <text>{{item.name}}</text>
+              <text wx:if="{{item.count > 0}}" class="profile-feed__tab-count">{{item.count}}</text>
             </view>
           </view>
         </scroll-view>
 
         <scroll-view
-          class="profile-articles__scroll"
+          class="profile-feed__scroll"
           scroll-y
           enhanced
           show-scrollbar="{{false}}"
           bindscrolltolower="onReachBottom"
           lower-threshold="100"
         >
-          <view class="profile-article-list">
+          <view class="profile-feed__list">
             <view
               wx:for="{{articleList}}"
               wx:key="id"
-              wx:for-index="idx"
-              class="profile-article-card"
-              hover-class="profile-article-card--active"
+              class="feed-card"
+              hover-class="feed-card--active"
               data-id="{{item.id}}"
               data-title="{{item.title}}"
               bindtap="onArticleTap"
             >
-              <view class="profile-article-card__index">
-                <text class="profile-article-card__index-num">{{idx + 1}}</text>
-              </view>
-
-              <view class="profile-article-card__main">
-                <text class="profile-article-card__title">{{item.title}}</text>
-                <!-- 新增：分类标签 -->
-                <view wx:if="{{item.category}}" class="profile-article-card__category">
-                  <t-tag
-                    theme="light"
-                    variant="outline"
-                    size="small"
-                  >{{item.category === 'tech' ? '技术' : item.category === 'life' ? '生活' : item.category === 'news' ? '资讯' : '其他'}}</t-tag>
-                </view>
-                <view class="profile-article-card__meta">
-                  <view class="profile-article-card__chip">
-                    <t-icon name="time" size="22rpx" color="#999" />
+              <view class="feed-card__body">
+                <text class="feed-card__title">{{item.title}}</text>
+                <view class="feed-card__footer">
+                  <view wx:if="{{item.categoryLabel}}" class="feed-card__cat">{{item.categoryLabel}}</view>
+                  <view class="feed-card__meta">
                     <text>{{item.displayDate}}</text>
-                  </view>
-                  <view class="profile-article-card__chip">
-                    <t-icon name="view" size="22rpx" color="#999" />
-                    <text>{{item.viewCount}}</text>
-                  </view>
-                  <view class="profile-article-card__chip">
-                    <t-icon name="thumb-up" size="22rpx" color="#999" />
-                    <text>{{item.likeCount}}</text>
-                  </view>
-                  <view wx:if="{{item.commentCount}}" class="profile-article-card__chip">
-                    <t-icon name="chat" size="22rpx" color="#999" />
-                    <text>{{item.commentCount}}</text>
+                    <text class="feed-card__dot">·</text>
+                    <text>{{item.viewCount || 0}} 阅读</text>
+                    <text class="feed-card__dot">·</text>
+                    <text>{{item.likeCount || 0}} 赞</text>
                   </view>
                 </view>
               </view>
-
-              <view class="profile-article-card__arrow">
-                <t-icon name="chevron-right" size="36rpx" color="#ccc" />
-              </view>
+              <t-icon name="chevron-right" size="32rpx" color="#cbd5e1" />
             </view>
           </view>
 
-          <view class="profile-articles__foot" wx:if="{{articleList.length > 0}}">
-            <view wx:if="{{listLoading}}" class="profile-articles__foot-loading">
+          <view class="profile-feed__foot" wx:if="{{articleList.length > 0}}">
+            <view wx:if="{{listLoading}}" class="profile-feed__loading">
               <t-loading size="36rpx" text="加载中…" />
             </view>
-            <t-divider wx:elif="{{!hasMore}}" align="center" content="没有更多了" />
+            <text wx:elif="{{!hasMore}}" class="profile-feed__end">没有更多了</text>
           </view>
 
-          <view wx:if="{{!listLoading && listDone && articleList.length === 0}}" class="profile-articles__empty">
-            <view class="profile-articles__empty-icon">
-              <t-icon name="file" size="80rpx" color="#d9d9d9" />
+          <view wx:if="{{!listLoading && listDone && articleList.length === 0}}" class="profile-feed__empty">
+            <view class="profile-feed__empty-icon">
+              <t-icon name="file" size="72rpx" color="#cbd5e1" />
             </view>
-            <text class="profile-articles__empty-title">{{activeCategory !== 'all' ? '此分类暂无文章' : '还没有发布文章'}}</text>
-            <text class="profile-articles__empty-desc">TA 发布的内容会展示在这里</text>
+            <text class="profile-feed__empty-title">{{activeCategory !== 'all' ? '此分类暂无作品' : '还没有发布作品'}}</text>
+            <text class="profile-feed__empty-desc">TA 发布的内容会出现在这里</text>
           </view>
 
-          <view wx:if="{{!listLoading && listError}}" class="profile-articles__empty">
-            <view class="profile-articles__empty-icon profile-articles__empty-icon--warn">
-              <t-icon name="error-circle" size="80rpx" color="#f5a524" />
+          <view wx:if="{{!listLoading && listError}}" class="profile-feed__empty">
+            <view class="profile-feed__empty-icon profile-feed__empty-icon--warn">
+              <t-icon name="error-circle" size="72rpx" color="#f59e0b" />
             </view>
-            <text class="profile-articles__empty-title">文章加载失败</text>
+            <text class="profile-feed__empty-title">作品加载失败</text>
             <t-button theme="light" size="medium" shape="round" bind:tap="reloadArticles">重试</t-button>
           </view>
 
-          <view class="profile-articles__safe-bottom" />
+          <view class="profile-feed__safe" />
         </scroll-view>
       </view>
     </block>

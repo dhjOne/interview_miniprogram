@@ -9,6 +9,13 @@ import { fetchPointAccount } from '~/utils/points';
 import { fetchPersonalInfo, syncCachedUserInfo } from '~/utils/userProfile';
 import { fetchCreatorPreview } from '~/utils/creatorCenter';
 import { socialApi } from '~/api/request/api_social';
+import { fetchSiteInfo, getDefaultSiteInfo, isCallablePhone } from '~/utils/site';
+import {
+  bannerNeedsLogin,
+  fetchBannersByPosition,
+  getDefaultMyCarousel,
+  POSITION_MY_CAROUSEL
+} from '~/utils/banners';
 
 const NOTIFY_URL = '/pages/ucenter/notifications/index';
 
@@ -20,11 +27,8 @@ Page({
     isLoad: false,
     historyCount: 0,
     notifyUnread: 0,
-    carousel: [
-      { image: '/static/home/card0.png', title: '广告宣传' },
-      { image: '/static/home/card1.png', title: '重点文献' },
-      { image: '/static/home/card2.png', title: '新功能介绍' }
-    ],
+    carousel: getDefaultMyCarousel(),
+    /** 高频学习入口：保持一行三格 */
     service: [
       {
         name: '浏览历史',
@@ -43,13 +47,25 @@ Page({
         icon: 'leaderboard',
         type: 'ranking',
         url: '/pages/ucenter/ranking/index'
+      }
+    ],
+    /** 低频支撑入口：独立模块，避免挤占常用区 */
+    moreServices: [
+      {
+        name: '商务合作',
+        desc: '品牌投放 · 机构共建',
+        icon: 'shop',
+        type: 'business',
+        url: '/pages/ucenter/business/index'
       },
       {
         name: '联系客服',
-        icon: 'chat',
+        desc: '使用咨询 · 问题反馈',
+        icon: 'service',
         type: 'contact'
       }
     ],
+    siteInfo: getDefaultSiteInfo(),
     personalInfo: {},
     socialStats: SOCIAL_STAT_ITEMS.map((item) => ({
       ...item,
@@ -113,6 +129,9 @@ Page({
     const historyCount = getQuestionBrowseHistoryCount();
     this.setData({ historyCount });
 
+    // 站点页脚、运营位不依赖登录，与个人中心并行拉取
+    const publicPromise = Promise.all([this.loadSiteInfo(), this.loadCarousel()]);
+
     const Token = wx.getStorageSync('access_token');
     if (Token) {
       try {
@@ -131,7 +150,8 @@ Page({
       await Promise.all([
         this.loadSocialStats(),
         this.loadCreatorPreview(),
-        this.loadNotificationPreview()
+        this.loadNotificationPreview(),
+        publicPromise
       ]);
     } else {
       this.setData({
@@ -141,21 +161,50 @@ Page({
         creatorPreviewText: '登录后管理作品与数据',
         notifyUnread: 0
       });
+      await publicPromise;
     }
+  },
+
+  async loadSiteInfo() {
+    try {
+      const siteInfo = await fetchSiteInfo();
+      this.setData({ siteInfo });
+    } catch (e) {
+      console.warn('[my] site info failed', e);
+    }
+  },
+
+  async loadCarousel() {
+    try {
+      const carousel = await fetchBannersByPosition(POSITION_MY_CAROUSEL);
+      this.setData({ carousel });
+    } catch (e) {
+      console.warn('[my] carousel failed', e);
+      this.setData({ carousel: getDefaultMyCarousel() });
+    }
+  },
+
+  onCarouselTap(e) {
+    const item = e.currentTarget.dataset.item;
+    if (!item || item.linkType !== 'PAGE' || !item.linkUrl) return;
+    if (bannerNeedsLogin(item.linkUrl)) {
+      app.navigateToLogin({ url: item.linkUrl });
+      return;
+    }
+    wx.navigateTo({ url: item.linkUrl });
   },
 
   async loadNotificationPreview() {
     try {
-      const res = await socialApi.getNotifications({ page: 1, limit: 20 });
+      const res = await socialApi.getNotificationUnreadCount();
       const data = res.data || {};
-      const rows = data.rows || data.list || [];
-      const apiUnread = data.unreadCount ?? data.unreadTotal ?? data.unread;
-      const unreadFromList = rows.filter((item) => !item.isRead).length;
-      const notifyUnread =
-        apiUnread != null ? Math.max(0, Number(apiUnread) || 0) : unreadFromList;
+      const notifyUnread = Math.max(
+        0,
+        Number(data.unreadCount ?? data.unreadTotal ?? data.unread ?? 0) || 0
+      );
       this.setData({ notifyUnread });
     } catch (e) {
-      console.warn('[my] notification preview failed', e);
+      console.warn('[my] notification unread failed', e);
       this.setData({ notifyUnread: 0 });
     }
   },
@@ -265,7 +314,7 @@ Page({
   /** 常用服务：浏览历史免登录；收藏与排行需登录 */
   onServiceItemTap(e) {
     const item = e.currentTarget.dataset.item;
-    if (!item || item.type === 'contact' || !item.url) return;
+    if (!item || !item.url) return;
 
     if (item.type === 'history') {
       wx.navigateTo({ url: item.url });
@@ -273,6 +322,36 @@ Page({
     }
 
     app.navigateToLogin({ url: item.url });
+  },
+
+  onMoreServiceTap(e) {
+    const item = e.currentTarget.dataset.item;
+    if (!item || item.type === 'contact') return;
+    if (item.type === 'business' && item.url) {
+      wx.navigateTo({ url: item.url });
+    }
+  },
+
+  onCallPhone() {
+    const phone = (this.data.siteInfo && this.data.siteInfo.phone) || '';
+    if (!isCallablePhone(phone)) {
+      wx.showToast({ title: '电话暂未配置', icon: 'none' });
+      return;
+    }
+    wx.makePhoneCall({ phoneNumber: String(phone).replace(/[^\d+]/g, '') });
+  },
+
+  onCopyEmail() {
+    const email = (this.data.siteInfo && this.data.siteInfo.email) || '';
+    if (!email) return;
+    wx.setClipboardData({
+      data: email,
+      success: () => wx.showToast({ title: '已复制邮箱', icon: 'success' })
+    });
+  },
+
+  onOpenAgreement() {
+    wx.navigateTo({ url: '/pages/agreement/agreement?from=my' });
   },
 
   handleContact() {

@@ -2,7 +2,6 @@
   "pages": [
     "pages/category/index",
     "pages/mknow/index",
-    "pages/home/index",
     "pages/message/index",
     "pages/my/index",
     "pages/agreement/agreement"
@@ -71,13 +70,6 @@
       "name": "login",
       "pages": [
         "login"
-      ]
-    },
-    {
-      "root": "pages/loginCode",
-      "name": "loginCode",
-      "pages": [
-        "loginCode"
       ]
     },
     {

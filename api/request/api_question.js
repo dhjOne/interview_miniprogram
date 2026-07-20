@@ -1,133 +1,97 @@
-// api/auth.js
 import http from '../api_request'
 
-// api_question.js
-export const authApi = {
+export const questionApi = {
 
   // 获取题目列表
-  getQuestionList: (questionParams) => {
-    return http.get('/repository/questions', questionParams, {
+  getQuestionList: (questionParams) => http.get('/repository/questions', questionParams, {
       showLoading: false
-    })
-  },
+    }),
 
   // 收藏/取消收藏分类
-  toggleCollect: (params) => {
-    return http.post('/repository/questions/collect', params, {
+  toggleCollect: (params) => http.post('/repository/questions/collect', params, {
       showLoading: true,
       loadingText: '操作中...'
-    })
-  },
+    }),
 
     // 获取题目详情
-    getQuestionDetail: (params) => {
-      return http.get(`/repository/questions/detail`, params, {
+    getQuestionDetail: (params) => http.get(`/repository/questions/detail`, params, {
         showLoading: false
-      })
-    },
+      }),
   
     // 获取相关题目
-    getRelatedQuestions: (params) => {
-      return http.get('/repository/questions/related', params, {
+    getRelatedQuestions: (params) => http.get('/repository/questions/related', params, {
         showLoading: false
-      })
-    },
+      }),
   
     // 获取题目评论（支持 page / limit 分页）
-    getQuestionComments: (questionId, query = null) => {
-      return http.get(`/comments/question/${questionId}`, query, {
+    getQuestionComments: (questionId, query = null) => http.get(`/comments/question/${questionId}`, query, {
         showLoading: false
-      })
-    },
+      }),
 
     // 统计题目评论总数
-    getQuestionCommentCount: (questionId) => {
-      return http.get(`/comments/question/${questionId}/count`, null, {
+    getQuestionCommentCount: (questionId) => http.get(`/comments/question/${questionId}/count`, null, {
         showLoading: false
-      })
-    },
+      }),
 
     // 获取评论回复
-    getCommentReplies: (parentId) => {
-      return http.get(`/comments/replies/${parentId}`, null, {
+    getCommentReplies: (parentId) => http.get(`/comments/replies/${parentId}`, null, {
         showLoading: false
-      })
-    },
+      }),
   
     // 发布评论
-    submitComment: (params) => {
-      return http.post('/comments/publish', params, {
+    submitComment: (params) => http.post('/comments/publish', params, {
         showLoading: true,
         loadingText: '发布中...'
-      })
-    },
+      }),
 
     // 点赞/取消点赞评论
-    likeComment: (params) => {
-      return http.post('/comments/like', params, {
+    likeComment: (params) => http.post('/comments/like', params, {
         showLoading: false
-      })
-    },
+      }),
   
     // 获取题目状态（点赞、收藏等）
-    getQuestionStatus: (questionId) => {
-      return http.get(`/repository/questions/${questionId}/status`, null, {
+    getQuestionStatus: (questionId) => http.get(`/repository/questions/${questionId}/status`, null, {
         showLoading: false
-      })
-    },
+      }),
   
     // 点赞/取消点赞
-    toggleLike: (params) => {
-      return http.post('/repository/questions/like', params, {
+    toggleLike: (params) => http.post('/repository/questions/like', params, {
         showLoading: true,
         loadingText: '操作中...'
-      })
-    },
+      }),
   
     // 增加浏览量
-    incrementViewCount: (questionId) => {
-      return http.post(`/repository/questions/${questionId}/view`, null, {
+    incrementViewCount: (questionId) => http.post(`/repository/questions/${questionId}/view`, null, {
         showLoading: false
-      })
-    },
+      }),
 
-    //发布问题
-    publishQuestion: (publish) => {
-      return http.post(`/repository/questions/publish`, publish, {
+    // 发布问题
+    publishQuestion: (publish) => http.post(`/repository/questions/publish`, publish, {
         showLoading: false
-      })
-    },
+      }),
 
-    //获得自己发布页面
-    getPublishList: (questionParams) => {
-      return http.get('/repository/publish/doc/list', questionParams, {
+    // 获得自己发布页面
+    getPublishList: (questionParams) => http.get('/repository/publish/doc/list', questionParams, {
         showLoading: false
-      })
-    },
+      }),
 
     /** 发布管理-文档分类（树形：id / name / parentId） */
-    getPublishDocCategories: () => {
-      return http.get('/repository/publish/doc/categories', null, {
+    getPublishDocCategories: () => http.get('/repository/publish/doc/categories', null, {
         showLoading: false
-      })
-    },
+      }),
 
     /** 发布管理-删除文档 */
-    deletePublishDoc: (questionId) => {
-      return http.post(`/repository/questions/${questionId}/unpublish`, null, {
+    deletePublishDoc: (questionId) => http.post(`/repository/questions/${questionId}/unpublish`, null, {
         showLoading: true,
         loadingText: '删除中...'
-      })
-    },
+      }),
 
     /**
      * 刷题排行榜（需后端提供 GET /repository/practice/ranking）
      * 单条可包含：rank, nickname, avatar, practiceCount | answerCount | score 等
      */
-    getPracticeRanking: (params) => {
-      return http.get('/repository/practice/ranking', params, {
+    getPracticeRanking: (params) => http.get('/repository/practice/ranking', params, {
         showLoading: false
       })
-    }
 
 }

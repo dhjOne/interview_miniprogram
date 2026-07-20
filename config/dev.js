@@ -1,43 +1,19 @@
 // config/dev.js
 export default {
-  // 环境标识
-  env: 'develop',
-  
-  // API 基础配置
-  // baseUrl: 'http://localhost:9991',
-  baseUrl: 'https://clearing-wishlist-trailer-scanning.trycloudflare.com',
-  // baseUrl: 'https://175vq12004jn.vicp.fun',
+  env: 'development',
+  baseUrl: 'http://localhost:9991',
   apiPrefix: '/api',
-  
-  // 业务接口
-  api: {
-    login: '/auth/login',
-    getUserInfo: '/user/info',
-    updateProfile: '/user/profile'
-  },
-  
-  // 第三方服务配置
-  thirdParty: {
-    mapKey: 'DEV_MAP_KEY_123',
-    ossBucket: 'dev-bucket'
-  },
-  
-  // 功能开关
+  successCode: '0000',
+  timeout: 10000,
   features: {
-    enableDebug: false,
-    enableMock: false,
-    /** 个人主页、作者跳转等使用本地演示数据（接口未就绪时开启） */
-    useDemoProfile: false,
+    enableDebug: true,
     logLevel: 'debug'
   },
-  
-  // 超时配置
-  timeout: 15000,
-  // 加密：不设 disabled 则预建 ECDH、按响应体自动解密密文；仅调试用 disabled:true 可全关
   encryption: {
     exchange: '/api/encryption/exchange',
     destroy_session: '/api/encryption/session',
-    /** 与后端 ENCRYPTION_SESSION_EXPIRED 一致，加密会话失效（非登录 Token） */
     sessionExpiredCode: 'C111',
-  },
+    useTestKeys: false
+    // disabled: true  // 关闭客户端加密链路时取消注释
+  }
 }

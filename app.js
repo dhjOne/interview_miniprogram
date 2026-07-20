@@ -2,6 +2,12 @@
 import createBus from './utils/eventBus';
 import encryption from './utils/encryption';
 import { connectSocket, fetchUnreadNum } from './utils/chatService';
+import {
+  buildLoginUrl,
+  getCurrentPagePath,
+  navigateToLogin,
+  navigateToWithAuth,
+} from './utils/router';
 const { warmupTowxml } = require('./utils/towxmlLoader');
 
 const nativePage = Page;
@@ -26,7 +32,7 @@ App({
   onLaunch() {
     const updateManager = wx.getUpdateManager();
 
-    updateManager.onCheckForUpdate((res) => {
+    updateManager.onCheckForUpdate(() => {
       // console.log(res.hasUpdate)
     });
 
@@ -147,86 +153,20 @@ App({
 
   /** 当前页完整路径（含 query），用于登录页「返回」回到进入登录前的页面，与 return（登录后要去的目标）区分 */
   getCurrentPagePath() {
-    const pages = getCurrentPages();
-    const cur = pages[pages.length - 1];
-    if (!cur) return '';
-    const route = cur.route || '';
-    const opts = cur.options || {};
-    const q = Object.keys(opts)
-      .map((k) => `${k}=${opts[k]}`)
-      .join('&');
-    const path = route.startsWith('/') ? route : `/${route}`;
-    return `${path}${q ? '?' + q : ''}`;
+    return getCurrentPagePath();
   },
 
   _loginUrlWithReferrer(extraQuery) {
-    const ref = this.getCurrentPagePath();
-    if (ref) {
-      try {
-        wx.setStorageSync('login_referrer', ref);
-      } catch (e) {
-        // ignore
-      }
-    }
-    const refQ = ref ? `&referrer=${encodeURIComponent(ref)}` : '';
-    return `/pages/login/login?from=token_expired${refQ}${extraQuery || ''}`;
+    return buildLoginUrl(extraQuery);
   },
 
    // 统一跳转方法
    navigateToWithAuth(options) {
-    const { url, success, fail, complete } = options;
-    
-    // 先检查登录状态
-    if (!this.checkLoginStatus()) {
-
-      wx.showModal({
-        title: '提示',
-        content: '登录已过期，请重新登录',
-        showCancel: false,
-        confirmText: '去登录',
-        success: (res) => {
-          if (res.confirm) {
-            const retQ = url ? `&return=${encodeURIComponent(url)}` : '';
-            const loginUrl = this._loginUrlWithReferrer(retQ)
-            wx.navigateTo({
-              url: loginUrl,
-              fail: () => {
-                wx.redirectTo({ url: loginUrl })
-              }
-            })
-          }
-        }
-      })
-
-      // // 跳转到登录页
-      // wx.navigateTo({
-      //   url: `/pages/login/index?redirectUrl=${encodeURIComponent(url)}`,
-      //   success: () => {
-      //     // 可以在登录页设置回调，登录成功后自动跳转
-      //   }
-      // });
-      return;
-    }
-    
-    // 已登录，正常跳转
-    wx.navigateTo(options);
+    navigateToWithAuth(options, this);
   },
   // 不检查，直接跳转登陆
   navigateToLogin(options) {
-    const { url, success, fail, complete } = options;
-    if (!this.checkLoginStatus()) {
-      const retQ = url ? `&return=${encodeURIComponent(url)}` : '';
-      const loginUrl = this._loginUrlWithReferrer(retQ)
-      wx.navigateTo({
-        url: loginUrl,
-        fail: () => {
-          wx.redirectTo({ url: loginUrl })
-        }
-      })
-      return;
-    }
-    // 已登录，正常跳转
-    wx.navigateTo(options);
+    navigateToLogin(options, this);
   },
   // 全局显示/隐藏浮动按钮
   showGlobalFloatButton() {

@@ -18,16 +18,19 @@ export class LoginParams extends BaseParams {
   // 参数验证
   validate() {
     const errors = []
-    
-    // if (!this.username || this.username.trim().length === 0) {
-    //   errors.push('用户名不能为空')
-    // }
-    
-    // if (!this.password || this.password.length < 6) {
-    //   errors.push('密码长度不能少于6位')
-    // }
 
-    if (!this.phone || !/^1[3-9]\d{9}$/.test(this.phone)) {
+    if (this.grantType === 'password') {
+      if (!this.username || this.username.trim().length === 0) {
+        errors.push('用户名不能为空')
+      }
+      if (!this.password || this.password.length < 6) {
+        errors.push('密码长度不能少于6位')
+      }
+    } else if (!this.code) {
+      errors.push('微信登录凭证不能为空')
+    }
+
+    if (this.phone && !/^1[3-9]\d{9}$/.test(this.phone)) {
       errors.push('手机号格式不正确')
     }
     
@@ -100,8 +103,7 @@ export class RegisterParams extends BaseParams {
       inviteCode: this.inviteCode,
       timestamp: this.timestamp,
       deviceType: this.deviceType,
-      code: this.code,
-      phone: this.phone
+      code: this.code
     }
   }
 }
@@ -109,7 +111,7 @@ export class RegisterParams extends BaseParams {
 export class WxLoginParams extends BaseParams {
   constructor(code, phone) {
     super()
-    this.code = code,
+    this.code = code
     this.phone = phone
   }
   

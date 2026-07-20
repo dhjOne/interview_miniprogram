@@ -1,4 +1,5 @@
-import { bannerApi } from '~/api/request/api_banner';
+import { bannerApi } from '~/api/index';
+import { navigateToLogin, openPage } from '~/utils/router';
 
 export const POSITION_MY_CAROUSEL = 'MY_CAROUSEL';
 export const POSITION_QUESTION_FEED = 'QUESTION_FEED';
@@ -115,10 +116,10 @@ export function openBannerLink(item) {
   if (!item || item.linkType !== 'PAGE' || !item.linkUrl) return;
   const app = getApp();
   if (bannerNeedsLogin(item.linkUrl)) {
-    app.navigateToLogin({ url: item.linkUrl });
+    navigateToLogin({ url: item.linkUrl }, app);
     return;
   }
-  wx.navigateTo({ url: item.linkUrl });
+  openPage({ url: item.linkUrl });
 }
 
 export function isBannerDismissedToday(position) {

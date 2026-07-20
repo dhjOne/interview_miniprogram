@@ -1,5 +1,5 @@
 
-//问题参数
+// 问题参数
 export class QuestionPublishParams {
   constructor(title, categoryId, content, previewFullContent, docId, operationType = 'publish') {
     this.title = title

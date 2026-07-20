@@ -1,4 +1,4 @@
-import { creatorInsightsApi } from '~/api/request/api_creator_insights';
+import { creatorInsightsApi } from '~/api/index';
 import { formatStatCount } from '~/utils/userSocial';
 
 function pickPayload(res) {

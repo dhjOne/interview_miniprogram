@@ -89,7 +89,7 @@ Page({
       if (user.userId === userId) return { user, index };
       index += 1;
     }
-    // TODO：处理 userId 在列表中不存在的情况（）
+    return null;
   },
 
   /** 计算未读消息数量 */

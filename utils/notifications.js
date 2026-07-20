@@ -1,6 +1,7 @@
 /**
  * 社交通知：分类、展示归一化、跳转映射
  */
+import { openPage } from './router';
 
 export const NOTIFY_TABS = [
   { label: '全部', value: 'all' },
@@ -106,7 +107,7 @@ export function navigateByNotification(item) {
   if (type === 'SOCIAL_FOLLOW') {
     const userId = actorId || targetId;
     if (userId) {
-      wx.navigateTo({
+      openPage({
         url: `/pages/ucenter/profile/index?userId=${userId}`
       });
       return true;
@@ -114,7 +115,7 @@ export function navigateByNotification(item) {
   }
 
   if (type === 'PROFILE_AUDIT') {
-    wx.navigateTo({ url: '/pages/my/info-edit/index' });
+    openPage({ url: '/pages/my/info-edit/index' });
     return true;
   }
 
@@ -126,7 +127,7 @@ export function navigateByNotification(item) {
     type === 'COMMENT_LIKE'
   ) {
     if (targetId) {
-      wx.navigateTo({
+      openPage({
         url: `/pages/question/detail/index?id=${targetId}`
       });
       return true;
@@ -134,19 +135,19 @@ export function navigateByNotification(item) {
   }
 
   if (type === 'POINT_APPEAL') {
-    wx.navigateTo({ url: '/pages/ucenter/points/appeals/index' });
+    openPage({ url: '/pages/ucenter/points/appeals/index' });
     return true;
   }
 
   if (targetType === 'QUESTION' && targetId) {
-    wx.navigateTo({
+    openPage({
       url: `/pages/question/detail/index?id=${targetId}`
     });
     return true;
   }
 
   if (targetType === 'USER' && (actorId || targetId)) {
-    wx.navigateTo({
+    openPage({
       url: `/pages/ucenter/profile/index?userId=${actorId || targetId}`
     });
     return true;

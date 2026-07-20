@@ -1,33 +1,25 @@
-// /** 是否使用mock代替api返回 */
-// export const config = {
-//   useMock: true,
-// };
-
-// export default { config };
-// config/index.js
-// 根据编译环境动态加载配置
+// config/index.js — 按微信小程序编译环境加载配置
 let config = {}
 
-// 微信小程序环境判断
-if (__wxConfig && __wxConfig.envVersion) {
-  const env = __wxConfig.envVersion
-  console.log("env",env);
-  switch (env) {
-    case 'develop':    // 开发版
+if (typeof __wxConfig !== 'undefined' && __wxConfig && __wxConfig.envVersion) {
+  switch (__wxConfig.envVersion) {
+    case 'develop':
       config = require('./dev.js').default
       break
-    case 'trial':      // 体验版
+    case 'trial':
       config = require('./test.js').default
       break
-    case 'release':    // 正式版
+    case 'release':
     default:
       config = require('./prod.js').default
       break
   }
 } else {
-  // 开发工具中默认使用开发环境
   config = require('./dev.js').default
 }
 
-// 导出配置
+if (config.features && config.features.enableDebug) {
+  console.log('[config]', config.env, config.baseUrl, config.apiPrefix)
+}
+
 export default config

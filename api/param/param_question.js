@@ -1,7 +1,7 @@
 import { BaseParams } from './param_base'
 import { SortParams } from './param_base'
 
-//问题参数
+// 问题参数
 export class QuestionParams extends SortParams  {
   /**
    * @param {string|null} title
@@ -47,7 +47,7 @@ export class PracticeRankingParams extends BaseParams {
   }
 }
 
-//点赞收藏参数
+// 点赞收藏参数
 export class QuestionLikeOrCollectParams extends BaseParams {
   constructor(questionId, like, collect) {
     super()

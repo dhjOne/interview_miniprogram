@@ -1,5 +1,5 @@
 import Message from 'tdesign-miniprogram/message';
-import { authApi } from '~/api/request/api_category';
+import { categoryApi } from '~/api/index';
 import { CategoryParams } from '~/api/param/param_category';
 import { fetchPersonalInfo } from '~/utils/userProfile';
 import { hasProfessionSelected } from '~/utils/profession';
@@ -122,11 +122,15 @@ Page({
     this.loadOpsSlots();
     this.initCategoryScope(options.scope).finally(() => this.loadPrimaryCategories());
 
-    app.on('refreshQuestionBank', this.handleRefresh.bind(this));
+    this._onRefreshQuestionBank = this.handleRefresh.bind(this);
+    app.on('refreshQuestionBank', this._onRefreshQuestionBank);
   },
 
   onUnload() {
-    app.off('refreshQuestionBank', this.handleRefresh);
+    if (this._onRefreshQuestionBank) {
+      app.off('refreshQuestionBank', this._onRefreshQuestionBank);
+      this._onRefreshQuestionBank = null;
+    }
   },
 
   handleRefresh() {
@@ -263,7 +267,7 @@ Page({
       categoryParams.sortField = 'sort_order';
       categoryParams.order = 'asc';
       console.log('[category] 加载一级分类 scope=', scope, 'url=', scope === 'career' ? '/repository/category/career' : '/repository/category');
-      const response = await authApi.getCategories(categoryParams);
+      const response = await categoryApi.getCategories(categoryParams);
       console.log('一级分类：', response);
 
       const primaryCategories = response.data?.rows || [];
@@ -368,7 +372,7 @@ Page({
       categoryParams.page = nextPage;
       categoryParams.limit = this.data.secondaryPageSize;
       console.log('[category] 加载二级分类 parentId=', parentId, 'scope=', requestScope);
-      const response = await authApi.getCategories(categoryParams);
+      const response = await categoryApi.getCategories(categoryParams);
       console.log('二级分类：', response);
 
       if (parentId != this.data.currentPrimaryId || requestScope !== this.data.categoryScope) {
@@ -587,7 +591,7 @@ Page({
 
   goRelease() {
     wx.navigateTo({
-      url: '/pages/release/release'
+      url: '/pages/publish/index'
     });
   },
 

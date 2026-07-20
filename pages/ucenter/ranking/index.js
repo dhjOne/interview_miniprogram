@@ -1,4 +1,4 @@
-import { practiceApi } from '~/api/request/api_practice';
+import { practiceApi } from '~/api/index';
 import { PracticeRankingParams } from '~/api/param/param_question';
 
 const app = getApp();

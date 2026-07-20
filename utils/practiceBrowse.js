@@ -1,5 +1,5 @@
-import { practiceApi } from '~/api/request/api_practice';
-import { authApi } from '~/api/request/api_question';
+import { practiceApi } from '~/api/index';
+import { questionApi } from '~/api/index';
 import {
   getQuestionBrowseHistory,
   recordQuestionBrowse
@@ -106,7 +106,7 @@ export async function trackQuestionBrowse(question) {
         toRequestData: () => ({ questionId })
       });
     } else {
-      await authApi.incrementViewCount(questionId);
+      await questionApi.incrementViewCount(questionId);
     }
   } catch (e) {
     console.warn('[practiceBrowse] track failed', e);

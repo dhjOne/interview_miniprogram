@@ -18,8 +18,8 @@ Component({
     visible: false,
     sidebar: [
       {
-        title: '首页',
-        url: 'pages/home/index',
+        title: '题库',
+        url: 'pages/category/index',
         isSidebar: true,
       },
       {
@@ -29,7 +29,7 @@ Component({
       },
       {
         title: '发布页',
-        url: 'pages/release/index',
+        url: 'pages/publish/index',
         isSidebar: false,
       },
       {

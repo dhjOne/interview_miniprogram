@@ -1,4 +1,5 @@
 import http from '../api_request';
+import { unwrapData } from '../helpers';
 
 export const profileApi = {
   getPersonalInfo: () =>
@@ -28,9 +29,9 @@ export const profileApi = {
     })
 };
 
+/** @deprecated 请优先用 unwrapData；保留别名兼容旧调用 */
 export function pickProfileData(res) {
-  if (!res || typeof res !== 'object') return null;
-  return res.data !== undefined ? res.data : res;
+  return unwrapData(res);
 }
 
 export function normalizePersonalInfo(raw) {

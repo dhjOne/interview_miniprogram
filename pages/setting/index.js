@@ -1,6 +1,5 @@
 import useToastBehavior from '~/behaviors/useToast';
-import { authApi } from '~/api/request/api_login';
-import { profileApi, pickProfileData } from '~/api/request/api_profile';
+import { authApi, profileApi, unwrapData, handleApiError } from '~/api/index';
 import {
   QUESTION_SCOPE_OPTIONS,
   getLocalSettings,
@@ -106,8 +105,8 @@ Page({
         profileApi.getPersonalInfo(),
         profileApi.getSettings()
       ]);
-      const profile = pickProfileData(profileRes) || {};
-      const remoteSettings = pickProfileData(settingsRes) || {};
+      const profile = unwrapData(profileRes) || {};
+      const remoteSettings = unwrapData(settingsRes) || {};
       const merged = { ...local, ...remoteSettings };
       const normalized = saveLocalSettings(merged);
       this.setData({
@@ -116,6 +115,7 @@ Page({
         historyCount: getQuestionBrowseHistoryCount()
       });
     } catch (e) {
+      handleApiError(e, { showToast: false });
       console.warn('[setting] 加载设置失败，使用本地缓存', e);
     }
   },

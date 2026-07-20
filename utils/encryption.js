@@ -10,6 +10,15 @@ const EC = require('../lib/elliptic.min.js');
 
 /** 在会话过期前提前续期，略小于 storage 的 TTL，与后端 30min 窗口对齐 */
 const RENEW_BEFORE_EXPIRY_MS = 5 * 60 * 1000;
+const enableDebug = !!(config.features && config.features.enableDebug);
+
+function debugLog(...args) {
+  if (enableDebug) console.log(...args);
+}
+
+function warnLog(...args) {
+  if (enableDebug) console.warn(...args);
+}
 
 // 为椭圆曲线库配置小程序环境的随机数生成器
 function randomBytes(size) {
@@ -25,8 +34,20 @@ function randomBytes(size) {
   return array;
 }
 
-// 配置椭圆曲线库使用自定义随机数生成器
-EC.utils.rand = randomBytes;
+function bytesToHex(bytes) {
+  return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+function generatePrivateKeyHex() {
+  let privateKeyHex = '';
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    privateKeyHex = bytesToHex(randomBytes(32));
+    if (!/^0+$/.test(privateKeyHex)) {
+      return privateKeyHex;
+    }
+  }
+  throw new Error('生成私钥随机数失败');
+}
 
 
 class ECDHManager {
@@ -35,7 +56,8 @@ class ECDHManager {
     this.sessionId = null;
     this.sharedKeyHex = null; // AES-256 密钥（hex格式）
     this.clientKeyPair = null;
-    this.useTestKeys = true; // 开发模式下使用预定义密钥对
+    this.useTestKeys =
+      config.env !== 'production' && !!(config.encryption && config.encryption.useTestKeys);
     /** 并发去重：多路同时 ensureSession 只发起一次交换 */
     this._exchangePromise = null;
     /** 到期前自动续期的定时器 */
@@ -54,7 +76,7 @@ class ECDHManager {
   startLifecycle() {
     if (this._isEncryptionDisabled()) return
     this.ensureSession({ silent: true }).catch((e) => {
-      console.warn('[ECDH] 预加载失败，首包业务请求将重试密钥交换', e)
+      warnLog('[ECDH] 预加载失败，首包业务请求将重试密钥交换', e)
     })
   }
 
@@ -93,7 +115,7 @@ class ECDHManager {
     const delay = Math.max(renewAt - Date.now(), 10 * 1000)
     this._renewTimer = setTimeout(() => {
       this.ensureSession({ silent: true }).catch((e) => {
-        console.warn('[ECDH] 定时续期失败，将在后续请求时重试', e)
+        warnLog('[ECDH] 定时续期失败，将在后续请求时重试', e)
       })
     }, delay)
   }
@@ -136,7 +158,7 @@ class ECDHManager {
     if (session) {
       this.sessionId = session.sessionId;
       this.sharedKeyHex = session.sharedKeyHex;
-      console.log('✅ 会话已恢复:', this.sessionId);
+      debugLog('[ECDH] 会话已恢复:', this.sessionId);
     }
   }
 
@@ -145,14 +167,16 @@ class ECDHManager {
    */
   generateClientKeyPair() { 
     try {
-      console.log('🔐 开始生成客户端密钥对...');
+      debugLog('[ECDH] 开始生成客户端密钥对');
       if (this.useTestKeys) {
-        // 开发模式：使用预定义的测试密钥对
-        const testPrivateKey = 'c9afa9d845ba75166b5c215767b1d6934e50c3db36e89b127b8a622b120f6721';
+        // 仅本地调试可通过本地配置显式提供，生产环境永不使用固定私钥。
+        const testPrivateKey = config.encryption && config.encryption.testPrivateKey;
+        if (!testPrivateKey) {
+          throw new Error('已开启测试密钥但未配置 testPrivateKey');
+        }
         this.clientKeyPair = this.ec.keyFromPrivate(testPrivateKey, 'hex');
       } else {
-        // 生产模式：正常生成密钥对
-        this.clientKeyPair = this.ec.genKeyPair();
+        this.clientKeyPair = this.ec.keyFromPrivate(generatePrivateKeyHex(), 'hex');
       }
       // 导出公钥为 X.509 标准格式
       const pubKeyPoint = this.clientKeyPair.getPublic();
@@ -161,9 +185,7 @@ class ECDHManager {
       // 构建 X.509 格式的公钥（动态拼接）
       const x509PubKeyHex = this.buildX509PublicKey(pubKeyHex);
       
-      console.log('✅ 客户端密钥对生成成功');
-      console.log('📝 公钥格式: X.509 标准格式');
-      console.log('📏 公钥长度:', x509PubKeyHex.length / 2, '字节');
+      debugLog('[ECDH] 客户端密钥对生成成功，公钥长度:', x509PubKeyHex.length / 2, '字节');
       return x509PubKeyHex;
     } catch (error) {
       console.error('❌ 密钥对生成失败:', error);
@@ -257,7 +279,7 @@ class ECDHManager {
             duration: 1500
           })
         }
-        console.log('✅ 密钥交换成功, sessionId:', this.sessionId)
+        debugLog('[ECDH] 密钥交换成功, sessionId:', this.sessionId)
         return true
       }
       throw new Error('密钥交换失败: ' + (res.message || res.code))
@@ -265,7 +287,7 @@ class ECDHManager {
       if (showedLoading) {
         wx.hideLoading()
       }
-      console.error('❌ 密钥交换失败:', error)
+      console.error('[ECDH] 密钥交换失败:', error)
       if (!silent) {
         wx.showToast({
           title: '加密初始化失败',
@@ -377,9 +399,9 @@ class ECDHManager {
       
       this.sharedKeyHex = sha256Hash;
       
-      console.log('✅ 共享密钥计算完成');
+      debugLog('[ECDH] 共享密钥计算完成');
     } catch (error) {
-      console.error('❌ 共享密钥计算失败:', error);
+      console.error('[ECDH] 共享密钥计算失败:', error);
       throw error;
     }
   }
@@ -435,11 +457,11 @@ class ECDHManager {
 
       const jsonData = JSON.parse(decryptedText);
       
-      console.log('✅ 响应解密成功');
+      debugLog('[ECDH] 响应解密成功');
       return jsonData;
 
     } catch (error) {
-      console.error('❌ 响应解密失败:', error);
+      console.error('[ECDH] 响应解密失败:', error);
       
       // 如果是解密失败，可能是密钥过期，清除会话
       if (error.message.includes('密钥') || error.message.includes('解密')) {
@@ -483,7 +505,7 @@ class ECDHManager {
     // Step 4: 解密响应；wxRequest 的返回值即 HTTP body（常见为 ApiResult 包一层 data）
     const envelope = this.pickSecureEnvelope(res);
     if (needDecrypt && envelope) {
-      console.log('🔐 检测到加密响应，开始解密...');
+      debugLog('[ECDH] 检测到加密响应，开始解密');
       const decryptedData = await this.decryptResponse(envelope);
       res.data = decryptedData;
     }
@@ -497,7 +519,7 @@ class ECDHManager {
   wxRequest(options) {
     return new Promise((resolve, reject) => {
       wx.request({
-        url: `${config.baseUrl}${options.url}`,
+        url: this.buildRequestUrl(options.url),
         method: options.method || 'GET',
         header: options.header || {},
         data: options.data || {},
@@ -551,7 +573,7 @@ class ECDHManager {
     this.sharedKeyHex = null;
     this.clientKeyPair = null;
     storage.clearSession();
-    console.log('🗑️ 会话已清除');
+    debugLog('[ECDH] 会话已清除');
   }
 
   /**
@@ -574,6 +596,21 @@ class ECDHManager {
    */
   getSessionId() {
     return this.sessionId;
+  }
+
+  buildRequestUrl(url) {
+    const rawUrl = String(url || '');
+    if (/^https?:\/\//i.test(rawUrl)) return rawUrl;
+
+    const base = String(config.baseUrl || '').replace(/\/$/, '');
+    const prefix = String(config.apiPrefix || '/api');
+    const normalizedPrefix = prefix.startsWith('/') ? prefix : `/${prefix}`;
+    const normalizedPath = rawUrl.startsWith('/') ? rawUrl : `/${rawUrl}`;
+
+    if (normalizedPath === normalizedPrefix || normalizedPath.startsWith(`${normalizedPrefix}/`)) {
+      return `${base}${normalizedPath}`;
+    }
+    return `${base}${normalizedPrefix}${normalizedPath}`;
   }
 
   // ========== 辅助函数 ==========

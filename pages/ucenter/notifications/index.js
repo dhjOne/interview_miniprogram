@@ -1,4 +1,4 @@
-import { socialApi } from '~/api/request/api_social';
+import { socialApi } from '~/api/index';
 import {
   NOTIFY_TABS,
   normalizeNotificationRow,

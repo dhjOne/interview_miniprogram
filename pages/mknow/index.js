@@ -1,4 +1,4 @@
-import { aiApi } from '~/api/request/api_ai';
+import { aiApi } from '~/api/index';
 import useToastBehavior from '~/behaviors/useToast';
 import { fetchAiQuota } from '~/utils/points';
 import {
@@ -485,7 +485,8 @@ Page({
     const { fetchRemote = false } = options;
     let conversations = listConversations();
     if (fetchRemote && hasLoginToken()) {
-      const reqId = (this._historyFetchId = (this._historyFetchId || 0) + 1);
+      this._historyFetchId = (this._historyFetchId || 0) + 1;
+      const reqId = this._historyFetchId;
       try {
         const res = await aiApi.listConversations({ page: 1, limit: 30 });
         if (reqId !== this._historyFetchId) return;
@@ -633,7 +634,7 @@ Page({
   onDeleteConversation(e) {
     const { id } = e.currentTarget.dataset;
     if (!id) return;
-    e.stopPropagation && e.stopPropagation();
+    if (e.stopPropagation) e.stopPropagation();
 
     wx.showModal({
       title: '删除对话',

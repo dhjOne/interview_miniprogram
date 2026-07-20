@@ -1,12 +1,11 @@
-import { profileApi, pickProfileData, normalizePersonalInfo } from '~/api/request/api_profile';
-import { socialApi } from '~/api/request/api_social';
+import { profileApi, normalizePersonalInfo, unwrapData, socialApi } from '~/api/index';
 
 const app = getApp();
 export const DEFAULT_AVATAR = '/static/avatar1.png';
 
 export async function fetchPersonalInfo() {
   const res = await profileApi.getPersonalInfo();
-  return normalizePersonalInfo(pickProfileData(res));
+  return normalizePersonalInfo(unwrapData(res));
 }
 
 export async function savePersonalInfo(payload) {
@@ -86,13 +85,13 @@ export function normalizeProfileRow(row = {}, fallbackUserId = '') {
 
 export async function fetchUserProfile(userId) {
   const res = await socialApi.getUserProfile({ userId });
-  const profile = normalizeProfileRow(pickProfileData(res) || res.data || {}, userId);
+  const profile = normalizeProfileRow(unwrapData(res) || {}, userId);
   return { profile, fromDemo: false };
 }
 
 export async function fetchUserQuestions(userId, page = 1, limit = 20) {
   const res = await socialApi.getUserQuestions({ userId, page, limit });
-  const data = res.data || {};
+  const data = unwrapData(res) || {};
   const rows = data.rows || data.list || data.records || [];
   const list = rows.map(item => ({
     ...item,

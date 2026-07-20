@@ -1,5 +1,5 @@
 import { fetchSocialList } from '~/utils/userSocial';
-import { socialApi } from '~/api/request/api_social';
+import { socialApi } from '~/api/index';
 
 /**
  * 关注 / 粉丝 / 访问 列表页通用逻辑
@@ -102,8 +102,7 @@ export function createSocialListPage(listType) {
       this.setData({ [key]: nextFollowing });
 
       try {
-        const res = await socialApi.toggleFollow({ userId: id, follow: nextFollowing });
-        if (res.code !== '0000') throw new Error(res.message || '操作失败');
+        await socialApi.toggleFollow({ userId: id, follow: nextFollowing });
         wx.showToast({
           title: nextFollowing ? '已关注' : '已取消关注',
           icon: 'none'

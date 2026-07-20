@@ -1,5 +1,5 @@
 import Message from 'tdesign-miniprogram/message/index';
-import { authApi } from '~/api/request/api_question';
+import { questionApi, unwrapData, handleApiError } from '~/api/index';
 import { QuestionParams, QuestionLikeOrCollectParams } from '~/api/param/param_question';
 
 const app = getApp();
@@ -113,46 +113,33 @@ Page({
       questionParams.page = requestPage;
       questionParams.limit = this.data.pageSize;
 
-      const response = await authApi.getQuestionList(questionParams);
+      const response = await questionApi.getQuestionList(questionParams);
+      const data = unwrapData(response) || {};
+      const rawList = data.rows || [];
+      const total = data.total || 0;
+      const newList = rawList.map(normalizeQuestionRow);
 
-      if (response.code == '0000') {
-        const rawList = response.data.rows || [];
-        const total = response.data.total || 0;
-        const newList = rawList.map(normalizeQuestionRow);
-
-        if (refresh) {
-          this.setData({
-            questionList: newList,
-            totalCount: total,
-            page: 1,
-            hasMore: newList.length < total,
-            loadAttempted: true
-          });
-        } else {
-          const merged = [...this.data.questionList, ...newList];
-          this.setData({
-            questionList: merged,
-            totalCount: total,
-            page: requestPage,
-            hasMore: merged.length < total,
-            loadAttempted: true
-          });
-        }
-      } else {
-        Message.error({
-          context: this,
-          offset: [20, 32],
-          content: response.message || '加载失败'
+      if (refresh) {
+        this.setData({
+          questionList: newList,
+          totalCount: total,
+          page: 1,
+          hasMore: newList.length < total,
+          loadAttempted: true
         });
-        this.setData({ loadAttempted: true });
+      } else {
+        const merged = [...this.data.questionList, ...newList];
+        this.setData({
+          questionList: merged,
+          totalCount: total,
+          page: requestPage,
+          hasMore: merged.length < total,
+          loadAttempted: true
+        });
       }
     } catch (error) {
       console.error('收藏列表加载失败:', error);
-      Message.error({
-        context: this,
-        offset: [20, 32],
-        content: '网络错误，请重试'
-      });
+      handleApiError(error, { fallbackMessage: '网络错误，请重试' });
       this.setData({ loadAttempted: true });
     } finally {
       this.setData({ loading: false });
@@ -205,47 +192,35 @@ Page({
     if (!question) return;
 
     try {
-      const response = await authApi.toggleCollect(
+      await questionApi.toggleCollect(
         new QuestionLikeOrCollectParams(questionId, null, !question.isCollected)
       );
 
-      if (response.code == '0000') {
-        const isNowCollected = !question.isCollected;
-        if (!isNowCollected) {
-          const updatedList = this.data.questionList.filter((item) => item.id !== questionId);
-          this.setData({
-            questionList: updatedList,
-            totalCount: Math.max(0, (this.data.totalCount || 1) - 1)
-          });
-        } else {
-          const updatedList = this.data.questionList.map((item) => {
-            if (item.id === questionId) {
-              return { ...item, isCollected: true };
-            }
-            return item;
-          });
-          this.setData({ questionList: updatedList });
-        }
-        Message.success({
-          context: this,
-          offset: [20, 32],
-          duration: 2000,
-          content: question.isCollected ? '已取消收藏' : '收藏成功'
+      const isNowCollected = !question.isCollected;
+      if (!isNowCollected) {
+        const updatedList = this.data.questionList.filter((item) => item.id !== questionId);
+        this.setData({
+          questionList: updatedList,
+          totalCount: Math.max(0, (this.data.totalCount || 1) - 1)
         });
       } else {
-        Message.error({
-          context: this,
-          offset: [20, 32],
-          content: response.message || '操作失败'
+        const updatedList = this.data.questionList.map((item) => {
+          if (item.id === questionId) {
+            return { ...item, isCollected: true };
+          }
+          return item;
         });
+        this.setData({ questionList: updatedList });
       }
-    } catch (err) {
-      console.error('收藏操作失败:', err);
-      Message.error({
+      Message.success({
         context: this,
         offset: [20, 32],
-        content: '操作失败，请重试'
+        duration: 2000,
+        content: question.isCollected ? '已取消收藏' : '收藏成功'
       });
+    } catch (err) {
+      console.error('收藏操作失败:', err);
+      handleApiError(err, { fallbackMessage: '操作失败，请重试' });
     }
   },
 

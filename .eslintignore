@@ -1,0 +1,9 @@
+node_modules/
+miniprogram_npm/
+subpackages/towxml/
+mock/
+lib/
+utils/block.js
+utils/block_editor.js
+utils/text_block.js
+project.private.config.json

@@ -1,4 +1,4 @@
-import { socialApi } from '~/api/request/api_social';
+import { socialApi } from '~/api/index';
 
 Page({
   data: {
@@ -66,8 +66,7 @@ Page({
     const { userId, index } = e.currentTarget.dataset;
     if (!userId) return;
     try {
-      const res = await socialApi.unblockUser(userId);
-      if (res.code !== '0000') throw new Error(res.message || '操作失败');
+      await socialApi.unblockUser(userId);
       const list = this.data.list.slice();
       list.splice(Number(index), 1);
       this.setData({ list });

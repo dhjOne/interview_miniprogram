@@ -1,4 +1,4 @@
-import { authApi } from '~/api/request/api_login';
+import { authApi } from '~/api/index';
 import { LoginParams } from '~/api/param/param_login'
 import { WxLoginParams } from '~/api/param/param_login'
 import http from '~/api/api_request';
@@ -7,9 +7,7 @@ import http from '~/api/api_request';
 const LOGIN_TAB_ROOTS = [
   '/pages/category/index',
   '/pages/mknow/index',
-  '/pages/my/index',
-  '/pages/home/index',
-  '/pages/message/index'
+  '/pages/my/index'
 ];
 
 Page({
@@ -170,22 +168,15 @@ Page({
       const result = await authApi.login(loginParams);
       console.log("密码登录结果", result);
       
-      if (result.code === "0000") {
-        wx.setStorageSync('access_token', result.data.accessToken);
-        const token = wx.getStorageSync('access_token')
-         console.log('login:::::', token)
-        // 登录成功后的跳转处理
-        await this.handleLoginSuccess(result);
-      } else {
-        wx.showToast({
-          title: result.message || '登录失败',
-          icon: 'none'
-        });
-      }
+      wx.setStorageSync('access_token', result.data.accessToken);
+      const token = wx.getStorageSync('access_token')
+       console.log('login:::::', token)
+      // 登录成功后的跳转处理
+      await this.handleLoginSuccess(result);
     } catch (error) {
       console.error('密码登录失败:', error);
       wx.showToast({
-        title: '登录失败，请重试',
+        title: error?.message || '登录失败，请重试',
         icon: 'none'
       });
     }
@@ -458,22 +449,15 @@ Page({
       const result = await authApi.login(loginParams);
       console.log("微信登录结果", result);
       
-      if (result.code === "0000") {
-        wx.setStorageSync('access_token', result.data.accessToken);
-        const token = wx.getStorageSync('access_token')
-         console.log('login:::::', token)
-        // 登录成功后的统一处理
-        await this.handleLoginSuccess(result);
-      } else {
-        wx.showToast({
-          title: result.message || '登录失败',
-          icon: 'none'
-        });
-      }
+      wx.setStorageSync('access_token', result.data.accessToken);
+      const token = wx.getStorageSync('access_token')
+       console.log('login:::::', token)
+      // 登录成功后的统一处理
+      await this.handleLoginSuccess(result);
     } catch (error) {
       console.error('微信登录过程出错:', error);
       wx.showToast({
-        title: '登录失败，请重试',
+        title: error?.message || '登录失败，请重试',
         icon: 'none'
       });
     } finally {
@@ -549,7 +533,7 @@ Page({
 
   _loginGoBackLastResort() {
     wx.switchTab({
-      url: '/pages/home/index'
+      url: '/pages/category/index'
     });
   }
 });

@@ -1,5 +1,5 @@
-import Message from 'tdesign-miniprogram/message/index';
-import { searchApi } from '~/api/request/api_search';
+import { searchApi, unwrapData, handleApiError } from '~/api/index';
+import { openPage } from '~/utils/router';
 
 const LOCAL_HISTORY_KEY = 'mini_search_history';
 const MAX_LOCAL_HISTORY = 20;
@@ -70,13 +70,11 @@ Page({
   async queryHistory() {
     if (isLoggedIn()) {
       try {
-        const res = await searchApi.getHistory();
-        if (res.code === '0000') {
-          const items = res.data?.items || [];
-          const historyWords = res.data?.historyWords || items.map((item) => item.keyword);
-          this.setData({ historyItems: items, historyWords });
-          return;
-        }
+        const data = unwrapData(await searchApi.getHistory()) || {};
+        const items = data.items || [];
+        const historyWords = data.historyWords || items.map((item) => item.keyword);
+        this.setData({ historyItems: items, historyWords });
+        return;
       } catch (error) {
         console.warn('[search] 读取服务端历史失败，降级本地缓存', error);
       }
@@ -91,12 +89,10 @@ Page({
 
   async queryPopular() {
     try {
-      const res = await searchApi.getPopular();
-      if (res.code === '0000') {
-        this.setData({
-          popularWords: res.data?.popularWords || []
-        });
-      }
+      const data = unwrapData(await searchApi.getPopular()) || {};
+      this.setData({
+        popularWords: data.popularWords || []
+      });
     } catch (error) {
       console.warn('[search] 读取热门搜索失败', error);
     }
@@ -126,7 +122,7 @@ Page({
   navigateToResult(keyword) {
     const value = (keyword || '').trim();
     if (!value) return;
-    wx.navigateTo({
+    openPage({
       url: `/pages/search/result/index?keyword=${encodeURIComponent(value)}`
     });
   },
@@ -155,7 +151,7 @@ Page({
         try {
           await searchApi.deleteHistory(item.id);
         } catch (error) {
-          Message.error({ context: this, offset: [20, 32], content: '删除失败，请重试' });
+          handleApiError(error, { fallbackMessage: '删除失败，请重试' });
           this.setData({ dialogShow: false });
           return;
         }
@@ -172,7 +168,7 @@ Page({
       try {
         await searchApi.clearHistory();
       } catch (error) {
-        Message.error({ context: this, offset: [20, 32], content: '清空失败，请重试' });
+        handleApiError(error, { fallbackMessage: '清空失败，请重试' });
         this.setData({ dialogShow: false });
         return;
       }
@@ -236,6 +232,6 @@ Page({
 
   actionHandle() {
     this.setData({ searchValue: '' });
-    wx.switchTab({ url: '/pages/category/index' });
+    openPage({ url: '/pages/category/index' });
   }
 });

@@ -94,12 +94,6 @@
           "scene": null
         },
         {
-          "name": "loginCode",
-          "pathName": "pages/loginCode/loginCode",
-          "query": "",
-          "scene": null
-        },
-        {
           "name": "my",
           "pathName": "pages/my/index",
           "query": "",
@@ -118,8 +112,8 @@
           "scene": null
         },
         {
-          "name": "release",
-          "pathName": "pages/release/index",
+          "name": "publish",
+          "pathName": "pages/publish/index",
           "query": "",
           "launchMode": "default",
           "scene": null

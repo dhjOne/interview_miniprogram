@@ -1,4 +1,4 @@
-import { socialApi } from '~/api/request/api_social';
+import { socialApi } from '~/api/index';
 import {
   DEFAULT_AVATAR,
   fetchUserProfile,
@@ -198,13 +198,10 @@ Page({
     this.setData({ 'profile.isFollowing': nextFollowing });
 
     try {
-      const response = await socialApi.toggleFollow({
+      await socialApi.toggleFollow({
         userId: this.data.userId,
         follow: nextFollowing
       });
-      if (response.code !== '0000') {
-        throw new Error(response.message || '操作失败');
-      }
       wx.showToast({
         title: nextFollowing ? '已关注' : '已取消关注',
         icon: 'none'
@@ -227,8 +224,10 @@ Page({
       success: ({ tapIndex }) => {
         if (tapIndex === 0) {
           this.reportUser();
+        } else if (isBlocked) {
+          this.unblockUser();
         } else {
-          isBlocked ? this.unblockUser() : this.blockUser();
+          this.blockUser();
         }
       }
     });
@@ -236,7 +235,7 @@ Page({
 
   async reportUser() {
     try {
-      const res = await socialApi.submitReport({
+      await socialApi.submitReport({
         targetType: 'USER',
         targetId: this.data.userId,
         targetUserId: this.data.userId,
@@ -244,7 +243,6 @@ Page({
         reasonType: 'OTHER',
         reason: '用户主页举报'
       });
-      if (res.code !== '0000') throw new Error(res.message || '提交失败');
       wx.showToast({ title: '举报已提交', icon: 'none' });
     } catch (e) {
       wx.showToast({ title: e?.message || '提交失败', icon: 'none' });
@@ -258,11 +256,10 @@ Page({
       success: async ({ confirm }) => {
         if (!confirm) return;
         try {
-          const res = await socialApi.blockUser({
+          await socialApi.blockUser({
             userId: this.data.userId,
             reason: '用户主动拉黑'
           });
-          if (res.code !== '0000') throw new Error(res.message || '操作失败');
           this.setData({
             'profile.isBlocked': true,
             'profile.isFollowing': false
@@ -277,8 +274,7 @@ Page({
 
   async unblockUser() {
     try {
-      const res = await socialApi.unblockUser(this.data.userId);
-      if (res.code !== '0000') throw new Error(res.message || '操作失败');
+      await socialApi.unblockUser(this.data.userId);
       this.setData({ 'profile.isBlocked': false });
       wx.showToast({ title: '已解除拉黑', icon: 'none' });
     } catch (e) {

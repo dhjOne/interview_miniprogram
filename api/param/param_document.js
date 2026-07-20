@@ -1,6 +1,6 @@
 import { SortParams } from './param_base'
 
-//问题参数
+// 问题参数
 export class DocumentParams extends SortParams  {
   constructor(docType, timeRange, category) {
     super()

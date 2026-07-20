@@ -1,5 +1,5 @@
 import Message from 'tdesign-miniprogram/message';
-import { authApi } from '~/api/request/api_category';
+import { categoryApi } from '~/api/index';
 import { CategoryParams } from '~/api/param/param_category';
 import { QuestionParams } from '~/api/param/param_category';
 import { fetchPersonalInfo } from '~/utils/userProfile';
@@ -121,11 +121,15 @@ Page({
     this.calculateNavBarHeight();
     this.initCategoryScope(options.scope).finally(() => this.loadCategories());
 
-    app.on('refreshQuestionBank', this.handleRefresh.bind(this));
+    this._onRefreshQuestionBank = this.handleRefresh.bind(this);
+    app.on('refreshQuestionBank', this._onRefreshQuestionBank);
   },
 
   onUnload() {
-    app.off('refreshQuestionBank', this.handleRefresh);
+    if (this._onRefreshQuestionBank) {
+      app.off('refreshQuestionBank', this._onRefreshQuestionBank);
+      this._onRefreshQuestionBank = null;
+    }
   },
 
   handleRefresh() {
@@ -260,7 +264,7 @@ Page({
       const categoryParams = new CategoryParams(null, 0, this.data.categoryScope);
       categoryParams.sortField = 'sort_order';
       categoryParams.order = 'asc';
-      const response = await authApi.getCategories(categoryParams);
+      const response = await categoryApi.getCategories(categoryParams);
       console.log('分类列表：', response);
 
       const categories = response.data?.rows || [];
@@ -333,36 +337,31 @@ Page({
       questionParams.page = this.data.page;
       questionParams.limit = this.data.pageSize;
 
-      const response = await authApi.getQuestions(questionParams);
+      const response = await categoryApi.getQuestions(questionParams);
       console.log('问题列表：', response);
 
-      if (response.code === '0000' && response.data) {
-        const rawRows = response.data.rows || [];
-        const newChunk = decorateQuestionRows(rawRows);
-        const total = response.data.total || 0;
+      const data = response.data || {};
+      const rawRows = data.rows || [];
+      const newChunk = decorateQuestionRows(rawRows);
+      const total = data.total || 0;
 
-        const currentQuestions =
-          this.data.page === 1
-            ? newChunk
-            : [...this.data.currentQuestions, ...newChunk];
+      const currentQuestions =
+        this.data.page === 1
+          ? newChunk
+          : [...this.data.currentQuestions, ...newChunk];
 
-        const hasMore = currentQuestions.length < total;
+      const hasMore = currentQuestions.length < total;
 
-        this.setData({
-          currentQuestions,
-          total,
-          hasMore,
-          isLoadingMore: false
-        });
+      this.setData({
+        currentQuestions,
+        total,
+        hasMore,
+        isLoadingMore: false
+      });
 
-        console.log(
-          `第${this.data.page}页加载完成，共${currentQuestions.length}条，总计${total}条，还有更多: ${hasMore}`
-        );
-      } else {
-        this.setData({
-          isLoadingMore: false
-        });
-      }
+      console.log(
+        `第${this.data.page}页加载完成，共${currentQuestions.length}条，总计${total}条，还有更多: ${hasMore}`
+      );
     } catch (error) {
       console.error('加载问题失败:', error);
       this.showErrorMessage('加载内容失败');
@@ -531,7 +530,7 @@ Page({
 
   goRelease() {
     wx.navigateTo({
-      url: '/pages/release/release'
+      url: '/pages/publish/index'
     });
   },
 

@@ -1,5 +1,6 @@
-import { authApi } from '~/api/request/api_question';
+import { questionApi } from '~/api/index';
 import { DocumentParams } from '~/api/param/param_document';
+import { openPage } from '~/utils/router';
 // 在页面中使用
 const app = getApp();
 
@@ -308,7 +309,7 @@ Page({
 
   async getCategories() {
     try {
-      const res = await authApi.getPublishDocCategories();
+      const res = await questionApi.getPublishDocCategories();
       const list = this._normalizeCategoryList(res);
       const categoryDropdownOptions = this._buildCategoryDropdownOptions(list);
       this.setData({ categoryDropdownOptions }, () => {
@@ -345,7 +346,7 @@ Page({
       Object.assign(document, params);
       console.log('加载文档列表参数:', document);
 
-      const res = await authApi.getPublishList(document);
+      const res = await questionApi.getPublishList(document);
       
       // 添加数据为空或格式错误的处理
       if (!res || !res.data) {
@@ -536,7 +537,7 @@ onTabChange(e) {
   editDoc(id) {
     if (id === undefined || id === null || id === '') return;
     wx.setStorageSync('release_edit_doc_id', String(id));
-    wx.navigateTo({
+    openPage({
       url: `/pages/document/edit/index?id=${encodeURIComponent(id)}`,
       fail: function (res) {
         console.log('跳转失败', res);
@@ -559,7 +560,7 @@ onTabChange(e) {
       success: async (res) => {
         if (!res.confirm) return;
         try {
-          await authApi.deletePublishDoc(id);
+          await questionApi.deletePublishDoc(id);
           wx.showToast({
             title: '已删除',
             icon: 'success'
@@ -578,7 +579,7 @@ onTabChange(e) {
   // 预览文档（与发布页预览一致的 towxml 渲染）
   previewDoc(id) {
     if (id === undefined || id === null || id === '') return;
-    wx.navigateTo({
+    openPage({
       url: `/pages/document/preview/index?id=${encodeURIComponent(id)}`
     });
   },
@@ -586,7 +587,7 @@ onTabChange(e) {
   // 分享：进入预览页，使用「分享给好友」按钮触发转发
   shareDoc(id) {
     if (id === undefined || id === null || id === '') return;
-    wx.navigateTo({
+    openPage({
       url: `/pages/document/preview/index?id=${encodeURIComponent(id)}&share=1`
     });
   },

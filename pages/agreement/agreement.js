@@ -70,7 +70,7 @@ Page({
             wx.navigateBack()
           } else {
             wx.switchTab({
-              url: '/pages/home/index'
+              url: '/pages/category/index'
             })
           }
         }, 500)

@@ -1,4 +1,4 @@
-import { authApi } from '~/api/request/api_question';
+import { questionApi } from '~/api/index';
 import { DocumentParams } from '~/api/param/param_document';
 import { fetchUserProfile } from '~/utils/userProfile';
 import { fetchSocialSummary, formatStatCount } from '~/utils/userSocial';
@@ -40,7 +40,7 @@ export async function fetchPublishTotal(docType = 'all') {
       sortField: 'created_at',
       order: 'desc'
     });
-    const res = await authApi.getPublishList(document);
+    const res = await questionApi.getPublishList(document);
     const payload = pickPayload(res) || {};
     const rows = pickRows(payload);
     return pickTotal(payload, rows.length);
@@ -61,7 +61,7 @@ export async function fetchRecentPublished(limit = 3) {
       sortField: 'created_at',
       order: 'desc'
     });
-    const res = await authApi.getPublishList(document);
+    const res = await questionApi.getPublishList(document);
     const payload = pickPayload(res) || {};
     const rows = pickRows(payload);
     return rows.map((row) => ({

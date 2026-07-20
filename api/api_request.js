@@ -1,13 +1,26 @@
-// 方案1: 使用相对路径（推荐）
 import config from '../config/index'
 import encryption from '../utils/encryption'
-console.log('🔧 request.js中加载的配置:', config) // 调试日志
 
+const enableDebug = !!(config.features && config.features.enableDebug)
+
+function debugLog(...args) {
+  if (enableDebug) console.log(...args)
+}
+
+function debugGroup(label) {
+  if (enableDebug && console.group) console.group(label)
+}
+
+function debugGroupEnd() {
+  if (enableDebug && console.groupEnd) {
+    try { console.groupEnd() } catch (e) { /* noop */ }
+  }
+}
 
 /**
  * 业务错误类
  */
-class BusinessError extends Error {
+export class BusinessError extends Error {
   constructor(code, message, data = null) {
     super(message)
     this.name = 'BusinessError'
@@ -24,7 +37,7 @@ class Request {
   constructor() {
     this.baseUrl = config.baseUrl
     this.apiPrefix = config.apiPrefix || '/api'
-    this.successCode = config.successCode || '0000' // 成功的业务码
+    this.successCode = config.successCode || '0000'
     /** 避免并发 401 多次触发跳转登录 */
     this._unauthorizedRedirecting = false
   }
@@ -133,9 +146,9 @@ class Request {
         requestHeader['X-Session-Id'] = encryption.sessionId
       }
 
-      console.group(`🌐 网络请求: ${method} ${url}`)
-      console.log('请求参数:', requestData)
-      console.log('完整URL:', fullUrl)
+      debugGroup(`🌐 网络请求: ${method} ${url}`)
+      debugLog('请求参数:', requestData)
+      debugLog('完整URL:', fullUrl)
 
       const res = await this._wxRequestRaw({
         url: fullUrl,
@@ -145,8 +158,8 @@ class Request {
         timeout: config.timeout || 10000
       })
 
-      console.log('响应数据:', res)
-      console.groupEnd()
+      debugLog('响应数据:', res)
+      debugGroupEnd()
 
       const statusCode = Number(res.statusCode)
       if (statusCode !== 200) {
@@ -173,11 +186,11 @@ class Request {
         if (secureEnvelope.encryptedAesKey && secureEnvelope.encryptedIv) {
           throw new BusinessError(-3, '响应为 RSA 加密，请先完成 ECDH 密钥交换')
         }
-        console.log('🔐 检测到加密响应，开始解密...')
+        debugLog('🔐 检测到加密响应，开始解密...')
         try {
           responseData = await encryption.decryptResponse(secureEnvelope)
         } catch (decryptError) {
-          console.error('❌ 响应解密失败:', decryptError)
+          console.error('[request] 响应解密失败:', decryptError)
           if (retryCount < 1) {
             console.warn('[ECDH] 解密失败，重建会话并重试:', url)
             await encryption.renewSession()
@@ -195,10 +208,10 @@ class Request {
         encryption.touchSession()
       }
 
-      console.log('请求成功')
+      debugLog('请求成功')
       return responseData
     } catch (error) {
-      try { console.groupEnd() } catch (ignored) { /* noop */ }
+      debugGroupEnd()
       if (error instanceof BusinessError) throw error
       if (error instanceof Error) throw new BusinessError(-1, error.message || '请求失败')
       throw new BusinessError(-1, '请求失败，请稍后重试')
@@ -230,7 +243,6 @@ class Request {
   _getToken() {
     try {
       const token = wx.getStorageSync('access_token')
-      console.log('access_token:::::', token)
       return token ? `Bearer ${token}` : ''
     } catch (error) {
       return ''
@@ -300,9 +312,9 @@ class Request {
     if (error.errMsg && error.errMsg.includes('request:fail')) {
       if (error.errMsg.includes('timeout')) {
         return new BusinessError(-2, '请求超时，请检查网络连接')
-      } else {
+      } 
         return new BusinessError(-1, '网络连接失败，请检查网络设置')
-      }
+      
     }
     
     return new BusinessError(-1, '未知网络错误', error)
@@ -317,7 +329,7 @@ class Request {
   _handleUnauthorized(message) {
     if (this._unauthorizedRedirecting) return
     this._unauthorizedRedirecting = true
-    console.log('处理未授权（token过期）')
+    debugLog('处理未授权（token过期）')
 
     try {
       wx.removeStorageSync('access_token')
@@ -342,7 +354,7 @@ class Request {
     const currentRoute = currentPage && currentPage.route ? String(currentPage.route) : ''
 
     // 已在登录页时不要再跳，避免死循环；解锁以便登录成功后可再次拦截
-    if (currentRoute.includes('pages/login/login') || currentRoute.includes('pages/loginCode/')) {
+    if (currentRoute.includes('pages/login/login')) {
       this._unauthorizedRedirecting = false
       return
     }
@@ -450,37 +462,43 @@ class Request {
   // 上传文件
   upload(filePath, params = null, formData = {}, options = {}) {
     return new Promise((resolve, reject) => {
-      // 构建请求数据
       let requestData = formData
       if (params && typeof params.toRequestData === 'function') {
         const validation = params.validate ? params.validate() : { isValid: true, errors: [] }
         if (!validation.isValid) {
-          return reject({
-            code: 400,
-            message: validation.errors.join(', '),
-            type: 'PARAMS_VALIDATION_ERROR'
-          })
+          const errText = (validation.errors || []).join(', ')
+          reject(new BusinessError(400, errText || '参数校验失败'))
+          return
         }
         requestData = { ...requestData, ...params.toRequestData() }
       }
-      
+
+      const header = {
+        Authorization: this._getToken(),
+        ...(options.header || {})
+      }
+      if (this._isEncryptionPipelineEnabled() && encryption.sessionId) {
+        header['X-Session-Id'] = encryption.sessionId
+      }
+
       wx.uploadFile({
         url: this._buildUrl(options.url || '/upload'),
         filePath: filePath,
-        name: 'file',
+        name: options.name || 'file',
         formData: requestData,
-        header: {
-          'Authorization': this._getToken()
-        },
+        header,
         success: (res) => {
-          const data = JSON.parse(res.data)
-          // 检查HTTP状态码
-          if (res.statusCode !== 200) {
-            reject(this._handleHttpError(res))
+          let data
+          try {
+            data = typeof res.data === 'string' ? JSON.parse(res.data) : res.data
+          } catch (e) {
+            reject(new BusinessError(-1, '上传响应解析失败'))
             return
           }
-          
-          // 检查业务状态码
+          if (res.statusCode !== 200) {
+            reject(this._handleHttpError({ ...res, data }))
+            return
+          }
           if (options.checkBusinessCode !== false && !this._isBusinessSuccess(data)) {
             reject(this._handleBusinessError(data))
             return
@@ -488,61 +506,15 @@ class Request {
           resolve(data)
         },
         fail: (error) => {
-          reject(this._handleError(error))
+          reject(this._handleNetworkError(error))
         }
       })
     })
   }
 }
 
-// 创建单例实例
 const http = new Request()
 export default http
-
-// /**
-//  * 基础请求参数类型
-//  */
-// export class BaseParams {
-//   constructor() {
-//     this.timestamp = Date.now()
-//     this.deviceType = 'mini-program'
-//     this.version = '1.0.0'
-//   }
-// }
-
-// /**
-//  * 分页参数
-//  */
-// export class PaginationParams {
-//   constructor(page = 1, size = 10) {
-//     this.page = page
-//     this.size = size
-//   }
-  
-//   toQuery() {
-//     return {
-//       page: this.page,
-//       size: this.size
-//     }
-//   }
-// }
-
-// /**
-//  * 排序参数
-//  */
-// export class SortParams {
-//   constructor(field = 'createTime', order = 'desc') {
-//     this.field = field
-//     this.order = order
-//   }
-  
-//   toQuery() {
-//     return {
-//       sortField: this.field,
-//       sortOrder: this.order
-//     }
-//   }
-// }
 
 /**
  * 判断值是否为空
@@ -566,10 +538,10 @@ function filterEmptyFields(obj) {
   if (!obj || typeof obj !== 'object') return obj
   
   const result = {}
-  for (const [key, value] of Object.entries(obj)) {
+  Object.entries(obj).forEach(([key, value]) => {
     if (!isEmptyValue(value)) {
       result[key] = value
     }
-  }
+  })
   return result
 }

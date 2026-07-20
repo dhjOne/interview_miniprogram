@@ -1,10 +1,10 @@
-import { authApi } from '~/api/request/api_question';
-import { authApi as categoryApi } from '~/api/request/api_category';
+import Message from 'tdesign-miniprogram/message/index';
+import { questionApi } from '~/api/index';
+import { categoryApi } from '~/api/index';
 import { CategoryParams, CategorySuggestParams } from '~/api/param/param_category';
 import { QuestionPublishParams } from '~/api/param/param_publish';
 import { consumePendingPublish } from '~/utils/aiChatStorage';
 import { isFallbackCategory, isFallbackCategoryId, toCascaderNode, applyCascaderChange, findCascaderPath, searchCascaderFlat, resolveCascaderSelection, findFallbackCascaderNode } from '~/utils/categorySuggest';
-import Message from 'tdesign-miniprogram/message/index';
 // 获取应用实例
 const app = getApp();
 const { renderMarkdown } = require('../../utils/towxmlLoader');
@@ -1384,7 +1384,7 @@ Page({
         this.data.markdownContent,
         previewFullContent
       );
-      await authApi.publishQuestion(publishParams);
+      await questionApi.publishQuestion(publishParams);
 
       wx.removeStorageSync('markdown_draft');
       wx.showToast({

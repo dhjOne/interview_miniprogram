@@ -1,4 +1,4 @@
-import { authApi } from '~/api/request/api_question';
+import { questionApi } from '~/api/index';
 import { QuestionParams } from '~/api/param/param_question';
 
 const { renderMarkdown } = require('../../../utils/towxmlLoader');
@@ -67,7 +67,7 @@ Page({
     this.setData({ loading: true });
     try {
       const questionDetail = new QuestionParams(null, null, id);
-      const res = await authApi.getQuestionDetail(questionDetail);
+      const res = await questionApi.getQuestionDetail(questionDetail);
       const row = unwrapDetail(res);
       const docTitle = row.title || '';
       const markdownContent = row.content || row.markdownContent || '';

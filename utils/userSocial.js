@@ -1,4 +1,4 @@
-import { socialApi } from '~/api/request/api_social';
+import { socialApi } from '~/api/index';
 
 const DEFAULT_AVATAR = '/static/avatar1.png';
 

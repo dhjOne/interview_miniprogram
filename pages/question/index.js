@@ -1,6 +1,6 @@
 // pages/question/index.js
 import Message from 'tdesign-miniprogram/message/index';
-import { authApi } from '~/api/request/api_question';
+import { questionApi, unwrapData, handleApiError } from '~/api/index';
 import {
   QuestionLikeOrCollectParams,
   QuestionParams
@@ -16,61 +16,10 @@ import {
   POSITION_QUESTION_FEED,
   POSITION_QUESTION_TOP
 } from '~/utils/banners';
+import { normalizeQuestionRow, safeDecodeURIComponent } from '~/utils/questionList';
 
 
 const app = getApp();
-
-/** 列表卡片日期：仅展示 YYYY-MM-DD */
-function formatDateYMD(value) {
-  if (value === undefined || value === null || value === '') return '—';
-  const s = String(value).trim();
-  const m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
-  if (m) {
-    const mo = `${m[2]}`.padStart(2, '0');
-    const d = `${m[3]}`.padStart(2, '0');
-    return `${m[1]}-${mo}-${d}`;
-  }
-  const d = new Date(s.replace(/-/g, '/'));
-  if (Number.isNaN(d.getTime())) return s.slice(0, 10) || '—';
-  const y = d.getFullYear();
-  const mo = `${d.getMonth() + 1}`.padStart(2, '0');
-  const day = `${d.getDate()}`.padStart(2, '0');
-  return `${y}-${mo}-${day}`;
-}
-
-function normalizeQuestionRow(row) {
-  const isCollected = !!(row.isCollected ?? row.collected);
-  const difficulty = row.difficulty ?? row.difficultyLevel;
-  let difficultyTag = null;
-  const n = Number(difficulty);
-  if (n === 1) difficultyTag = { text: '简单', theme: 'success' };
-  else if (n === 2) difficultyTag = { text: '中等', theme: 'warning' };
-  else if (n === 3) difficultyTag = { text: '困难', theme: 'danger' };
-  const rawTime =
-    row.updatedAt ?? row.updated_at ?? row.createdAt ?? row.created_at ?? row.createAt;
-  const displayDate = formatDateYMD(rawTime);
-  const viewCount = row.viewCount ?? row.view_count ?? 0;
-  const commentCount = row.commentCount ?? row.comment_count ?? 0;
-  const likeCount = row.likeCount ?? row.like_count ?? 0;
-  return {
-    ...row,
-    isCollected,
-    difficultyTag,
-    displayDate,
-    viewCount,
-    commentCount,
-    likeCount
-  };
-}
-
-function safeDecodeURIComponent(value) {
-  if (!value) return '';
-  try {
-    return decodeURIComponent(value);
-  } catch (error) {
-    return value;
-  }
-}
 
 Page({
   data: {
@@ -209,43 +158,31 @@ Page({
       questionParams.page = requestPage;
       questionParams.limit = this.data.pageSize;
 
-      const response = await authApi.getQuestionList(questionParams);
+      const response = await questionApi.getQuestionList(questionParams);
+      const data = unwrapData(response) || {};
+      const rawList = data.rows || [];
+      const total = data.total || 0;
+      const newList = rawList.map(normalizeQuestionRow);
 
-      if (response.code == '0000') {
-        const rawList = response.data.rows || [];
-        const total = response.data.total || 0;
-        const newList = rawList.map(normalizeQuestionRow);
-
-        if (refresh) {
-          this._questions = newList;
-          this.setData({
-            totalCount: total,
-            page: 1,
-            hasMore: newList.length < total
-          });
-        } else {
-          this._questions = [...this._questions, ...newList];
-          this.setData({
-            totalCount: total,
-            page: requestPage,
-            hasMore: this._questions.length < total
-          });
-        }
-        this._rebuildDisplayList();
+      if (refresh) {
+        this._questions = newList;
+        this.setData({
+          totalCount: total,
+          page: 1,
+          hasMore: newList.length < total
+        });
       } else {
-        Message.error({
-          context: this,
-          offset: [20, 32],
-          content: response.message || '加载失败'
+        this._questions = [...this._questions, ...newList];
+        this.setData({
+          totalCount: total,
+          page: requestPage,
+          hasMore: this._questions.length < total
         });
       }
+      this._rebuildDisplayList();
     } catch (error) {
       console.error('加载题目列表失败:', error);
-      Message.error({
-        context: this,
-        offset: [20, 32],
-        content: '网络错误，请重试'
-      });
+      handleApiError(error, { fallbackMessage: '网络错误，请重试' });
     } finally {
       this.setData({ loading: false, listHeaderReady: true });
     }
@@ -387,36 +324,23 @@ Page({
 
     try {
       const collectQuestion = new QuestionLikeOrCollectParams(questionId, null, !question.isCollected)
-      const response = await authApi.toggleCollect(collectQuestion);
-
-      if (response.code == '0000') {
-        this._questions = this._questions.map((item) => {
-          if (item.id === questionId) {
-            return { ...item, isCollected: !item.isCollected };
-          }
-          return item;
-        });
-        this._rebuildDisplayList();
-        Message.success({
-          context: this,
-          offset: [20, 32],
-          duration: 2000,
-          content: question.isCollected ? '已取消收藏' : '收藏成功'
-        });
-      } else {
-        Message.error({
-          context: this,
-          offset: [20, 32],
-          content: response.message || '操作失败'
-        });
-      }
-    } catch (error) {
-      console.error('收藏操作失败:', error);
-      Message.error({
+      await questionApi.toggleCollect(collectQuestion);
+      this._questions = this._questions.map((item) => {
+        if (item.id === questionId) {
+          return { ...item, isCollected: !item.isCollected };
+        }
+        return item;
+      });
+      this._rebuildDisplayList();
+      Message.success({
         context: this,
         offset: [20, 32],
-        content: '操作失败，请重试'
+        duration: 2000,
+        content: question.isCollected ? '已取消收藏' : '收藏成功'
       });
+    } catch (error) {
+      console.error('收藏操作失败:', error);
+      handleApiError(error, { fallbackMessage: '操作失败，请重试' });
     }
   },
 
@@ -436,7 +360,7 @@ Page({
   goRelease() {
     const id = this.data.categoryId;
     const q = id !== null && id !== undefined && id !== '' ? `?categoryId=${id}` : '';
-    wx.navigateTo({
+    app.navigateToLogin({
       url: `/pages/publish/index${q}`
     });
   },

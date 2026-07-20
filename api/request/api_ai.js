@@ -197,10 +197,10 @@ export const aiApi = {
         if (!frame.trim()) return;
         const parsed = parseSseFrame(frame);
         const data = parseJson(parsed.data);
-        if (parsed.event === 'meta') handlers.onMeta && handlers.onMeta(data);
-        else if (parsed.event === 'token') handlers.onToken && handlers.onToken(data.delta || '');
-        else if (parsed.event === 'done') handlers.onDone && handlers.onDone(data);
-        else if (parsed.event === 'error') handlers.onError && handlers.onError(data);
+        if (parsed.event === 'meta' && handlers.onMeta) handlers.onMeta(data);
+        else if (parsed.event === 'token' && handlers.onToken) handlers.onToken(data.delta || '');
+        else if (parsed.event === 'done' && handlers.onDone) handlers.onDone(data);
+        else if (parsed.event === 'error' && handlers.onError) handlers.onError(data);
       });
     };
 
@@ -217,11 +217,11 @@ export const aiApi = {
       success: (res) => {
         flushSseBuffer(streamDecoder.flush());
         if (res.statusCode !== 200) {
-          handlers.onError && handlers.onError({ message: `请求失败：${res.statusCode}` });
+          if (handlers.onError) handlers.onError({ message: `请求失败：${res.statusCode}` });
         }
       },
       fail: (err) => {
-        handlers.onError && handlers.onError(err);
+        if (handlers.onError) handlers.onError(err);
       },
     });
 

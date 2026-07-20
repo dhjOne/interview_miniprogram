@@ -1,4 +1,4 @@
-import { profileApi, pickProfileData } from '~/api/request/api_profile';
+import { profileApi, unwrapData } from '~/api/index';
 
 let cachedOptions = null;
 
@@ -32,7 +32,7 @@ export async function fetchProfessionOptions(forceRefresh = false) {
     return cachedOptions;
   }
   const res = await profileApi.getProfessionOptions();
-  const list = pickProfileData(res) || [];
+  const list = unwrapData(res) || [];
   cachedOptions = decorateProfessionOptions(Array.isArray(list) ? list : []);
   return cachedOptions;
 }

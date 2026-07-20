@@ -1,8 +1,8 @@
 import Message from 'tdesign-miniprogram/message/index';
 import {
-  authApi
-} from '~/api/request/api_question';
-import { socialApi } from '~/api/request/api_social';
+  questionApi
+} from '~/api/index';
+import { socialApi } from '~/api/index';
 import {
   QuestionLikeOrCollectParams,
   QuestionParams
@@ -155,8 +155,7 @@ async function fetchReplyThread(rootComment) {
 
   async function walk(parentId) {
     try {
-      const res = await authApi.getCommentReplies(parentId);
-      if (res.code !== '0000') return;
+      const res = await questionApi.getCommentReplies(parentId);
       const rows = Array.isArray(res.data) ? res.data : [];
       for (const row of rows) {
         const parent = commentById[String(parentId)];
@@ -346,8 +345,8 @@ Page({
         towxmlData: null
       });
       
-      const questionDetail = new QuestionParams(null, null, this.data.questionId)
-      const response = await authApi.getQuestionDetail(questionDetail);
+      const questionParams = new QuestionParams(null, null, this.data.questionId)
+      const response = await questionApi.getQuestionDetail(questionParams);
       
       if (response.data) {
         const questionDetail = normalizeQuestionDetail(response.data);
@@ -358,7 +357,7 @@ Page({
         const authorId = resolveAuthorId(questionDetail);
         const currentUserId = resolveCurrentUserId();
         const isSelfAuthor = !!(currentUserId && authorId && currentUserId === authorId);
-        let authorDisplayName = resolveAuthorDisplayName(questionDetail, '题目作者');
+        const authorDisplayName = resolveAuthorDisplayName(questionDetail, '题目作者');
         const patch = {
           questionDetail,
           loading: false,
@@ -552,7 +551,7 @@ Page({
 
   async reportQuestion() {
     try {
-      const res = await socialApi.submitReport({
+      await socialApi.submitReport({
         targetType: 'QUESTION',
         targetId: this.data.questionId,
         targetUserId: this.data.authorId || undefined,
@@ -560,7 +559,6 @@ Page({
         reasonType: 'OTHER',
         reason: '题目内容举报'
       });
-      if (res.code !== '0000') throw new Error(res.message || '提交失败');
       wx.showToast({ title: '举报已提交', icon: 'none' });
     } catch (e) {
       wx.showToast({ title: e?.message || '提交失败', icon: 'none' });
@@ -573,7 +571,7 @@ Page({
       return;
     }
     try {
-      const res = await socialApi.submitReport({
+      await socialApi.submitReport({
         targetType: 'USER',
         targetId: this.data.authorId,
         targetUserId: this.data.authorId,
@@ -581,7 +579,6 @@ Page({
         reasonType: 'OTHER',
         reason: '作者举报'
       });
-      if (res.code !== '0000') throw new Error(res.message || '提交失败');
       wx.showToast({ title: '举报已提交', icon: 'none' });
     } catch (e) {
       wx.showToast({ title: e?.message || '提交失败', icon: 'none' });
@@ -599,11 +596,10 @@ Page({
       success: async ({ confirm }) => {
         if (!confirm) return;
         try {
-          const res = await socialApi.blockUser({
+          await socialApi.blockUser({
             userId: this.data.authorId,
             reason: '从题目详情拉黑作者'
           });
-          if (res.code !== '0000') throw new Error(res.message || '操作失败');
           this.setData({ authorFollowing: false });
           wx.showToast({ title: '已拉黑', icon: 'none' });
         } catch (e) {
@@ -735,8 +731,7 @@ Page({
 
   async loadCommentCount() {
     try {
-      const response = await authApi.getQuestionCommentCount(this.data.questionId);
-      if (response.code !== '0000') return;
+      const response = await questionApi.getQuestionCommentCount(this.data.questionId);
       const count = Number(response.data ?? 0);
       this.setData({
         commentCount: count,
@@ -770,13 +765,10 @@ Page({
     }
 
     try {
-      const response = await authApi.getQuestionComments(questionId, {
+      const response = await questionApi.getQuestionComments(questionId, {
         page: nextPage,
         limit: this.data.commentPageSize
       });
-      if (response.code !== '0000') {
-        throw new Error(response.message || '加载评论失败');
-      }
 
       const { rows, total, hasTotal } = parseCommentListResponse(response);
       const newChunk = rows.map((row) => normalizeComment(row));
@@ -896,7 +888,7 @@ Page({
       if (!refresh) return;
       this.setData({ catalogLoading: true, catalogList: [], catalogPage: 1 });
       try {
-        const response = await authApi.getRelatedQuestions(
+        const response = await questionApi.getRelatedQuestions(
           new QuestionParams(null, null, this.data.questionId)
         );
         let rows = response.data?.rows ?? response.data ?? [];
@@ -949,10 +941,7 @@ Page({
       questionParams.limit = pageSize;
       questionParams.sortField = 'sort_order';
       questionParams.order = 'asc';
-      const response = await authApi.getQuestionList(questionParams);
-      if (response.code !== '0000') {
-        throw new Error(response.message || '加载目录失败');
-      }
+      const response = await questionApi.getQuestionList(questionParams);
 
       const rawRows = response.data?.rows || [];
       const parsedTotal = Number(response.data?.total);
@@ -1047,8 +1036,8 @@ Page({
 
   onAuthorTap() {
     const { questionDetail } = this.data;
-    let { authorId, authorDisplayName } = this.data;
-    let avatar = resolveAuthorAvatar(questionDetail);
+    const { authorId, authorDisplayName } = this.data;
+    const avatar = resolveAuthorAvatar(questionDetail);
 
     if (!authorId) {
       wx.showToast({ title: '暂无作者信息', icon: 'none' });
@@ -1087,15 +1076,11 @@ Page({
         userId: this.data.authorId,
         follow: nextFollowing
       });
-      if (response.code === '0000') {
-        this.setData({ authorFollowing: nextFollowing });
-        Message.success({
-          content: nextFollowing ? '已关注作者' : '已取消关注',
-          duration: 2000
-        });
-        return;
-      }
-      throw new Error(response.message || '操作失败');
+      this.setData({ authorFollowing: nextFollowing });
+      Message.success({
+        content: nextFollowing ? '已关注作者' : '已取消关注',
+        duration: 2000
+      });
     } catch (e) {
       console.warn('关注作者失败', e);
       wx.showToast({
@@ -1158,22 +1143,18 @@ Page({
     }
 
     try {
-      const response = await authApi.submitComment(payload);
-      if (response.code === '0000') {
-        Message.success({ content: '评论发布成功', duration: 2000 });
-        const newCommentId = response.data;
-        this.setData({
-          commentText: '',
-          expandedReplyIds
-        });
-        this.clearReplyState();
-        await this.loadComments(true);
-        if (newCommentId) {
-          this.setData({ replyHighlightId: newCommentId });
-        }
-        return;
+      const response = await questionApi.submitComment(payload);
+      Message.success({ content: '评论发布成功', duration: 2000 });
+      const newCommentId = response.data;
+      this.setData({
+        commentText: '',
+        expandedReplyIds
+      });
+      this.clearReplyState();
+      await this.loadComments(true);
+      if (newCommentId) {
+        this.setData({ replyHighlightId: newCommentId });
       }
-      throw new Error(response.message || '发布失败');
     } catch (e) {
       console.warn('提交评论失败', e);
       Message.error({ content: e.message || '评论发布失败', duration: 2000 });
@@ -1198,13 +1179,10 @@ Page({
     this.setData({ likedCommentIds, comments });
 
     try {
-      const response = await authApi.likeComment({
+      await questionApi.likeComment({
         commentId: Number(commentId),
         like: nextLiked
       });
-      if (response.code !== '0000') {
-        throw new Error(response.message || '操作失败');
-      }
     } catch (e) {
       console.warn('点赞评论失败', e);
       const revertLikedIds = { ...(this.data.likedCommentIds || {}) };
@@ -1225,7 +1203,7 @@ Page({
     const { id, userId, content } = event.currentTarget.dataset;
     if (!id) return;
     try {
-      const res = await socialApi.submitReport({
+      await socialApi.submitReport({
         targetType: 'COMMENT',
         targetId: id,
         targetUserId: userId || undefined,
@@ -1233,7 +1211,6 @@ Page({
         reasonType: 'OTHER',
         reason: '评论内容举报'
       });
-      if (res.code !== '0000') throw new Error(res.message || '提交失败');
       wx.showToast({ title: '举报已提交', icon: 'none' });
     } catch (e) {
       wx.showToast({ title: e?.message || '提交失败', icon: 'none' });
@@ -1276,25 +1253,17 @@ Page({
 
     try {
       const likeQuestion = new QuestionLikeOrCollectParams(this.data.questionId, !liked, null);
-      const response = await authApi.toggleLike(likeQuestion);
-
-      if (response.code === "0000") {
-        this.setData({
-          'questionDetail.liked': !liked,
-          'questionDetail.likeCount': liked
-            ? Math.max(0, (questionDetail.likeCount || 0) - 1)
-            : (questionDetail.likeCount || 0) + 1
-        });
-        Message.success({
-          content: liked ? '已取消点赞' : '点赞成功',
-          duration: 2000
-        });
-      } else {
-        Message.error({
-          content: response.message || '操作失败',
-          duration: 2000
-        });
-      }
+      await questionApi.toggleLike(likeQuestion);
+      this.setData({
+        'questionDetail.liked': !liked,
+        'questionDetail.likeCount': liked
+          ? Math.max(0, (questionDetail.likeCount || 0) - 1)
+          : (questionDetail.likeCount || 0) + 1
+      });
+      Message.success({
+        content: liked ? '已取消点赞' : '点赞成功',
+        duration: 2000
+      });
     } catch (error) {
       console.error('点赞操作失败:', error);
       Message.error({
@@ -1313,25 +1282,18 @@ Page({
 
     try {
       const collectQuestion = new QuestionLikeOrCollectParams(this.data.questionId, null, !collected);
-      const response = await authApi.toggleCollect(collectQuestion);
-      if (response.code === "0000") {
-        this.setData({
-          'questionDetail.collected': !collected,
-          'questionDetail.collectCount': collected
-            ? Math.max(0, (questionDetail.collectCount || 0) - 1)
-            : (questionDetail.collectCount || 0) + 1
-        });
+      await questionApi.toggleCollect(collectQuestion);
+      this.setData({
+        'questionDetail.collected': !collected,
+        'questionDetail.collectCount': collected
+          ? Math.max(0, (questionDetail.collectCount || 0) - 1)
+          : (questionDetail.collectCount || 0) + 1
+      });
 
-        Message.success({
-          content: collected ? '已取消收藏' : '收藏成功',
-          duration: 2000
-        });
-      } else {
-        Message.error({
-          content: response.message || '操作失败',
-          duration: 2000
-        });
-      }
+      Message.success({
+        content: collected ? '已取消收藏' : '收藏成功',
+        duration: 2000
+      });
     } catch (error) {
       Message.error({
         content: '操作失败，请重试',
@@ -1341,7 +1303,7 @@ Page({
   },
 
 
-  //-------------加载content--------开始------------//
+  // -------------加载content--------开始------------//
   // 在 processContentBlocks 方法中处理所有块类型
   processContentBlocks(blocks) {
     if (!blocks || !Array.isArray(blocks)) {
@@ -1664,7 +1626,7 @@ Page({
     }
     
     // 检查是否包含数字+符号模式
-    const numberSymbolPattern = /\b\d+[、\.:．]\s/;
+    const numberSymbolPattern = /\b\d+[、.:．]\s/;
     return numberSymbolPattern.test(content);
   },
 
@@ -1693,7 +1655,8 @@ Page({
     // 使用正则表达式查找所有匹配
     const regex = new RegExp(numberPattern, 'g');
     
-    while ((match = regex.exec(content)) !== null) {
+    match = regex.exec(content);
+    while (match !== null) {
       // 找到匹配前的文本
       const beforeMatch = content.substring(lastIndex, match.index);
       if (beforeMatch.trim()) {
@@ -1705,6 +1668,7 @@ Page({
       segments.push(numberedSection);
       
       lastIndex = match.index + numberedSection.length;
+      match = regex.exec(content);
     }
     
     // 添加剩余文本
@@ -1795,7 +1759,7 @@ Page({
     
     return processed;
   },
-  //-------------加载content--------解释------------//
+  // -------------加载content--------解释------------//
 
 
   // 在 Page 对象的方法中添加

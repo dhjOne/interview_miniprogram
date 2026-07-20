@@ -1,4 +1,4 @@
-import { businessApi } from '~/api/request/api_business';
+import { businessApi } from '~/api/index';
 
 const OTHER_TYPE = '其他';
 

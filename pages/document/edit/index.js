@@ -1,5 +1,5 @@
-import { authApi as questionApi } from '~/api/request/api_question';
-import { authApi as categoryApi } from '~/api/request/api_category';
+import { questionApi } from '~/api/index';
+import { categoryApi } from '~/api/index';
 import { CategoryParams, CategorySuggestParams } from '~/api/param/param_category';
 import { QuestionPublishParams } from '~/api/param/param_publish';
 import { QuestionParams } from '~/api/param/param_question';
@@ -1278,20 +1278,12 @@ Page({
         this.data.editDocId,
         'draft' // 操作类型：保存草稿
       );
-      const response = await questionApi.publishQuestion(publishParams);
-      if (response && response.code === '0000') {
-        wx.showToast({
-          title: '草稿已保存',
-          icon: 'success',
-          duration: 2000
-        });
-      } else {
-        wx.showToast({
-          title: (response && response.message) || '保存失败',
-          icon: 'none',
-          duration: 2000
-        });
-      }
+      await questionApi.publishQuestion(publishParams);
+      wx.showToast({
+        title: '草稿已保存',
+        icon: 'success',
+        duration: 2000
+      });
     } catch (error) {
       wx.showToast({
         title: error?.message || '保存失败，请重试',
@@ -1501,7 +1493,7 @@ Page({
 
     // 根据editDocId判断操作类型：update(修改)|publish(发布)
     const operationType = this.data.editDocId ? 'update' : 'publish';
-    const isEdit = this.data.editDocId ? true : false;
+    const isEdit = !!this.data.editDocId;
 
     wx.showLoading({
       title: isEdit ? '保存中…' : '发布中…',
@@ -1521,53 +1513,45 @@ Page({
         this.data.editDocId,
         operationType // 操作类型：update(修改)|publish(发布)
       );
-      const response = await questionApi.publishQuestion(publishParams);
-      if (response && response.code === '0000') {
-        wx.removeStorageSync('markdown_draft');
-        wx.showToast({
-          title: isEdit ? '保存成功' : '发布成功',
-          icon: 'success',
-          duration: 1800
-        });
+      await questionApi.publishQuestion(publishParams);
+      wx.removeStorageSync('markdown_draft');
+      wx.showToast({
+        title: isEdit ? '保存成功' : '发布成功',
+        icon: 'success',
+        duration: 1800
+      });
 
-        if (isEdit) {
-          this.setData({ isPublishing: false, editDocId: null });
-          wx.navigateBack({ delta: 1 });
-          return;
-        }
-
-        this.setData({
-          docTitle: '',
-          markdownContent: '',
-          selectedCategory: '',
-          selectedParentCategory: '',
-          categoryLevel2: [],
-          categoryCascaderValue: '',
-          categorySuggestName: '',
-          isFallbackCategorySelected: false,
-          showCascaderMissPanel: false,
-          cascaderMissSuggest: '',
-          images: [],
-          renderedContent: null,
-          contentHistory: [],
-          historyIndex: -1,
-          canUndo: false,
-          canRedo: false,
-          wordCount: 0,
-          previewFullContent: '',
-          categoryName: '',
-          lastInsertType: '',
-          isPublishing: false,
-          editorScrollTop: 0,
-          editorAutoScroll: false
-        });
-      } else {
-        wx.showToast({
-          title: (response && response.message) || '操作失败',
-          icon: 'none',
-          duration: 2000
-        });
+      if (isEdit) {
+        this.setData({ isPublishing: false, editDocId: null });
+        wx.navigateBack({ delta: 1 });
+        return;
       }
+
+      this.setData({
+        docTitle: '',
+        markdownContent: '',
+        selectedCategory: '',
+        selectedParentCategory: '',
+        categoryLevel2: [],
+        categoryCascaderValue: '',
+        categorySuggestName: '',
+        isFallbackCategorySelected: false,
+        showCascaderMissPanel: false,
+        cascaderMissSuggest: '',
+        images: [],
+        renderedContent: null,
+        contentHistory: [],
+        historyIndex: -1,
+        canUndo: false,
+        canRedo: false,
+        wordCount: 0,
+        previewFullContent: '',
+        categoryName: '',
+        lastInsertType: '',
+        isPublishing: false,
+        editorScrollTop: 0,
+        editorAutoScroll: false
+      });
     } catch (error) {
       wx.showToast({
         title: error?.message || '操作失败，请重试',

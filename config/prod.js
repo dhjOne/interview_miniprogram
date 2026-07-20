@@ -1,25 +1,18 @@
-// config/prod.js
+// config/prod.js — 正式版（release）
 export default {
   env: 'production',
   baseUrl: 'https://api.example.com',
   apiPrefix: '/api/v1',
-  api: {
-    login: '/auth/login',
-    getUserInfo: '/user/info',
-    updateProfile: '/user/profile'
-  },
-  thirdParty: {
-    mapKey: 'PROD_MAP_KEY_789',
-    ossBucket: 'prod-bucket'
-  },
+  successCode: '0000',
+  timeout: 10000,
   features: {
     enableDebug: false,
-    enableMock: false,
     logLevel: 'error'
   },
-  timeout: 10000,
   encryption: {
     exchange: '/encryption/exchange',
-    destroy_session: '/encryption/session'
-  },
+    destroy_session: '/encryption/session',
+    sessionExpiredCode: 'C111',
+    useTestKeys: false
+  }
 }

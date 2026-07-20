@@ -8,7 +8,7 @@ import {
 import { fetchPointAccount } from '~/utils/points';
 import { fetchPersonalInfo, syncCachedUserInfo } from '~/utils/userProfile';
 import { fetchCreatorPreview } from '~/utils/creatorCenter';
-import { socialApi } from '~/api/request/api_social';
+import { socialApi } from '~/api/index';
 import { fetchSiteInfo, getDefaultSiteInfo, isCallablePhone } from '~/utils/site';
 import {
   bannerNeedsLogin,
@@ -16,6 +16,7 @@ import {
   getDefaultMyCarousel,
   POSITION_MY_CAROUSEL
 } from '~/utils/banners';
+import { openPage } from '~/utils/router';
 
 const NOTIFY_URL = '/pages/ucenter/notifications/index';
 
@@ -191,7 +192,7 @@ Page({
       app.navigateToLogin({ url: item.linkUrl });
       return;
     }
-    wx.navigateTo({ url: item.linkUrl });
+    openPage({ url: item.linkUrl });
   },
 
   async loadNotificationPreview() {
@@ -286,7 +287,7 @@ Page({
   },
 
   onLogin() {
-    wx.navigateTo({
+    openPage({
       url: '/pages/login/login'
     });
   },
@@ -317,7 +318,7 @@ Page({
     if (!item || !item.url) return;
 
     if (item.type === 'history') {
-      wx.navigateTo({ url: item.url });
+      openPage({ url: item.url });
       return;
     }
 
@@ -328,7 +329,7 @@ Page({
     const item = e.currentTarget.dataset.item;
     if (!item || item.type === 'contact') return;
     if (item.type === 'business' && item.url) {
-      wx.navigateTo({ url: item.url });
+      openPage({ url: item.url });
     }
   },
 
@@ -351,7 +352,7 @@ Page({
   },
 
   onOpenAgreement() {
-    wx.navigateTo({ url: '/pages/agreement/agreement?from=my' });
+    openPage({ url: '/pages/agreement/agreement?from=my' });
   },
 
   handleContact() {

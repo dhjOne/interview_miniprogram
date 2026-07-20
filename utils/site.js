@@ -1,4 +1,4 @@
-import { siteApi } from '~/api/request/api_site';
+import { siteApi } from '~/api/index';
 
 const DEFAULT_SITE_INFO = {
   productName: '面试胶囊',

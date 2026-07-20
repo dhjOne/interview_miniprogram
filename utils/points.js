@@ -1,4 +1,4 @@
-import { pointsApi } from '~/api/request/api_points';
+import { pointsApi } from '~/api/index';
 
 /** 与后端 PointBizTypeEnum 对齐 */
 export const POINT_BIZ_TYPE_LABELS = {

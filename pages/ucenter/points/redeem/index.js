@@ -1,3 +1,4 @@
+import { handleApiError } from '~/api/index';
 import {
   fetchPointAccount,
   fetchRedeemItems,
@@ -54,7 +55,7 @@ Page({
       const itemList = await fetchRedeemItems();
       this.setData({ itemList });
     } catch (e) {
-      wx.showToast({ title: (e && e.message) || '商品加载失败', icon: 'none' });
+      handleApiError(e, { fallbackMessage: '商品加载失败' });
     } finally {
       this.setData({ loadingShop: false });
     }
@@ -95,7 +96,7 @@ Page({
           await Promise.all([this.loadAccount(), this.loadOrders()]);
           this.setData({ tab: 'orders' });
         } catch (err) {
-          wx.showToast({ title: (err && err.message) || '兑换失败', icon: 'none' });
+          handleApiError(err, { fallbackMessage: '兑换失败' });
         } finally {
           this.setData({ redeemingCode: '' });
         }

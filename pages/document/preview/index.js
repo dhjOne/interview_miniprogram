@@ -1,5 +1,6 @@
-import { questionApi } from '~/api/index';
+import { questionApi, handleApiError } from '~/api/index';
 import { QuestionParams } from '~/api/param/param_question';
+import { openPage } from '~/utils/router';
 
 const { renderMarkdown } = require('../../../utils/towxmlLoader');
 
@@ -97,7 +98,7 @@ Page({
     } catch (e) {
       console.error(e);
       this.setData({ loading: false });
-      wx.showToast({ title: e?.message || '加载失败', icon: 'none' });
+      handleApiError(e, { fallbackMessage: '加载失败' });
     }
   },
 
@@ -106,7 +107,7 @@ Page({
     if (!id) return;
     wx.setStorageSync('release_edit_doc_id', String(id));
 
-    wx.navigateTo({
+    openPage({
       url: `/pages/document/edit/index?id=${encodeURIComponent(id)}`,
       fail: function (res) {
         console.log('跳转失败', res);

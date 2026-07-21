@@ -1,3 +1,5 @@
+import { openPage } from '~/utils/router';
+
 Component({
   options: {
     styleIsolation: 'shared',
@@ -84,31 +86,17 @@ Component({
     },
     itemClick(e) {
       const that = this;
-      const { isSidebar, url } = e.detail.item;
-      if (isSidebar) {
-        wx.switchTab({
-          url: `/${url}`,
-        }).then(() => {
-          // 防止点回tab时，sidebar依旧是展开模式
-          that.setData({
-            visible: false,
-          });
+      const { url } = e.detail.item;
+      openPage({ url: `/${url}` }).then(() => {
+        // 防止点回tab时，sidebar依旧是展开模式
+        that.setData({
+          visible: false,
         });
-      } else {
-        wx.navigateTo({
-          url: `/${url}`,
-        }).then(() => {
-          that.setData({
-            visible: false,
-          });
-        });
-      }
+      });
     },
 
     searchTurn() {
-      wx.navigateTo({
-        url: `/pages/search/index`,
-      });
+      openPage({ url: '/pages/search/index' });
     },
   },
 });

@@ -1,4 +1,4 @@
-import { socialApi } from '~/api/index';
+import { socialApi, handleApiError } from '~/api/index';
 
 Page({
   data: {
@@ -54,7 +54,7 @@ Page({
         loadDone: true
       });
     } catch (e) {
-      wx.showToast({ title: e?.message || '加载失败', icon: 'none' });
+      handleApiError(e, { fallbackMessage: '加载失败' });
       this.setData({ loadDone: true });
     } finally {
       this.setData({ loading: false });
@@ -72,7 +72,7 @@ Page({
       this.setData({ list });
       wx.showToast({ title: '已解除拉黑', icon: 'none' });
     } catch (err) {
-      wx.showToast({ title: err?.message || '操作失败', icon: 'none' });
+      handleApiError(err, { fallbackMessage: '操作失败' });
     }
   }
 });

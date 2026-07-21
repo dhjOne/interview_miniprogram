@@ -1,3 +1,4 @@
+import { handleApiError } from '~/api/index';
 import useToastBehavior from '~/behaviors/useToast';
 import http from '~/api/api_request';
 import config from '~/config/index';
@@ -9,6 +10,7 @@ import {
 } from '~/utils/userProfile';
 import { fetchProfessionOptions, formatProfessionText } from '~/utils/profession';
 import { areaList } from './areaData.js';
+import { backPage } from '~/utils/router';
 
 Page({
   behaviors: [useToastBehavior],
@@ -90,7 +92,7 @@ Page({
       });
     } catch (e) {
       console.error('[info-edit] 加载个人信息失败', e);
-      this.onShowToast('#t-toast', e.message || '加载失败');
+      handleApiError(e, { fallbackMessage: '加载失败' });
     }
   },
 
@@ -215,7 +217,7 @@ Page({
       this.setData({ 'personInfo.avatar': uploaded });
     } catch (err) {
       console.error('[info-edit] 头像上传失败', err);
-      this.onShowToast('#t-toast', '头像上传失败');
+      handleApiError(err, { fallbackMessage: '头像上传失败' });
     }
   },
 
@@ -242,7 +244,7 @@ Page({
       this.setData({ 'personInfo.photos': merged });
     } catch (err) {
       console.error('[info-edit] 相片上传失败', err);
-      this.onShowToast('#t-toast', '图片上传失败');
+      handleApiError(err, { fallbackMessage: '图片上传失败' });
     } finally {
       wx.hideLoading();
     }
@@ -290,10 +292,10 @@ Page({
     try {
       await savePersonalInfo(toSavePayload(personInfo));
       this.onShowToast('#t-toast', '保存成功，已提交审核');
-      setTimeout(() => wx.navigateBack(), 500);
+      setTimeout(() => backPage(), 500);
     } catch (e) {
       console.error('[info-edit] 保存失败', e);
-      this.onShowToast('#t-toast', e.message || '保存失败');
+      handleApiError(e, { fallbackMessage: '保存失败' });
     } finally {
       this.setData({ saving: false });
     }

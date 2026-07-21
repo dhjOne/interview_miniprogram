@@ -1,14 +1,15 @@
-import { authApi } from '~/api/index';
+import { authApi, handleApiError } from '~/api/index';
 import { LoginParams } from '~/api/param/param_login'
 import { WxLoginParams } from '~/api/param/param_login'
 import http from '~/api/api_request';
-
-/** 与 app.json tabBar 一致，用于 switchTab / 非 Tab 用 reLaunch */
-const LOGIN_TAB_ROOTS = [
-  '/pages/category/index',
-  '/pages/mknow/index',
-  '/pages/my/index'
-];
+import {
+  backPage,
+  openPage,
+  openUrlCascade,
+  redirectOrNavigate,
+  resumeAfterLogin,
+  switchTabPage,
+} from '~/utils/router';
 
 Page({
   data: {
@@ -175,10 +176,7 @@ Page({
       await this.handleLoginSuccess(result);
     } catch (error) {
       console.error('密码登录失败:', error);
-      wx.showToast({
-        title: error?.message || '登录失败，请重试',
-        icon: 'none'
-      });
+      handleApiError(error, { fallbackMessage: '登录失败，请重试' });
     }
   },
 
@@ -205,12 +203,7 @@ Page({
         });
         const returnQ = this.data.returnUrl ? `&return=${encodeURIComponent(this.data.returnUrl)}` : '';
         setTimeout(() => {
-          wx.redirectTo({
-            url: `/pages/my/profession/index?from=login${returnQ}`,
-            fail: () => {
-              wx.navigateTo({ url: `/pages/my/profession/index?from=login${returnQ}` });
-            }
-          });
+          redirectOrNavigate(`/pages/my/profession/index?from=login${returnQ}`);
         }, 400);
         return;
       }
@@ -218,9 +211,7 @@ Page({
       await this.finishLoginRedirect(result);
     } catch (error) {
       console.error('登录成功处理失败:', error);
-      wx.switchTab({
-        url: '/pages/my/index'
-      });
+      switchTabPage({ url: '/pages/my/index' });
     }
   },
 
@@ -253,42 +244,14 @@ Page({
           if (!openUrl.startsWith('/')) {
             openUrl = `/${openUrl}`;
           }
-          const base = openUrl.split('?')[0];
-          if (LOGIN_TAB_ROOTS.includes(base)) {
-            wx.switchTab({ url: base });
-          } else {
-            wx.navigateBack({
-              delta: 1,
-              success: () => {
-                wx.navigateTo({
-                  url: openUrl,
-                  fail: () => {
-                    wx.redirectTo({
-                      url: openUrl,
-                      fail: () => wx.reLaunch({ url: openUrl })
-                    });
-                  }
-                });
-              },
-              fail: () => {
-                wx.redirectTo({
-                  url: openUrl,
-                  fail: () => wx.reLaunch({ url: openUrl })
-                });
-              }
-            });
-          }
+          resumeAfterLogin(openUrl);
         } else {
-          wx.switchTab({
-            url: '/pages/my/index'
-          });
+          switchTabPage({ url: '/pages/my/index' });
         }
       }, 300);
     } catch (error) {
       console.error('登录跳转失败:', error);
-      wx.switchTab({
-        url: '/pages/my/index'
-      });
+      switchTabPage({ url: '/pages/my/index' });
     }
   },
 
@@ -300,7 +263,7 @@ Page({
 
   // 查看协议
   viewUserAgreement() {
-    wx.navigateTo({
+    openPage({
       url: '/pages/agreement/agreement?from=login',
       success: (res) => {
         console.log('✅ 页面跳转成功:', res);
@@ -392,10 +355,7 @@ Page({
     } catch (error) {
       console.error('准备登录失败:', error);
       wx.hideLoading();
-      wx.showToast({
-        title: '登录准备失败，请重试',
-        icon: 'none'
-      });
+      handleApiError(error, { fallbackMessage: '登录准备失败，请重试' });
     }
   },
 
@@ -456,10 +416,7 @@ Page({
       await this.handleLoginSuccess(result);
     } catch (error) {
       console.error('微信登录过程出错:', error);
-      wx.showToast({
-        title: error?.message || '登录失败，请重试',
-        icon: 'none'
-      });
+      handleApiError(error, { fallbackMessage: '登录失败，请重试' });
     } finally {
       wx.hideLoading();
       this.setData({ isGettingUserInfo: false });
@@ -480,35 +437,9 @@ Page({
 
     const openPath = (path) => {
       if (!path || !String(path).trim()) return false;
-      const clean = String(path).trim();
-      const base = clean.split('?')[0];
-      console.log('base:', base)
-      if (LOGIN_TAB_ROOTS.includes(base)) {
-        // 从分包登录页 switchTab 时，运行时可能先经过 app.json 里 pages 靠前的 Tab，易闪「题库」；优先 reLaunch 直达目标 Tab
-        wx.reLaunch({
-          url: base,
-          fail: () => {
-            wx.switchTab({
-              url: base,
-              fail: () => this._loginGoBackLastResort()
-            });
-          }
-        });
-        return true;
-      }
-      wx.reLaunch({
-        url: clean,
-        fail: () => {
-          wx.redirectTo({
-            url: clean,
-            fail: () => {
-              wx.navigateTo({
-                url: clean,
-                fail: () => this._loginGoBackLastResort()
-              });
-            }
-          });
-        }
+      openUrlCascade(String(path).trim(), {
+        preferReLaunch: true,
+        onFail: () => this._loginGoBackLastResort()
       });
       return true;
     };
@@ -519,7 +450,7 @@ Page({
       return;
     }
 
-    wx.navigateBack({
+    backPage({
       delta: 1,
       fail: () => {
         if (returnUrl && (from === 'token_expired' || from === 'unauthorized')) {
@@ -532,8 +463,6 @@ Page({
   },
 
   _loginGoBackLastResort() {
-    wx.switchTab({
-      url: '/pages/category/index'
-    });
+    openPage({ url: '/pages/category/index' });
   }
 });

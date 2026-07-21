@@ -1,6 +1,13 @@
+import { handleApiError } from '~/api/index';
 import useToastBehavior from '~/behaviors/useToast';
 import { fetchPersonalInfo, savePersonalInfo } from '~/utils/userProfile';
 import { fetchProfessionOptions, formatProfessionText } from '~/utils/profession';
+import {
+  backPage,
+  isTabPage,
+  redirectPage,
+  switchTabPage,
+} from '~/utils/router';
 
 Page({
   behaviors: [useToastBehavior],
@@ -49,7 +56,7 @@ Page({
       this.applySelected(selected, options);
     } catch (error) {
       console.error('[profession] 初始化失败', error);
-      this.onShowToast('#t-toast', error.message || '加载失败');
+      handleApiError(error, { fallbackMessage: '加载失败' });
     } finally {
       this.setData({ loading: false });
     }
@@ -114,7 +121,7 @@ Page({
       setTimeout(() => this.finishNavigate(), 500);
     } catch (error) {
       console.error('[profession] 保存失败', error);
-      this.onShowToast('#t-toast', error.message || '保存失败');
+      handleApiError(error, { fallbackMessage: '保存失败' });
     } finally {
       this.setData({ saving: false });
     }
@@ -122,7 +129,7 @@ Page({
 
   onSkip() {
     if (!this.data.fromLogin) {
-      wx.navigateBack();
+      backPage();
       return;
     }
     this.finishNavigate();
@@ -131,10 +138,9 @@ Page({
   finishNavigate() {
     const { fromLogin, returnUrl } = this.data;
     if (!fromLogin) {
-      wx.navigateBack();
+      backPage();
       return;
     }
-    const tabRoots = ['/pages/category/index', '/pages/mknow/index', '/pages/my/index'];
     if (returnUrl) {
       let openUrl = returnUrl;
       if (openUrl.includes('%')) {
@@ -147,17 +153,16 @@ Page({
       if (!openUrl.startsWith('/')) {
         openUrl = `/${openUrl}`;
       }
-      const base = openUrl.split('?')[0];
-      if (tabRoots.includes(base)) {
-        wx.switchTab({ url: base });
+      if (isTabPage(openUrl)) {
+        switchTabPage({ url: openUrl });
         return;
       }
-      wx.redirectTo({
+      redirectPage({
         url: openUrl,
-        fail: () => wx.switchTab({ url: '/pages/my/index' })
+        fail: () => switchTabPage({ url: '/pages/my/index' })
       });
       return;
     }
-    wx.switchTab({ url: '/pages/my/index' });
+    switchTabPage({ url: '/pages/my/index' });
   }
 });

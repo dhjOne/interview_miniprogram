@@ -1,10 +1,11 @@
-import { socialApi } from '~/api/index';
+import { socialApi, handleApiError } from '~/api/index';
 import {
   DEFAULT_AVATAR,
   fetchUserProfile,
   fetchUserQuestions,
   normalizeProfileRow
 } from '~/utils/userProfile';
+import { backPage } from '~/utils/router';
 
 const app = getApp();
 
@@ -52,7 +53,7 @@ Page({
     const userId = options.userId || options.id;
     if (!userId) {
       wx.showToast({ title: '用户不存在', icon: 'none' });
-      setTimeout(() => wx.navigateBack(), 1500);
+      setTimeout(() => backPage(), 1500);
       return;
     }
 
@@ -127,7 +128,7 @@ Page({
     } catch (e) {
       console.error('[profile] 加载资料失败', e);
       this.setData({ pageLoading: false });
-      wx.showToast({ title: '加载失败', icon: 'none' });
+      handleApiError(e, { fallbackMessage: '加载失败' });
     }
   },
 
@@ -209,10 +210,7 @@ Page({
     } catch (e) {
       console.warn('[profile] 关注失败', e);
       this.setData({ 'profile.isFollowing': prevFollowing });
-      wx.showToast({
-        title: e?.message || '操作失败',
-        icon: 'none'
-      });
+      handleApiError(e, { fallbackMessage: '操作失败' });
     }
   },
 
@@ -245,7 +243,7 @@ Page({
       });
       wx.showToast({ title: '举报已提交', icon: 'none' });
     } catch (e) {
-      wx.showToast({ title: e?.message || '提交失败', icon: 'none' });
+      handleApiError(e, { fallbackMessage: '提交失败' });
     }
   },
 
@@ -266,7 +264,7 @@ Page({
           });
           wx.showToast({ title: '已拉黑', icon: 'none' });
         } catch (e) {
-          wx.showToast({ title: e?.message || '操作失败', icon: 'none' });
+          handleApiError(e, { fallbackMessage: '操作失败' });
         }
       }
     });
@@ -278,7 +276,7 @@ Page({
       this.setData({ 'profile.isBlocked': false });
       wx.showToast({ title: '已解除拉黑', icon: 'none' });
     } catch (e) {
-      wx.showToast({ title: e?.message || '操作失败', icon: 'none' });
+      handleApiError(e, { fallbackMessage: '操作失败' });
     }
   },
 

@@ -1,3 +1,4 @@
+import { handleApiError } from '~/api/index';
 import { fetchPointAppeals } from '~/utils/points';
 
 Page({
@@ -50,7 +51,7 @@ Page({
       const hasMore = typeof total === 'number' ? merged.length < total : list.length >= this.data.pageSize;
       this.setData({ appealList: merged, page: nextPage, hasMore });
     } catch (e) {
-      wx.showToast({ title: (e && e.message) || '加载失败', icon: 'none' });
+      handleApiError(e, { fallbackMessage: '加载失败' });
     } finally {
       this.setData({ loading: false });
     }

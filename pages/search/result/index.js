@@ -1,7 +1,7 @@
 import Message from 'tdesign-miniprogram/message/index';
 import { searchApi, unwrapData, handleApiError } from '~/api/index';
 import { normalizeQuestionRow } from '~/utils/questionList';
-import { openPage } from '~/utils/router';
+import { openPage, backPage } from '~/utils/router';
 
 Page({
   data: {
@@ -19,7 +19,7 @@ Page({
   onLoad(options) {
     const keyword = decodeURIComponent(options.keyword || '').trim();
     if (!keyword) {
-      wx.navigateBack({ delta: 1 });
+      backPage({ delta: 1 });
       return;
     }
     this.setData({ keyword });

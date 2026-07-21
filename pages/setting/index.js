@@ -8,6 +8,7 @@ import {
 } from '~/utils/userSettings';
 import { clearQuestionBrowseHistory, getQuestionBrowseHistoryCount } from '~/utils/questionBrowseHistory';
 import { clearServerBrowseHistory, hasLoginToken } from '~/utils/practiceBrowse';
+import { openPage } from '~/utils/router';
 
 const app = getApp();
 
@@ -245,7 +246,7 @@ Page({
         }
         this.onShowToast('#t-toast', '已退出登录');
         setTimeout(() => {
-          wx.switchTab({ url: '/pages/my/index' });
+          openPage({ url: '/pages/my/index' });
         }, 400);
       }
     });

@@ -1,6 +1,7 @@
 import Message from 'tdesign-miniprogram/message/index';
 import { questionApi, unwrapData, handleApiError } from '~/api/index';
 import { QuestionParams, QuestionLikeOrCollectParams } from '~/api/param/param_question';
+import { openPage } from '~/utils/router';
 
 const app = getApp();
 
@@ -233,11 +234,6 @@ Page({
   },
 
   goBrowse() {
-    wx.switchTab({
-      url: '/pages/category/index',
-      fail: () => {
-        wx.navigateTo({ url: '/pages/category/index' });
-      }
-    });
+    openPage({ url: '/pages/category/index' });
   }
 });

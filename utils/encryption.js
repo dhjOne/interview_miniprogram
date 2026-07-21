@@ -20,28 +20,68 @@ function warnLog(...args) {
   if (enableDebug) console.warn(...args);
 }
 
-// 为椭圆曲线库配置小程序环境的随机数生成器
-function randomBytes(size) {
+/**
+ * 弱随机降级：无 wx.getRandomValues 时使用（仅兼容兜底，熵弱于 CSPRNG）
+ */
+function randomBytesFallback(size) {
   var array = new Uint8Array(size);
-  var seed = Date.now() + Math.random() * 1000000;
-  var hash = CryptoJS.SHA256(seed.toString()).toString();
-
-  for (var i = 0; i < size; i++) {
-    var byteIndex = i % 32;
-    array[i] = parseInt(hash.substr(byteIndex * 2, 2), 16);
+  var seed = Date.now().toString(16) + ':' + Math.random().toString(16);
+  var offset = 0;
+  while (offset < size) {
+    seed = CryptoJS.SHA256(seed + ':' + offset).toString();
+    for (var i = 0; i < 32 && offset < size; i += 1) {
+      array[offset] = parseInt(seed.substr(i * 2, 2), 16);
+      offset += 1;
+    }
   }
-
   return array;
+}
+
+/**
+ * 优先使用 wx.getRandomValues（密码学安全）；失败时降级到 fallback
+ * @param {number} size
+ * @returns {Promise<Uint8Array>}
+ */
+function randomBytes(size) {
+  return new Promise(function (resolve) {
+    try {
+      if (typeof wx !== 'undefined' && typeof wx.getRandomValues === 'function') {
+        wx.getRandomValues({
+          length: size,
+          success: function (res) {
+            try {
+              if (res && res.randomValues) {
+                resolve(new Uint8Array(res.randomValues));
+                return;
+              }
+            } catch (e) {
+              // fall through
+            }
+            warnLog('[ECDH] getRandomValues 结果无效，使用降级随机源');
+            resolve(randomBytesFallback(size));
+          },
+          fail: function (err) {
+            warnLog('[ECDH] getRandomValues 失败，使用降级随机源', err);
+            resolve(randomBytesFallback(size));
+          }
+        });
+        return;
+      }
+    } catch (e) {
+      warnLog('[ECDH] getRandomValues 不可用，使用降级随机源', e);
+    }
+    resolve(randomBytesFallback(size));
+  });
 }
 
 function bytesToHex(bytes) {
   return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
-function generatePrivateKeyHex() {
+async function generatePrivateKeyHex() {
   let privateKeyHex = '';
   for (let attempt = 0; attempt < 8; attempt += 1) {
-    privateKeyHex = bytesToHex(randomBytes(32));
+    privateKeyHex = bytesToHex(await randomBytes(32));
     if (!/^0+$/.test(privateKeyHex)) {
       return privateKeyHex;
     }
@@ -164,8 +204,9 @@ class ECDHManager {
 
   /**
    * 生成客户端 ECDH 密钥对
+   * @returns {Promise<string>} X.509 公钥 hex
    */
-  generateClientKeyPair() { 
+  async generateClientKeyPair() {
     try {
       debugLog('[ECDH] 开始生成客户端密钥对');
       if (this.useTestKeys) {
@@ -176,15 +217,15 @@ class ECDHManager {
         }
         this.clientKeyPair = this.ec.keyFromPrivate(testPrivateKey, 'hex');
       } else {
-        this.clientKeyPair = this.ec.keyFromPrivate(generatePrivateKeyHex(), 'hex');
+        this.clientKeyPair = this.ec.keyFromPrivate(await generatePrivateKeyHex(), 'hex');
       }
       // 导出公钥为 X.509 标准格式
       const pubKeyPoint = this.clientKeyPair.getPublic();
       const pubKeyHex = pubKeyPoint.encode('hex', false); // 未压缩格式（65 字节）
-      
+
       // 构建 X.509 格式的公钥（动态拼接）
       const x509PubKeyHex = this.buildX509PublicKey(pubKeyHex);
-      
+
       debugLog('[ECDH] 客户端密钥对生成成功，公钥长度:', x509PubKeyHex.length / 2, '字节');
       return x509PubKeyHex;
     } catch (error) {
@@ -247,7 +288,7 @@ class ECDHManager {
         showedLoading = true
       }
 
-      const clientPublicKeyHex = this.generateClientKeyPair()
+      const clientPublicKeyHex = await this.generateClientKeyPair()
       const clientPublicKeyBase64 = this.hexToBase64(clientPublicKeyHex)
       const exchangeUrl = (config.encryption && config.encryption.exchange)
         ? config.encryption.exchange

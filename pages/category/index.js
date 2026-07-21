@@ -5,6 +5,7 @@ import { fetchPersonalInfo } from '~/utils/userProfile';
 import { hasProfessionSelected } from '~/utils/profession';
 import { navigateToProfessionPage } from '~/utils/professionNav';
 import { getLocalSettings } from '~/utils/userSettings';
+import { openPage } from '~/utils/router';
 import {
   dismissBannerItemToday,
   dismissBannerToday,
@@ -540,7 +541,7 @@ Page({
       return;
     }
 
-    wx.navigateTo({
+    openPage({
       url: `/pages/question/index?categoryId=${categoryId}&categoryName=${encodeURIComponent(name)}`
     });
   },
@@ -590,9 +591,7 @@ Page({
   },
 
   goRelease() {
-    wx.navigateTo({
-      url: '/pages/publish/index'
-    });
+    openPage({ url: '/pages/publish/index' });
   },
 
   onReleaseTap: function () {

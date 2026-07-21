@@ -1,3 +1,5 @@
+import { switchTabPage } from '~/utils/router';
+
 const app = getApp();
 
 Component({
@@ -64,7 +66,7 @@ Component({
 
     handleChange(e) {
       const { value } = e.detail;
-      wx.switchTab({ url: `/pages/${value}/index` });
+      switchTabPage({ url: `/pages/${value}/index` });
     },
 
     /** 设置未读消息数量 */

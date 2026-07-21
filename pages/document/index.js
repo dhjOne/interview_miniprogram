@@ -1,4 +1,4 @@
-import { questionApi } from '~/api/index';
+import { questionApi, handleApiError } from '~/api/index';
 import { DocumentParams } from '~/api/param/param_document';
 import { openPage } from '~/utils/router';
 // 在页面中使用
@@ -384,11 +384,7 @@ Page({
       console.error('加载文档列表失败:', error);
       
       // 处理错误情况
-      wx.showToast({
-        title: '加载失败',
-        icon: 'none',
-        duration: 2000
-      });
+      handleApiError(error, { fallbackMessage: '加载失败' });
       
       this.setData({ 
         loading: false,
@@ -567,10 +563,7 @@ onTabChange(e) {
           });
           this.loadDocList(true);
         } catch (error) {
-          wx.showToast({
-            title: error?.message || '删除失败',
-            icon: 'none'
-          });
+          handleApiError(error, { fallbackMessage: '删除失败' });
         }
       }
     });

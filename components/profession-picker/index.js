@@ -1,3 +1,4 @@
+import { handleApiError } from '~/api/index';
 import { fetchProfessionOptions } from '~/utils/profession';
 
 Component({
@@ -66,7 +67,7 @@ Component({
         this.setData({ options });
       } catch (error) {
         console.error('[profession-picker] 加载职业选项失败', error);
-        wx.showToast({ title: '职业选项加载失败', icon: 'none' });
+        handleApiError(error, { fallbackMessage: '职业选项加载失败' });
       } finally {
         this.setData({ loading: false });
       }

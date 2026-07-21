@@ -1,4 +1,4 @@
-import { socialApi } from '~/api/index';
+import { socialApi, handleApiError } from '~/api/index';
 import {
   NOTIFY_TABS,
   normalizeNotificationRow,
@@ -95,7 +95,7 @@ Page({
         loadDone: true
       });
     } catch (e) {
-      wx.showToast({ title: e?.message || '加载失败', icon: 'none' });
+      handleApiError(e, { fallbackMessage: '加载失败' });
       this.setData({ loadDone: true });
     } finally {
       this.setData({ loading: false });
@@ -116,7 +116,7 @@ Page({
       this.setData({ list });
       wx.showToast({ title: '已全部标为已读', icon: 'none' });
     } catch (e) {
-      wx.showToast({ title: e?.message || '操作失败', icon: 'none' });
+      handleApiError(e, { fallbackMessage: '操作失败' });
     } finally {
       this.setData({ markingAll: false });
     }

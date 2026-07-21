@@ -1,5 +1,6 @@
 import config from '../config/index'
 import encryption from '../utils/encryption'
+import { goToLoginPage } from '../utils/router'
 
 const enableDebug = !!(config.features && config.features.enableDebug)
 
@@ -388,23 +389,20 @@ class Request {
     }
 
     const goLogin = () => {
-      wx.reLaunch({
-        url: loginUrl,
-        success: () => {
-          // 进入登录页后解锁，避免登录成功后再过期时无法跳转
-          this._unauthorizedRedirecting = false
-        },
-        fail: (err) => {
-          console.error('跳转登录页失败:', err)
-          this._unauthorizedRedirecting = false
-          wx.redirectTo({
-            url: loginUrl,
-            complete: () => {
-              this._unauthorizedRedirecting = false
-            }
-          })
-        }
-      })
+      const nav = goToLoginPage(loginUrl)
+      if (nav && typeof nav.then === 'function') {
+        nav.then(
+          () => {
+            this._unauthorizedRedirecting = false
+          },
+          (err) => {
+            console.error('跳转登录页失败:', err)
+            this._unauthorizedRedirecting = false
+          }
+        )
+      } else {
+        this._unauthorizedRedirecting = false
+      }
     }
 
     // 稍延后跳转，避免与页面 catch 里的 toast 抢态

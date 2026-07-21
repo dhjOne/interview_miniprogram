@@ -1,3 +1,4 @@
+import { handleApiError } from '~/api/index';
 import {
   fetchPointAccount,
   fetchPointLedger,
@@ -5,6 +6,7 @@ import {
   formatPointCount,
   submitPointAppeal
 } from '~/utils/points';
+import { openPage } from '~/utils/router';
 
 Page({
   data: {
@@ -108,15 +110,15 @@ Page({
   },
 
   goRedeem() {
-    wx.navigateTo({ url: '/pages/ucenter/points/redeem/index' });
+    openPage({ url: '/pages/ucenter/points/redeem/index' });
   },
 
   goAppeals() {
-    wx.navigateTo({ url: '/pages/ucenter/points/appeals/index' });
+    openPage({ url: '/pages/ucenter/points/appeals/index' });
   },
 
   goInvite() {
-    wx.navigateTo({ url: '/pages/ucenter/points/invite/index' });
+    openPage({ url: '/pages/ucenter/points/invite/index' });
   },
 
   onAppealTap(e) {
@@ -150,7 +152,7 @@ Page({
       wx.showToast({ title: '申诉已提交', icon: 'success' });
       this.setData({ showAppealDialog: false, appealLedgerId: '', appealReason: '' });
     } catch (e) {
-      wx.showToast({ title: (e && e.message) || '提交失败', icon: 'none' });
+      handleApiError(e, { fallbackMessage: '提交失败' });
     } finally {
       this.setData({ appealSubmitting: false });
     }
@@ -189,11 +191,6 @@ Page({
   },
 
   goCategory() {
-    wx.switchTab({
-      url: '/pages/category/index',
-      fail: () => {
-        wx.navigateTo({ url: '/pages/category/index' });
-      }
-    });
+    openPage({ url: '/pages/category/index' });
   }
 });

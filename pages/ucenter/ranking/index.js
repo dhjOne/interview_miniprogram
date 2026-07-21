@@ -1,5 +1,6 @@
 import { practiceApi } from '~/api/index';
 import { PracticeRankingParams } from '~/api/param/param_question';
+import { openPage } from '~/utils/router';
 
 const app = getApp();
 
@@ -215,12 +216,6 @@ Page({
   },
 
   goCategory() {
-    wx.switchTab({
-      url: '/pages/category/index',
-      fail: (err) => {
-        console.error('switchTab fail', err);
-        wx.navigateTo({ url: '/pages/category/index' });
-      }
-    });
+    openPage({ url: '/pages/category/index' });
   }
 });

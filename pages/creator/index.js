@@ -1,9 +1,11 @@
+import { handleApiError } from '~/api/index';
 import {
   fetchCreatorOverview,
   fetchRecentPublished,
   formatStatCount,
   getSelfUserId
 } from '~/utils/creatorCenter';
+import { openPage } from '~/utils/router';
 
 const app = getApp();
 
@@ -169,7 +171,7 @@ Page({
     } catch (e) {
       console.error('[creator] refresh failed', e);
       this.setData({ loading: false });
-      wx.showToast({ title: '加载失败', icon: 'none' });
+      handleApiError(e, { fallbackMessage: '加载失败' });
     }
   },
 
@@ -216,9 +218,7 @@ Page({
   onRecentTap(e) {
     const id = e.currentTarget.dataset.id;
     if (!id) return;
-    wx.navigateTo({
-      url: `/pages/question/detail/index?id=${id}`
-    });
+    openPage({ url: `/pages/question/detail/index?id=${id}` });
   },
 
   onViewAllTap() {

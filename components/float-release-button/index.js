@@ -1,3 +1,5 @@
+import { openPage, redirectPage, switchTabPage, reLaunchPage } from '~/utils/router';
+
 const STORAGE_KEY = 'float_release_fab_fixed_v3';
 
 function getWindowMetrics() {
@@ -318,19 +320,25 @@ Component({
       const { pagePath, navigateType } = this.properties;
       if (!pagePath) return;
       const navigatorMap = {
-        navigateTo: wx.navigateTo,
-        redirectTo: wx.redirectTo,
-        switchTab: wx.switchTab,
-        reLaunch: wx.reLaunch
+        navigateTo: openPage,
+        redirectTo: redirectPage,
+        switchTab: switchTabPage,
+        reLaunch: reLaunchPage
       };
-      const navigate = navigatorMap[navigateType] || wx.navigateTo;
-      navigate({
+      const navigate = navigatorMap[navigateType] || openPage;
+      const result = navigate({
         url: pagePath,
         fail: (err) => {
           console.error('跳转失败:', err);
           this.triggerEvent('onError', { error: err });
         }
       });
+      if (result && typeof result.catch === 'function') {
+        result.catch((err) => {
+          console.error('跳转失败:', err);
+          this.triggerEvent('onError', { error: err });
+        });
+      }
     },
 
     show() {

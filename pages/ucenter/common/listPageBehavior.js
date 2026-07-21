@@ -1,5 +1,5 @@
 import { fetchSocialList } from '~/utils/userSocial';
-import { socialApi } from '~/api/index';
+import { socialApi, handleApiError } from '~/api/index';
 
 /**
  * 关注 / 粉丝 / 访问 列表页通用逻辑
@@ -109,10 +109,7 @@ export function createSocialListPage(listType) {
         });
       } catch (err) {
         this.setData({ [key]: item.isFollowing });
-        wx.showToast({
-          title: err?.message || '操作失败',
-          icon: 'none'
-        });
+        handleApiError(err, { fallbackMessage: '操作失败' });
       }
     }
   };

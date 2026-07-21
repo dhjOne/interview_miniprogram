@@ -1,3 +1,4 @@
+import { handleApiError } from '~/api/index';
 import { bindInviteCode, fetchMyInviteCode } from '~/utils/points';
 
 Page({
@@ -22,7 +23,7 @@ Page({
       const inviteCode = await fetchMyInviteCode();
       this.setData({ inviteCode: inviteCode || '—' });
     } catch (e) {
-      wx.showToast({ title: (e && e.message) || '加载失败', icon: 'none' });
+      handleApiError(e, { fallbackMessage: '加载失败' });
     } finally {
       this.setData({ loading: false });
     }
@@ -53,7 +54,7 @@ Page({
       wx.showToast({ title: '绑定成功', icon: 'success' });
       this.setData({ bindCode: '' });
     } catch (e) {
-      wx.showToast({ title: (e && e.message) || '绑定失败', icon: 'none' });
+      handleApiError(e, { fallbackMessage: '绑定失败' });
     } finally {
       this.setData({ binding: false });
     }

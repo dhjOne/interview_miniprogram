@@ -1,4 +1,5 @@
 import Message from 'tdesign-miniprogram/message/index';
+import { handleApiError } from '~/api/index';
 import {
   clearQuestionBrowseHistory,
   removeQuestionBrowseById
@@ -9,6 +10,7 @@ import {
   hasLoginToken,
   removeServerBrowseHistory
 } from '~/utils/practiceBrowse';
+import { openPage } from '~/utils/router';
 
 const app = getApp();
 
@@ -190,11 +192,7 @@ Page({
         content: '已移除'
       });
     } catch (err) {
-      Message.error({
-        context: this,
-        offset: [20, 32],
-        content: (err && err.message) || '移除失败'
-      });
+      handleApiError(err, { fallbackMessage: '移除失败' });
     }
   },
 
@@ -222,22 +220,13 @@ Page({
             content: '已清空'
           });
         } catch (err) {
-          Message.error({
-            context: this,
-            offset: [20, 32],
-            content: (err && err.message) || '清空失败'
-          });
+          handleApiError(err, { fallbackMessage: '清空失败' });
         }
       }
     });
   },
 
   goPractice() {
-    wx.switchTab({
-      url: '/pages/category/index',
-      fail: () => {
-        wx.navigateTo({ url: '/pages/category/index' });
-      }
-    });
+    openPage({ url: '/pages/category/index' });
   }
 });

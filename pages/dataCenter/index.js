@@ -1,4 +1,6 @@
+import { handleApiError } from '~/api/index';
 import { fetchCreatorInsights } from '~/utils/creatorInsights';
+import { openPage } from '~/utils/router';
 
 Page({
   data: {
@@ -132,7 +134,7 @@ Page({
     } catch (e) {
       console.error('[dataCenter] refresh failed', e);
       this.setData({ loading: false, loadError: true });
-      wx.showToast({ title: '数据加载失败', icon: 'none' });
+      handleApiError(e, { fallbackMessage: '数据加载失败' });
     }
   },
 
@@ -163,19 +165,19 @@ Page({
   onGrowthTap(e) {
     const item = e.currentTarget.dataset.item;
     if (!item || !item.url) return;
-    wx.navigateTo({ url: item.url });
+    openPage({ url: item.url });
   },
 
   onStatusTap(e) {
     const item = e.currentTarget.dataset.item;
     if (!item || !item.url) return;
-    wx.navigateTo({ url: item.url });
+    openPage({ url: item.url });
   },
 
   onTopTap(e) {
     const id = e.currentTarget.dataset.id;
     if (!id) return;
-    wx.navigateTo({ url: `/pages/question/detail/index?id=${id}` });
+    openPage({ url: `/pages/question/detail/index?id=${id}` });
   },
 
   onRetry() {

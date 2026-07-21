@@ -1,5 +1,7 @@
 // pages/message/message.js
+import { handleApiError } from '~/api/index';
 import { fetchMessageList, markMessagesRead } from '~/utils/chatService';
+import { openPage } from '~/utils/router';
 
 const app = getApp();
 const { socket } = app.globalData; // 获取已连接的 socketTask
@@ -74,7 +76,7 @@ Page({
       })
       .catch((err) => {
         console.error('消息列表加载失败', err);
-        wx.showToast({ title: '消息加载失败', icon: 'none' });
+        handleApiError(err, { fallbackMessage: '消息加载失败' });
       })
       .finally(() => {
         this.setData({ loading: false });
@@ -104,7 +106,7 @@ Page({
   /** 打开对话页 */
   toChat(event) {
     const { userId } = event.currentTarget.dataset;
-    wx.navigateTo({ url: `/pages/chat/index?userId${userId}` }).then(({ eventChannel }) => {
+    openPage({ url: `/pages/chat/index?userId=${userId}` }).then(({ eventChannel }) => {
       currentUser = { userId, eventChannel };
       const { user } = this.getUserById(userId);
       eventChannel.emit('update', user);

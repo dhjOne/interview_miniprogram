@@ -1,4 +1,6 @@
 // pages/agreement/agreement.js
+import { backPage, openPage } from '~/utils/router';
+
 Page({
   data: {
     isAgreed: false,
@@ -67,11 +69,9 @@ Page({
             prevPage.updateAgreementStatus('agree')
           }
           if (this.data.fromPage === 'login') {
-            wx.navigateBack()
+            backPage();
           } else {
-            wx.switchTab({
-              url: '/pages/category/index'
-            })
+            openPage({ url: '/pages/category/index' });
           }
         }, 500)
       }

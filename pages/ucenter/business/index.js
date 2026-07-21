@@ -1,3 +1,4 @@
+import { handleApiError } from '~/api/index';
 import {
   fetchBusinessCooperation,
   submitBusinessLead
@@ -121,15 +122,7 @@ Page({
       });
       wx.showToast({ title: '提交成功', icon: 'success' });
     } catch (e) {
-      const msg =
-        (e && e.message) ||
-        (e && e.msg) ||
-        (e && e.data && e.data.message) ||
-        '提交失败，请稍后重试';
-      wx.showToast({
-        title: String(msg).slice(0, 40),
-        icon: 'none'
-      });
+      handleApiError(e, { fallbackMessage: '提交失败，请稍后重试' });
     } finally {
       this.setData({ submitting: false });
     }

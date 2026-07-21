@@ -6,6 +6,7 @@ import { fetchPersonalInfo } from '~/utils/userProfile';
 import { hasProfessionSelected } from '~/utils/profession';
 import { navigateToProfessionPage } from '~/utils/professionNav';
 import { getLocalSettings } from '~/utils/userSettings';
+import { openPage } from '~/utils/router';
 
 const app = getApp();
 
@@ -529,9 +530,7 @@ Page({
   },
 
   goRelease() {
-    wx.navigateTo({
-      url: '/pages/publish/index'
-    });
+    openPage({ url: '/pages/publish/index' });
   },
 
   onQuestionClick(e) {
@@ -543,7 +542,7 @@ Page({
 
     console.log('点击问题:', row);
 
-    wx.navigateTo({
+    openPage({
       url: `/pages/question/index?categoryId=${qid}&categoryName=${row.name}`
     });
   },

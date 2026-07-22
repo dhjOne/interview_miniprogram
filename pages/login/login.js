@@ -1,6 +1,6 @@
 import { authApi, handleApiError } from '~/api/index';
-import { LoginParams } from '~/api/param/param_login'
-import { WxLoginParams } from '~/api/param/param_login'
+import { LoginParams } from '~/api/param/param_login';
+import { WxLoginParams } from '~/api/param/param_login';
 import http from '~/api/api_request';
 import {
   backPage,
@@ -22,7 +22,7 @@ Page({
       username: '',
       password: '',
       clientId: '7b2bcf3c6a3e4834a375727231a816a0',
-      grantType: 'applet'
+      grantType: 'applet',
     },
     radioValue: '',
     userInfo: {},
@@ -32,7 +32,7 @@ Page({
     isGettingUserInfo: false, // 是否正在获取用户信息
     from: '', // 来源页面标识
     returnUrl: '', // 登录成功后要去的页面（目标）
-    referrerUrl: '' // 进入登录前所在页，用于左上角「返回」
+    referrerUrl: '', // 进入登录前所在页，用于左上角「返回」
   },
 
   onLoad(options) {
@@ -65,7 +65,7 @@ Page({
     this.setData({
       from: options.from || '',
       returnUrl: options.return || '',
-      referrerUrl
+      referrerUrl,
     });
 
     if (!this.data.returnUrl) {
@@ -81,7 +81,7 @@ Page({
 
     if (wx.getUserProfile) {
       this.setData({
-        canIUseGetUserProfile: true
+        canIUseGetUserProfile: true,
       });
     }
   },
@@ -100,7 +100,11 @@ Page({
   /* 自定义功能函数 */
   changeSubmit() {
     if (this.data.isPasswordLogin) {
-      if (this.data.passwordInfo.username !== '' && this.data.passwordInfo.password !== '' && this.data.isCheck) {
+      if (
+        this.data.passwordInfo.username !== '' &&
+        this.data.passwordInfo.password !== '' &&
+        this.data.isCheck
+      ) {
         this.setData({ isSubmit: true });
       } else {
         this.setData({ isSubmit: false });
@@ -144,9 +148,8 @@ Page({
 
   // 切换登录方式
   changeLogin() {
-    this.setData(
-      { isPasswordLogin: !this.data.isPasswordLogin, isSubmit: false },
-      () => this.changeSubmit()
+    this.setData({ isPasswordLogin: !this.data.isPasswordLogin, isSubmit: false }, () =>
+      this.changeSubmit(),
     );
   },
 
@@ -163,15 +166,12 @@ Page({
     // 创建登录参数对象
     const param = this.data.passwordInfo;
     const loginParams = new LoginParams(param.username, param.password);
-    
+
     try {
       // 调用API
       const result = await authApi.login(loginParams);
-      console.log("密码登录结果", result);
-      
+
       wx.setStorageSync('access_token', result.data.accessToken);
-      const token = wx.getStorageSync('access_token')
-       console.log('login:::::', token)
       // 登录成功后的跳转处理
       await this.handleLoginSuccess(result);
     } catch (error) {
@@ -194,14 +194,17 @@ Page({
       }
 
       const userInfo = result.data.userInfo || {};
-      const needSelectProfession = userInfo.needSelectProfession || !(userInfo.professionCodes || []).length;
+      const needSelectProfession =
+        userInfo.needSelectProfession || !(userInfo.professionCodes || []).length;
       if (needSelectProfession) {
         wx.showToast({
           title: userInfo.newUser ? '注册成功' : '登录成功',
           icon: 'success',
-          duration: 1200
+          duration: 1200,
         });
-        const returnQ = this.data.returnUrl ? `&return=${encodeURIComponent(this.data.returnUrl)}` : '';
+        const returnQ = this.data.returnUrl
+          ? `&return=${encodeURIComponent(this.data.returnUrl)}`
+          : '';
         setTimeout(() => {
           redirectOrNavigate(`/pages/my/profession/index?from=login${returnQ}`);
         }, 400);
@@ -227,7 +230,7 @@ Page({
       wx.showToast({
         title: '登录成功',
         icon: 'success',
-        duration: 1500
+        duration: 1500,
       });
 
       setTimeout(() => {
@@ -255,25 +258,15 @@ Page({
     }
   },
 
-  getPhoneNumber (e) {
-    console.log(e.detail.code)  // 动态令牌
-    console.log(e.detail.errMsg) // 回调信息（成功失败都会返回）
-    console.log(e.detail.errno)  // 错误码（失败时返回）
-  },
+  getPhoneNumber() {},
 
   // 查看协议
   viewUserAgreement() {
     openPage({
       url: '/pages/agreement/agreement?from=login',
-      success: (res) => {
-        console.log('✅ 页面跳转成功:', res);
-      },
       fail: (error) => {
-        console.error('❌ 页面跳转失败:', error);
+        console.error('页面跳转失败:', error);
       },
-      complete: () => {
-        console.log('📞 navigateTo调用完成');
-      }
     });
   },
 
@@ -283,21 +276,20 @@ Page({
     this.setData(
       {
         radioValue: agreed ? 'agree' : '',
-        isCheck: agreed
+        isCheck: agreed,
       },
-      () => this.changeSubmit()
+      () => this.changeSubmit(),
     );
   },
 
   // 准备微信登录：获取 code
   async prepareWxLogin() {
     const phoneNumber = this.data.phoneNumber; // 在回调外部先获取值
-    console.log('当前手机号:', phoneNumber);
-    
+
     if (!this.data.isPhoneNumber) {
       wx.showToast({
         title: '请输入正确的手机号',
-        icon: 'none'
+        icon: 'none',
       });
       return;
     }
@@ -305,7 +297,7 @@ Page({
     if (!this.data.isCheck) {
       wx.showToast({
         title: '请同意用户协议',
-        icon: 'none'
+        icon: 'none',
       });
       return;
     }
@@ -319,18 +311,18 @@ Page({
       const loginRes = await new Promise((resolve, reject) => {
         wx.login({
           success: resolve,
-          fail: reject
+          fail: reject,
         });
       });
-      
+
       if (!loginRes.code) {
         throw new Error('获取登录凭证失败');
       }
-      
+
       // 保存 code，准备获取用户信息
       this.setData({
         wxLoginCode: loginRes.code,
-        isGettingUserInfo: true
+        isGettingUserInfo: true,
       });
 
       wx.hideLoading();
@@ -351,7 +343,6 @@ Page({
       //     }
       //   }
       // });
-    
     } catch (error) {
       console.error('准备登录失败:', error);
       wx.hideLoading();
@@ -364,22 +355,21 @@ Page({
     wx.getUserProfile({
       desc: '用于完善会员资料',
       success: (res) => {
-        console.log("用户信息： ", res);
         const userInfo = res.userInfo;
-        
+
         this.setData({
           userInfo: userInfo,
-          hasUserInfo: true
+          hasUserInfo: true,
         });
-        
+
         // 使用之前保存的 code 和用户信息进行登录
         this.doLoginWithCode(this.data.wxLoginCode, userInfo);
       },
       fail: (err) => {
-        console.log("用户拒绝授权:", err);
+        console.warn('用户拒绝授权:', err);
         // 用户拒绝授权，仍然使用 code 登录
         this.doLoginWithCode(this.data.wxLoginCode, null);
-      }
+      },
     });
   },
 
@@ -388,7 +378,7 @@ Page({
     if (!code) {
       wx.showToast({
         title: '登录凭证失效，请重试',
-        icon: 'none'
+        icon: 'none',
       });
       return;
     }
@@ -398,20 +388,16 @@ Page({
         title: '登录中...',
       });
 
-      const loginParams = new LoginParams(null, null, code, this.data.phoneNumber, null, "applet");
-      
+      const loginParams = new LoginParams(null, null, code, this.data.phoneNumber, null, 'applet');
+
       // 如果有用户信息，可以在这里处理或传递给后端
       if (userInfo) {
-        console.log('获取到用户信息:', userInfo);
         loginParams.userInfo = userInfo;
       }
-      
+
       const result = await authApi.login(loginParams);
-      console.log("微信登录结果", result);
-      
+
       wx.setStorageSync('access_token', result.data.accessToken);
-      const token = wx.getStorageSync('access_token')
-       console.log('login:::::', token)
       // 登录成功后的统一处理
       await this.handleLoginSuccess(result);
     } catch (error) {
@@ -439,13 +425,12 @@ Page({
       if (!path || !String(path).trim()) return false;
       openUrlCascade(String(path).trim(), {
         preferReLaunch: true,
-        onFail: () => this._loginGoBackLastResort()
+        onFail: () => this._loginGoBackLastResort(),
       });
       return true;
     };
 
     if (referrerUrl) {
-      console.log('执行这个： ',referrerUrl)
       openPath(referrerUrl);
       return;
     }
@@ -458,11 +443,11 @@ Page({
         } else {
           this._loginGoBackLastResort();
         }
-      }
+      },
     });
   },
 
   _loginGoBackLastResort() {
     openPage({ url: '/pages/category/index' });
-  }
+  },
 });

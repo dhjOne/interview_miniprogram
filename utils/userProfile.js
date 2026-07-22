@@ -12,7 +12,7 @@ export async function savePersonalInfo(payload) {
   await profileApi.updatePersonalInfo(payload);
   const cached = normalizePersonalInfo({
     ...(app.getUserInfo?.() || wx.getStorageSync('user_info') || {}),
-    ...payload
+    ...payload,
   });
   syncCachedUserInfo(cached);
   return cached;
@@ -27,7 +27,7 @@ export function syncCachedUserInfo(info) {
     avatar: info.avatar,
     bio: info.bio,
     phone: info.phone,
-    professionCodes: info.professionCodes || []
+    professionCodes: info.professionCodes || [],
   };
   if (app.setUserInfo) {
     app.setUserInfo(cached);
@@ -47,7 +47,7 @@ export function toEditForm(info) {
     addressText: normalized.addressText || '',
     bio: normalized.bio || '',
     photos: normalized.photos || [],
-    professionCodes: normalized.professionCodes || []
+    professionCodes: normalized.professionCodes || [],
   };
 }
 
@@ -61,7 +61,7 @@ export function toSavePayload(form) {
     addressText: form.addressText,
     bio: form.bio,
     photos: form.photos,
-    professionCodes: form.professionCodes || []
+    professionCodes: form.professionCodes || [],
   };
 }
 
@@ -79,21 +79,21 @@ export function normalizeProfileRow(row = {}, fallbackUserId = '') {
     isFollowing: !!(row.isFollowing ?? row.following ?? row.followed),
     isBlocked: !!row.isBlocked,
     isBlockedByTarget: !!row.isBlockedByTarget,
-    auditStatus: row.auditStatus ?? 1
+    auditStatus: row.auditStatus ?? 1,
   };
 }
 
 export async function fetchUserProfile(userId) {
   const res = await socialApi.getUserProfile({ userId });
   const profile = normalizeProfileRow(unwrapData(res) || {}, userId);
-  return { profile, fromDemo: false };
+  return { profile };
 }
 
 export async function fetchUserQuestions(userId, page = 1, limit = 20) {
   const res = await socialApi.getUserQuestions({ userId, page, limit });
   const data = unwrapData(res) || {};
   const rows = data.rows || data.list || data.records || [];
-  const list = rows.map(item => ({
+  const list = rows.map((item) => ({
     ...item,
     id: item.id || item.questionId,
     title: item.title || '未命名内容',
@@ -101,11 +101,12 @@ export async function fetchUserQuestions(userId, page = 1, limit = 20) {
     likeCount: item.likeCount || 0,
     commentCount: item.commentCount || 0,
     category: item.category || item.categoryCode || 'other',
-    displayDate: String(item.createdAt || item.createTime || '').replace('T', ' ').slice(0, 10)
+    displayDate: String(item.createdAt || item.createTime || '')
+      .replace('T', ' ')
+      .slice(0, 10),
   }));
   return {
     list,
     total: Number(data.total || list.length),
-    fromDemo: false
   };
 }

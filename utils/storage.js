@@ -12,12 +12,11 @@ function saveSession(sessionInfo) {
       sharedKeyHex: sessionInfo.sharedKeyHex,
       createTime: sessionInfo.createTime || now,
       lastActiveTime: now,
-      expireTime: SESSION_TTL_MS
+      expireTime: SESSION_TTL_MS,
     };
     wx.setStorageSync(STORAGE_KEY, JSON.stringify(data));
-    console.log('✅ 会话信息已保存');
   } catch (error) {
-    console.error('❌ 保存会话失败:', error);
+    console.error('保存会话失败:', error);
   }
 }
 
@@ -29,7 +28,7 @@ function touchSession() {
     sessionInfo.lastActiveTime = Date.now();
     wx.setStorageSync(STORAGE_KEY, JSON.stringify(sessionInfo));
   } catch (error) {
-    console.warn('⚠️ 更新会话活跃时间失败:', error);
+    console.warn('更新会话活跃时间失败:', error);
   }
 }
 
@@ -43,14 +42,12 @@ function loadSession() {
     const now = Date.now();
     const lastActive = sessionInfo.lastActiveTime || sessionInfo.createTime;
     if (now - lastActive > (sessionInfo.expireTime || SESSION_TTL_MS)) {
-      console.log('⚠️ 会话已过期，清除本地缓存');
       clearSession();
       return null;
     }
-    console.log('✅ 会话信息已加载');
     return sessionInfo;
   } catch (error) {
-    console.error('❌ 加载会话失败:', error);
+    console.error('加载会话失败:', error);
     return null;
   }
 }
@@ -58,9 +55,8 @@ function loadSession() {
 function clearSession() {
   try {
     wx.removeStorageSync(STORAGE_KEY);
-    console.log('🗑️ 会话信息已清除');
   } catch (error) {
-    console.error('❌ 清除会话失败:', error);
+    console.error('清除会话失败:', error);
   }
 }
 
@@ -75,5 +71,5 @@ module.exports = {
   loadSession,
   clearSession,
   touchSession,
-  isSessionValid
+  isSessionValid,
 };

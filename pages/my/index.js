@@ -1,22 +1,19 @@
 import useToastBehavior from '~/behaviors/useToast';
 import { getQuestionBrowseHistoryCount } from '~/utils/questionBrowseHistory';
-import {
-  SOCIAL_STAT_ITEMS,
-  fetchSocialSummary,
-  formatStatCount
-} from '~/utils/userSocial';
+import { SOCIAL_STAT_ITEMS, fetchSocialSummary, formatStatCount } from '~/utils/userSocial';
 import { fetchPointAccount } from '~/utils/points';
 import { fetchPersonalInfo, syncCachedUserInfo } from '~/utils/userProfile';
 import { fetchCreatorPreview } from '~/utils/creatorCenter';
-import { socialApi } from '~/api/index';
+import { socialApi, handleApiError } from '~/api/index';
 import { fetchSiteInfo, getDefaultSiteInfo, isCallablePhone } from '~/utils/site';
 import {
   bannerNeedsLogin,
   fetchBannersByPosition,
   getDefaultMyCarousel,
-  POSITION_MY_CAROUSEL
+  POSITION_MY_CAROUSEL,
 } from '~/utils/banners';
 import { openPage } from '~/utils/router';
+import { AppEvents } from '~/utils/eventBus';
 
 const NOTIFY_URL = '/pages/ucenter/notifications/index';
 
@@ -35,20 +32,20 @@ Page({
         name: '浏览历史',
         icon: 'browse',
         type: 'history',
-        url: '/pages/ucenter/history/index'
+        url: '/pages/ucenter/history/index',
       },
       {
         name: '收藏夹',
         icon: 'heart',
         type: 'favorite',
-        url: '/pages/ucenter/favorite/index'
+        url: '/pages/ucenter/favorite/index',
       },
       {
         name: '刷题排行',
         icon: 'leaderboard',
         type: 'ranking',
-        url: '/pages/ucenter/ranking/index'
-      }
+        url: '/pages/ucenter/ranking/index',
+      },
     ],
     /** 低频支撑入口：独立模块，避免挤占常用区 */
     moreServices: [
@@ -57,21 +54,21 @@ Page({
         desc: '品牌投放 · 机构共建',
         icon: 'shop',
         type: 'business',
-        url: '/pages/ucenter/business/index'
+        url: '/pages/ucenter/business/index',
       },
       {
         name: '联系客服',
         desc: '使用咨询 · 问题反馈',
         icon: 'service',
-        type: 'contact'
-      }
+        type: 'contact',
+      },
     ],
     siteInfo: getDefaultSiteInfo(),
     personalInfo: {},
     socialStats: SOCIAL_STAT_ITEMS.map((item) => ({
       ...item,
       count: 0,
-      displayCount: '0'
+      displayCount: '0',
     })),
     /** 创作中心核心模块：四宫格直达，减少一层跳转 */
     creatorGridList: [
@@ -79,28 +76,28 @@ Page({
         name: '去创作',
         icon: 'edit-1',
         type: 'write',
-        url: '/pages/publish/index'
+        url: '/pages/publish/index',
       },
       {
         name: '内容管理',
         icon: 'folder',
         type: 'document',
-        url: '/pages/document/index?type=all'
+        url: '/pages/document/index?type=all',
       },
       {
         name: '数据洞察',
         icon: 'chart',
         type: 'data',
-        url: '/pages/dataCenter/index'
+        url: '/pages/dataCenter/index',
       },
       {
         name: '创作激励',
         icon: 'wallet',
         type: 'points',
-        url: '/pages/ucenter/points/index'
-      }
+        url: '/pages/ucenter/points/index',
+      },
     ],
-    creatorPreviewText: '作品 0 · 获赞 0'
+    creatorPreviewText: '作品 0 · 获赞 0',
   },
 
   onLoad() {
@@ -109,12 +106,12 @@ Page({
         this.loadSocialStats();
       }
     };
-    app.on('points-changed', this._onPointsChanged);
+    app.eventBus.on(AppEvents.POINTS_CHANGED, this._onPointsChanged);
   },
 
   onUnload() {
     if (this._onPointsChanged) {
-      app.off('points-changed', this._onPointsChanged);
+      app.eventBus.off(AppEvents.POINTS_CHANGED, this._onPointsChanged);
     }
   },
 
@@ -139,20 +136,24 @@ Page({
         const personalInfo = await this.getPersonalInfo();
         this.setData({
           isLoad: true,
-          personalInfo
+          personalInfo,
         });
       } catch (e) {
         const cached = app.getUserInfo() || {};
         this.setData({
           isLoad: true,
-          personalInfo: cached
+          personalInfo: cached,
+        });
+        handleApiError(e, {
+          showToast: !cached || !Object.keys(cached).length,
+          fallbackMessage: '加载个人信息失败',
         });
       }
       await Promise.all([
         this.loadSocialStats(),
         this.loadCreatorPreview(),
         this.loadNotificationPreview(),
-        publicPromise
+        publicPromise,
       ]);
     } else {
       this.setData({
@@ -160,7 +161,7 @@ Page({
         personalInfo: {},
         socialStats: this._buildSocialStatsDisplay(null),
         creatorPreviewText: '登录后管理作品与数据',
-        notifyUnread: 0
+        notifyUnread: 0,
       });
       await publicPromise;
     }
@@ -172,6 +173,7 @@ Page({
       this.setData({ siteInfo });
     } catch (e) {
       console.warn('[my] site info failed', e);
+      handleApiError(e, { showToast: false, fallbackMessage: '站点信息加载失败' });
     }
   },
 
@@ -181,6 +183,7 @@ Page({
       this.setData({ carousel });
     } catch (e) {
       console.warn('[my] carousel failed', e);
+      handleApiError(e, { showToast: false, fallbackMessage: '轮播加载失败' });
       this.setData({ carousel: getDefaultMyCarousel() });
     }
   },
@@ -201,11 +204,12 @@ Page({
       const data = res.data || {};
       const notifyUnread = Math.max(
         0,
-        Number(data.unreadCount ?? data.unreadTotal ?? data.unread ?? 0) || 0
+        Number(data.unreadCount ?? data.unreadTotal ?? data.unread ?? 0) || 0,
       );
       this.setData({ notifyUnread });
     } catch (e) {
       console.warn('[my] notification unread failed', e);
+      handleApiError(e, { showToast: false, fallbackMessage: '未读消息加载失败' });
       this.setData({ notifyUnread: 0 });
     }
   },
@@ -217,7 +221,7 @@ Page({
   _buildCreatorPreviewText(preview) {
     const parts = [
       `作品 ${formatStatCount(preview.publishCount || 0)}`,
-      `获赞 ${formatStatCount(preview.likeCount || 0)}`
+      `获赞 ${formatStatCount(preview.likeCount || 0)}`,
     ];
     if (preview.draftCount != null) {
       parts.push(`草稿 ${formatStatCount(preview.draftCount)}`);
@@ -229,12 +233,13 @@ Page({
     try {
       const preview = await fetchCreatorPreview();
       this.setData({
-        creatorPreviewText: this._buildCreatorPreviewText(preview)
+        creatorPreviewText: this._buildCreatorPreviewText(preview),
       });
     } catch (e) {
       console.warn('[my] creator preview failed', e);
+      handleApiError(e, { showToast: false, fallbackMessage: '创作预览加载失败' });
       this.setData({
-        creatorPreviewText: '管理作品 · 查看数据 · 继续创作'
+        creatorPreviewText: '管理作品 · 查看数据 · 继续创作',
       });
     }
   },
@@ -244,7 +249,7 @@ Page({
       following: 'followingCount',
       followers: 'followerCount',
       visits: 'visitCount',
-      points: 'availablePoints'
+      points: 'availablePoints',
     };
     return SOCIAL_STAT_ITEMS.map((item) => {
       const key = item.countKey || countKeyMap[item.type];
@@ -255,22 +260,28 @@ Page({
       return {
         ...item,
         count,
-        displayCount: formatStatCount(count)
+        displayCount: formatStatCount(count),
       };
     });
   },
 
   async loadSocialStats() {
     const [summary, account] = await Promise.all([
-      fetchSocialSummary(),
-      fetchPointAccount().catch(() => null)
+      fetchSocialSummary().catch((e) => {
+        handleApiError(e, { showToast: false, fallbackMessage: '社交统计加载失败' });
+        return null;
+      }),
+      fetchPointAccount().catch((e) => {
+        handleApiError(e, { showToast: false, fallbackMessage: '积分账户加载失败' });
+        return null;
+      }),
     ]);
     const merged = {
       ...(summary || {}),
-      ...(account ? { availablePoints: account.availablePoints } : {})
+      ...(account ? { availablePoints: account.availablePoints } : {}),
     };
     this.setData({
-      socialStats: this._buildSocialStatsDisplay(merged)
+      socialStats: this._buildSocialStatsDisplay(merged),
     });
   },
 
@@ -288,7 +299,7 @@ Page({
 
   onLogin() {
     openPage({
-      url: '/pages/login/login'
+      url: '/pages/login/login',
     });
   },
 
@@ -347,7 +358,7 @@ Page({
     if (!email) return;
     wx.setClipboardData({
       data: email,
-      success: () => wx.showToast({ title: '已复制邮箱', icon: 'success' })
+      success: () => wx.showToast({ title: '已复制邮箱', icon: 'success' }),
     });
   },
 
@@ -357,5 +368,5 @@ Page({
 
   handleContact() {
     // 用户从客服会话返回时可选提示；此处保持静默以免打扰
-  }
+  },
 });

@@ -7,7 +7,13 @@ const { renderMarkdown } = require('../../../utils/towxmlLoader');
 function unwrapDetail(res) {
   if (!res || typeof res !== 'object') return {};
   let d = res.data !== undefined ? res.data : res;
-  if (d && typeof d === 'object' && d.data !== undefined && d.title === undefined && d.content === undefined) {
+  if (
+    d &&
+    typeof d === 'object' &&
+    d.data !== undefined &&
+    d.title === undefined &&
+    d.content === undefined
+  ) {
     d = d.data;
   }
   return d && typeof d === 'object' ? d : {};
@@ -40,7 +46,7 @@ Page({
     displayDate: '',
     viewCount: '',
     shareTitle: '',
-    renderedContent: null
+    renderedContent: null,
   },
 
   onLoad(options) {
@@ -72,8 +78,7 @@ Page({
       const row = unwrapDetail(res);
       const docTitle = row.title || '';
       const markdownContent = row.content || row.markdownContent || '';
-      const categoryName =
-        row.categoryName || row.category_name || row.categoryLabel || '';
+      const categoryName = row.categoryName || row.category_name || row.categoryLabel || '';
       const rawTime =
         row.updatedAt ?? row.updated_at ?? row.createdAt ?? row.created_at ?? row.createAt;
       const displayDate = formatDateYMD(rawTime);
@@ -93,7 +98,7 @@ Page({
         displayDate,
         viewCount,
         renderedContent,
-        shareTitle
+        shareTitle,
       });
     } catch (e) {
       console.error(e);
@@ -110,8 +115,8 @@ Page({
     openPage({
       url: `/pages/document/edit/index?id=${encodeURIComponent(id)}`,
       fail: function (res) {
-        console.log('跳转失败', res);
-      }
+        console.error('跳转失败', res);
+      },
     });
   },
 
@@ -120,7 +125,9 @@ Page({
     const title = this.data.shareTitle || '文档预览';
     return {
       title,
-      path: id ? `pages/document/preview/index?id=${encodeURIComponent(id)}` : 'pages/document/index'
+      path: id
+        ? `pages/document/preview/index?id=${encodeURIComponent(id)}`
+        : 'pages/document/index',
     };
-  }
+  },
 });

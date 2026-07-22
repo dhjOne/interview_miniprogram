@@ -86,10 +86,6 @@
         </view>
       </view>
 
-      <view wx:if="{{fromDemo}}" class="user-profile__demo-tip">
-        当前为演示数据，接入后端后将展示真实信息
-      </view>
-
       <view class="profile-feed">
         <view class="profile-feed__head">
           <text class="profile-feed__title">作品</text>

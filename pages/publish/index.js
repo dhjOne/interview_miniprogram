@@ -44,7 +44,7 @@ Page({
       () => {
         this.updatePreviewContent();
         setTimeout(() => this.scrollToBottom(), 300);
-      }
+      },
     );
 
     wx.showToast({
@@ -72,7 +72,7 @@ Page({
       categorySuggestName: this.data.categorySuggestName,
       images: this.data.images,
       previewFullContent: this.data.previewFullContent,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     wx.setStorageSync('markdown_draft', draft);
@@ -81,7 +81,7 @@ Page({
       wx.showToast({
         title: '草稿已保存',
         icon: 'success',
-        duration: 2000
+        duration: 2000,
       });
     }
   },
@@ -92,7 +92,7 @@ Page({
       return;
     }
     this.setData({
-      showConfirmDialog: true
+      showConfirmDialog: true,
     });
   },
 
@@ -100,7 +100,7 @@ Page({
   async confirmPublish() {
     this.setData({
       showConfirmDialog: false,
-      isPublishing: true
+      isPublishing: true,
     });
 
     try {
@@ -109,24 +109,11 @@ Page({
       const previewFullContent = this.buildFullPreviewContent();
       this.setData({ previewFullContent });
 
-      const documentData = {
-        title: this.data.docTitle,
-        content: this.data.markdownContent,
-        category: this.data.selectedCategory,
-        categoryName: this.data.categoryName,
-        categorySuggestName: this.data.categorySuggestName,
-        images: this.data.images,
-        previewFullContent,
-        createTime: new Date().toISOString(),
-        wordCount: this.data.wordCount
-      };
-
-      console.log('发布文档数据:', documentData);
       const publishParams = new QuestionPublishParams(
         this.data.docTitle,
         this.data.selectedCategory,
         this.data.markdownContent,
-        previewFullContent
+        previewFullContent,
       );
       await questionApi.publishQuestion(publishParams);
 
@@ -134,7 +121,7 @@ Page({
       wx.showToast({
         title: '已提交审核，过审后将获得积分',
         icon: 'success',
-        duration: 2500
+        duration: 2500,
       });
 
       this.setData({
@@ -159,7 +146,7 @@ Page({
         categoryName: '',
         lastInsertType: '',
         editorScrollTop: 0,
-        editorAutoScroll: false
+        editorAutoScroll: false,
       });
       this.updatePreviewContent();
     } catch (error) {
@@ -173,7 +160,7 @@ Page({
   // 取消发布
   cancelPublish() {
     this.setData({
-      showConfirmDialog: false
+      showConfirmDialog: false,
     });
   },
 
@@ -181,5 +168,5 @@ Page({
     if (this.data.docTitle || this.data.markdownContent) {
       this.saveDraft();
     }
-  }
+  },
 });

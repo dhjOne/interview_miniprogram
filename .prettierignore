@@ -3,4 +3,8 @@ miniprogram_npm/
 subpackages/towxml/
 mock/
 lib/
+package-lock.json
 project.private.config.json
+*.min.js
+*.wxml
+*.wxss

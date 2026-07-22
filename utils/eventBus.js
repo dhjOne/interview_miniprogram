@@ -1,3 +1,9 @@
+/** 全局事件名（统一走 app.eventBus，避免多套总线） */
+export const AppEvents = {
+  POINTS_CHANGED: 'points-changed',
+  FLOAT_BUTTON_CHANGE: 'float-button-change',
+};
+
 export default function createBus() {
   return {
     events: {},

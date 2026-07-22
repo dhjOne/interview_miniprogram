@@ -2,7 +2,6 @@
   "pages": [
     "pages/category/index",
     "pages/mknow/index",
-    "pages/message/index",
     "pages/my/index",
     "pages/agreement/agreement"
   ],
@@ -15,76 +14,47 @@
     {
       "root": "pages/question",
       "name": "question",
-      "pages": [
-        "index",
-        "detail/index"
-      ]
+      "pages": ["index", "detail/index"]
     },
     {
       "root": "pages/document",
       "name": "document",
-      "pages": [
-        "index",
-        "preview/index",
-        "edit/index"
-      ]
+      "pages": ["index", "preview/index", "edit/index"]
     },
     {
       "root": "pages/creator",
       "name": "creator",
-      "pages": [
-        "index"
-      ]
+      "pages": ["index"]
     },
     {
       "root": "pages/search",
       "name": "search",
-      "pages": [
-        "index",
-        "result/index"
-      ]
+      "pages": ["index", "result/index"]
     },
     {
       "root": "pages/my/info-edit",
       "name": "edit",
-      "pages": [
-        "index"
-      ]
+      "pages": ["index"]
     },
     {
       "root": "pages/my/profession",
       "name": "profession",
-      "pages": [
-        "index"
-      ]
-    },
-    {
-      "root": "pages/chat",
-      "name": "chat",
-      "pages": [
-        "index"
-      ]
+      "pages": ["index"]
     },
     {
       "root": "pages/login",
       "name": "login",
-      "pages": [
-        "login"
-      ]
+      "pages": ["login"]
     },
     {
       "root": "pages/dataCenter",
       "name": "dataCenter",
-      "pages": [
-        "index"
-      ]
+      "pages": ["index"]
     },
     {
       "root": "pages/setting",
       "name": "setting",
-      "pages": [
-        "index"
-      ]
+      "pages": ["index"]
     },
     {
       "root": "pages/ucenter",
@@ -109,30 +79,22 @@
     {
       "root": "pages/publish",
       "name": "publish",
-      "pages": [
-        "index"
-      ]
+      "pages": ["index"]
     },
     {
       "root": "subpackages/towxml",
       "name": "towxml",
-      "pages": [
-        "index"
-      ]
+      "pages": ["index"]
     }
   ],
   "preloadRule": {
     "pages/category/index": {
       "network": "all",
-      "packages": [
-        "towxml"
-      ]
+      "packages": ["towxml"]
     },
     "pages/mknow/index": {
       "network": "all",
-      "packages": [
-        "towxml"
-      ]
+      "packages": ["towxml"]
     }
   },
   "window": {
@@ -163,4 +125,4 @@
     "~/*": "/*"
   },
   "sitemapLocation": "sitemap.json"
-} 
+}

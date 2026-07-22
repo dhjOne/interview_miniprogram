@@ -7,8 +7,32 @@
         "value": "mock"
       },
       {
+        "type": "folder",
+        "value": "__MACOSX"
+      },
+      {
+        "type": "folder",
+        "value": "recipe-sharing-app"
+      },
+      {
+        "type": "folder",
+        "value": "pages/category/old"
+      },
+      {
+        "type": "folder",
+        "value": ".idea"
+      },
+      {
         "type": "file",
         "value": "package-lock.json"
+      },
+      {
+        "type": "file",
+        "value": "README.md"
+      },
+      {
+        "type": "file",
+        "value": "LICENSE"
       },
       {
         "type": "file",
@@ -70,9 +94,7 @@
       "outputPath": ""
     },
     "disableUseStrict": false,
-    "useCompilerPlugins": [
-      "less"
-    ],
+    "useCompilerPlugins": ["less"],
     "condition": false,
     "ignoreUploadUnusedFiles": true,
     "compileWorklet": false,
@@ -83,7 +105,7 @@
   "compileType": "miniprogram",
   "libVersion": "3.11.1",
   "appid": "wx4039fdb3454e729f",
-  "projectname": "miniprogram-starter",
+  "projectname": "interview_miniprogram",
   "condition": {
     "miniprogram": {
       "list": [

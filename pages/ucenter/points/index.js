@@ -1,10 +1,10 @@
-import { handleApiError } from '~/api/index';
+import { handleApiError, getErrorMessage } from '~/api/index';
 import {
   fetchPointAccount,
   fetchPointLedger,
   fetchPointRules,
   formatPointCount,
-  submitPointAppeal
+  submitPointAppeal,
 } from '~/utils/points';
 import { openPage } from '~/utils/router';
 
@@ -15,7 +15,7 @@ Page({
       pendingPoints: 0,
       lifetimeEarned: 0,
       lifetimeSpent: 0,
-      reputationLevel: 0
+      reputationLevel: 0,
     },
     displayAvailable: '0',
     displayPending: '0',
@@ -35,7 +35,7 @@ Page({
     showAppealDialog: false,
     appealLedgerId: '',
     appealReason: '',
-    appealSubmitting: false
+    appealSubmitting: false,
   },
 
   onLoad() {
@@ -65,15 +65,11 @@ Page({
           hasMore: true,
           loadError: false,
           errorMessage: '',
-          loadDone: false
+          loadDone: false,
         },
         () => {
-          resolve(Promise.all([
-            this.loadAccount(),
-            this.loadRules(),
-            this.fetchLedger(true)
-          ]));
-        }
+          resolve(Promise.all([this.loadAccount(), this.loadRules(), this.fetchLedger(true)]));
+        },
       );
     });
   },
@@ -86,10 +82,11 @@ Page({
         displayAvailable: formatPointCount(account.availablePoints),
         displayPending: formatPointCount(account.pendingPoints),
         displayEarned: formatPointCount(account.lifetimeEarned),
-        displaySpent: formatPointCount(account.lifetimeSpent)
+        displaySpent: formatPointCount(account.lifetimeSpent),
       });
     } catch (e) {
       console.warn('[points] 账户加载失败', e);
+      handleApiError(e, { fallbackMessage: '积分账户加载失败' });
     }
   },
 
@@ -100,6 +97,7 @@ Page({
       this.setData({ ruleList });
     } catch (e) {
       console.warn('[points] 规则加载失败', e);
+      handleApiError(e, { fallbackMessage: '积分规则加载失败' });
     } finally {
       this.setData({ rulesLoading: false });
     }
@@ -127,7 +125,7 @@ Page({
     this.setData({
       showAppealDialog: true,
       appealLedgerId: String(id),
-      appealReason: ''
+      appealReason: '',
     });
   },
 
@@ -168,22 +166,26 @@ Page({
     try {
       const { list, total } = await fetchPointLedger(nextPage, this.data.pageSize);
       const merged = isRefresh ? list : [...this.data.ledgerList, ...list];
-      const hasMore = typeof total === 'number' ? merged.length < total : list.length >= this.data.pageSize;
+      const hasMore =
+        typeof total === 'number' ? merged.length < total : list.length >= this.data.pageSize;
 
       this.setData({
         ledgerList: merged,
         page: nextPage,
         hasMore,
         loadDone: true,
-        loadError: false
+        loadError: false,
       });
     } catch (e) {
       console.error('[points] 流水加载失败:', e);
-      const msg = (e && (e.message || e.msg)) || '';
+      handleApiError(e, {
+        showToast: !!isRefresh,
+        fallbackMessage: '服务暂不可用',
+      });
       this.setData({
         loadError: !!isRefresh,
-        errorMessage: msg || '服务暂不可用',
-        loadDone: true
+        errorMessage: getErrorMessage(e, '服务暂不可用'),
+        loadDone: true,
       });
     } finally {
       this.setData({ loading: false });
@@ -192,5 +194,5 @@ Page({
 
   goCategory() {
     openPage({ url: '/pages/category/index' });
-  }
+  },
 });

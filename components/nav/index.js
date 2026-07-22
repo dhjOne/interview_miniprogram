@@ -35,16 +35,6 @@ Component({
         isSidebar: false,
       },
       {
-        title: '消息列表页',
-        url: 'pages/message/index',
-        isSidebar: true,
-      },
-      {
-        title: '对话页',
-        url: 'pages/chat/index',
-        isSidebar: false,
-      },
-      {
         title: '个人中心页',
         url: 'pages/my/index',
         isSidebar: true,

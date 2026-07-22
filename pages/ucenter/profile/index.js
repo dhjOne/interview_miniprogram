@@ -3,7 +3,7 @@ import {
   DEFAULT_AVATAR,
   fetchUserProfile,
   fetchUserQuestions,
-  normalizeProfileRow
+  normalizeProfileRow,
 } from '~/utils/userProfile';
 import { backPage } from '~/utils/router';
 
@@ -24,7 +24,7 @@ Page({
       isFollowing: false,
       isBlocked: false,
       isBlockedByTarget: false,
-      auditStatus: 1
+      auditStatus: 1,
     },
     articleList: [],
     allArticleList: [],
@@ -36,7 +36,6 @@ Page({
     listLoading: false,
     listDone: false,
     listError: false,
-    fromDemo: false,
     isSelf: false,
     defaultAvatar: DEFAULT_AVATAR,
     categories: [
@@ -44,9 +43,9 @@ Page({
       { id: 'tech', name: '技术', count: 0 },
       { id: 'life', name: '生活', count: 0 },
       { id: 'news', name: '资讯', count: 0 },
-      { id: 'other', name: '其他', count: 0 }
+      { id: 'other', name: '其他', count: 0 },
     ],
-    activeCategory: 'all'
+    activeCategory: 'all',
   },
 
   onLoad(options) {
@@ -65,7 +64,6 @@ Page({
     const patch = {
       userId,
       isSelf: selfId && String(userId) === selfId,
-      fromDemo: false
     };
 
     if (nickname || avatar) {
@@ -73,9 +71,9 @@ Page({
         {
           userId,
           nickname: nickname || '用户',
-          avatar: avatar || DEFAULT_AVATAR
+          avatar: avatar || DEFAULT_AVATAR,
         },
-        userId
+        userId,
       );
     }
 
@@ -103,24 +101,20 @@ Page({
   },
 
   reloadPage() {
-    return Promise.all([
-      this.loadProfile(),
-      this.loadArticles(true)
-    ]);
+    return Promise.all([this.loadProfile(), this.loadArticles(true)]);
   },
 
   async loadProfile() {
     this.setData({ pageLoading: true });
     try {
-      const { profile, fromDemo } = await fetchUserProfile(this.data.userId);
+      const { profile } = await fetchUserProfile(this.data.userId);
       const merged = { ...this.data.profile, ...profile };
       if (!merged.publishCount && this.data.totalCount) {
         merged.publishCount = this.data.totalCount;
       }
       this.setData({
         profile: merged,
-        fromDemo: this.data.fromDemo || fromDemo,
-        pageLoading: false
+        pageLoading: false,
       });
       if (merged.nickname) {
         wx.setNavigationBarTitle({ title: merged.nickname });
@@ -144,14 +138,14 @@ Page({
     this.setData({ listLoading: true, listError: false });
 
     try {
-      const { list, total, fromDemo } = await fetchUserQuestions(
+      const { list, total } = await fetchUserQuestions(
         this.data.userId,
         nextPage,
-        this.data.pageSize
+        this.data.pageSize,
       );
       const labeled = (list || []).map((item) => ({
         ...item,
-        categoryLabel: this._categoryLabel(item.category)
+        categoryLabel: this._categoryLabel(item.category),
       }));
       const allMerged = isRefresh ? labeled : [...this.data.allArticleList, ...labeled];
       const hasMore = allMerged.length < total;
@@ -171,16 +165,15 @@ Page({
         page: nextPage,
         hasMore,
         profile,
-        fromDemo: this.data.fromDemo || fromDemo,
         listDone: true,
         listError: false,
-        categories: updatedCategories
+        categories: updatedCategories,
       });
     } catch (e) {
       console.error('[profile] 文章列表失败', e);
       this.setData({
         listError: !!isRefresh,
-        listDone: true
+        listDone: true,
       });
     } finally {
       this.setData({ listLoading: false });
@@ -201,11 +194,11 @@ Page({
     try {
       await socialApi.toggleFollow({
         userId: this.data.userId,
-        follow: nextFollowing
+        follow: nextFollowing,
       });
       wx.showToast({
         title: nextFollowing ? '已关注' : '已取消关注',
-        icon: 'none'
+        icon: 'none',
       });
     } catch (e) {
       console.warn('[profile] 关注失败', e);
@@ -227,7 +220,7 @@ Page({
         } else {
           this.blockUser();
         }
-      }
+      },
     });
   },
 
@@ -239,7 +232,7 @@ Page({
         targetUserId: this.data.userId,
         targetTitle: this.data.profile.nickname,
         reasonType: 'OTHER',
-        reason: '用户主页举报'
+        reason: '用户主页举报',
       });
       wx.showToast({ title: '举报已提交', icon: 'none' });
     } catch (e) {
@@ -256,17 +249,17 @@ Page({
         try {
           await socialApi.blockUser({
             userId: this.data.userId,
-            reason: '用户主动拉黑'
+            reason: '用户主动拉黑',
           });
           this.setData({
             'profile.isBlocked': true,
-            'profile.isFollowing': false
+            'profile.isFollowing': false,
           });
           wx.showToast({ title: '已拉黑', icon: 'none' });
         } catch (e) {
           handleApiError(e, { fallbackMessage: '操作失败' });
         }
-      }
+      },
     });
   },
 
@@ -285,7 +278,7 @@ Page({
     if (!id) return;
     const titleQ = title ? `&title=${encodeURIComponent(title)}` : '';
     app.navigateToLogin({
-      url: `/pages/question/detail/index?id=${id}${titleQ}`
+      url: `/pages/question/detail/index?id=${id}${titleQ}`,
     });
   },
 
@@ -295,13 +288,13 @@ Page({
 
     this.setData({
       activeCategory: category,
-      page: 1
+      page: 1,
     });
 
     const filtered = this.getFilteredArticles(this.data.allArticleList, category);
     this.setData({
       articleList: filtered,
-      hasMore: filtered.length < this.data.totalCount
+      hasMore: filtered.length < this.data.totalCount,
     });
   },
 
@@ -309,7 +302,7 @@ Page({
     if (category === 'all') {
       return list;
     }
-    return list.filter(item => item.category === category);
+    return list.filter((item) => item.category === category);
   },
 
   _categoryLabel(category) {
@@ -323,10 +316,10 @@ Page({
       tech: 0,
       life: 0,
       news: 0,
-      other: 0
+      other: 0,
     };
 
-    list.forEach(item => {
+    list.forEach((item) => {
       const category = item.category || 'other';
       if (category in counts) {
         counts[category]++;
@@ -335,9 +328,9 @@ Page({
       }
     });
 
-    return categories.map(cat => ({
+    return categories.map((cat) => ({
       ...cat,
-      count: counts[cat.id] || 0
+      count: counts[cat.id] || 0,
     }));
-  }
+  },
 });

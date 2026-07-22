@@ -1,11 +1,8 @@
 import { switchTabPage } from '~/utils/router';
 
-const app = getApp();
-
 Component({
   data: {
-    value: '', // 初始值设置为空，避免第一次加载时闪烁
-    unreadNum: 0, // 未读消息数量
+    value: '',
     list: [
       {
         icon: 'book-open',
@@ -27,19 +24,6 @@ Component({
   lifetimes: {
     ready() {
       this.syncValueFromRoute();
-
-      // 同步全局未读消息数量
-      this.setUnreadNum(app.globalData.unreadNum);
-      this._onUnreadNumChange = (unreadNum) => {
-        this.setUnreadNum(unreadNum);
-      };
-      app.eventBus.on('unread-num-change', this._onUnreadNumChange);
-    },
-    detached() {
-      if (this._onUnreadNumChange) {
-        app.eventBus.off('unread-num-change', this._onUnreadNumChange);
-        this._onUnreadNumChange = null;
-      }
     },
   },
 
@@ -57,7 +41,7 @@ Component({
       const nameRe = /pages\/(\w+)\/index/.exec(curPage.route);
       if (!nameRe || !nameRe[1]) return;
       const name = nameRe[1];
-      const allowed = ['category', 'mknow', 'my', 'home', 'message'];
+      const allowed = ['category', 'mknow', 'my'];
       if (!allowed.includes(name)) return;
       if (name !== this.data.value) {
         this.setData({ value: name });
@@ -67,11 +51,6 @@ Component({
     handleChange(e) {
       const { value } = e.detail;
       switchTabPage({ url: `/pages/${value}/index` });
-    },
-
-    /** 设置未读消息数量 */
-    setUnreadNum(unreadNum) {
-      this.setData({ unreadNum });
     },
   },
 });

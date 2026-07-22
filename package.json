@@ -1,22 +1,23 @@
 {
-  "name": "tdesign-miniprogram-starter",
-  "version": "0.0.2",
+  "name": "interview-miniprogram",
+  "version": "0.1.0",
   "main": "index.js",
   "scripts": {
+    "prepare": "husky install",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint ./ --no-eslintrc -c ./.eslintrc.js",
     "lint:fix": "npm run lint:fix-eslint && npm run lint:fix-prettier",
     "lint:fix-eslint": "eslint --ext .js,.ts ./ --max-warnings 0 --ignore-path .gitignore --ignore-path .eslintignore --fix",
-    "lint:fix-prettier": "prettier ./ --ignore-path .gitignore --ignore-path .eslintignore --ignore-path .prettierignore --write './**/*.{js,ts}' --ignore-unknown"
+    "lint:fix-prettier": "prettier --write --ignore-path .gitignore --ignore-path .eslintignore --ignore-path .prettierignore './**/*.{js,ts}' --ignore-unknown"
   },
   "keywords": [
     "wechat",
     "miniprogram",
-    "starter"
+    "interview",
+    "question-bank"
   ],
-  "author": "leejim",
   "license": "MIT",
-  "description": "a start-kit for wechat miniprogram powerby TDesign miniprogram",
+  "description": "面试题库微信小程序：分类刷题、发布文档、积分与个人中心",
   "dependencies": {
     "tdesign-miniprogram": "^1.11.2"
   },
@@ -29,13 +30,5 @@
     "husky": "^8.0.3",
     "lint-staged": "^14.0.1",
     "prettier": "^3.0.2"
-  },
-  "lint-staged": {
-    "{src,example,script}/**/*.{js,ts,wxml,html,json,less}": [
-      "prettier --write"
-    ],
-    "**/*.{js,ts}": [
-      "eslint --fix"
-    ]
   }
 }

@@ -1,5 +1,13 @@
 .idea/
 .idea/*
 node_modules
-
 config/dev.js
+
+# macOS / unpack junk
+.DS_Store
+__MACOSX/
+._*
+
+# unrelated / leftover
+recipe-sharing-app/
+.eslintcache

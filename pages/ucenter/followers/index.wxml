@@ -6,8 +6,6 @@
       <view class="uc-social__hero-sub">{{heroSub}}</view>
     </view>
 
-    <view wx:if="{{fromDemo}}" class="uc-social__demo-tip">当前为演示数据，接入后端接口后将展示真实列表</view>
-
     <scroll-view
       class="uc-social__scroll"
       scroll-y

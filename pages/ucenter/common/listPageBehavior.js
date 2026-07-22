@@ -15,8 +15,7 @@ export function createSocialListPage(listType) {
       loading: false,
       loadDone: false,
       loadError: false,
-      fromDemo: false,
-      defaultAvatar: '/static/avatar1.png'
+      defaultAvatar: '/static/avatar1.png',
     },
 
     onLoad() {
@@ -49,9 +48,8 @@ export function createSocialListPage(listType) {
             hasMore: true,
             loadError: false,
             loadDone: false,
-            fromDemo: false
           },
-          () => resolve(this.loadList(true))
+          () => resolve(this.loadList(true)),
         );
       });
     },
@@ -64,11 +62,7 @@ export function createSocialListPage(listType) {
       this.setData({ loading: true });
 
       try {
-        const { list, total, fromDemo } = await fetchSocialList(
-          listType,
-          nextPage,
-          this.data.pageSize
-        );
+        const { list, total } = await fetchSocialList(listType, nextPage, this.data.pageSize);
         const merged = isRefresh ? list : [...this.data.list, ...list];
         const hasMore = merged.length < total;
 
@@ -76,15 +70,18 @@ export function createSocialListPage(listType) {
           list: merged,
           page: nextPage,
           hasMore,
-          fromDemo,
           loadDone: true,
-          loadError: false
+          loadError: false,
         });
       } catch (e) {
         console.error(`[${listType}] 列表加载失败`, e);
+        handleApiError(e, {
+          showToast: !!isRefresh,
+          fallbackMessage: '加载失败，请稍后重试',
+        });
         this.setData({
           loadError: !!isRefresh,
-          loadDone: true
+          loadDone: true,
         });
       } finally {
         this.setData({ loading: false });
@@ -105,12 +102,12 @@ export function createSocialListPage(listType) {
         await socialApi.toggleFollow({ userId: id, follow: nextFollowing });
         wx.showToast({
           title: nextFollowing ? '已关注' : '已取消关注',
-          icon: 'none'
+          icon: 'none',
         });
       } catch (err) {
         this.setData({ [key]: item.isFollowing });
         handleApiError(err, { fallbackMessage: '操作失败' });
       }
-    }
+    },
   };
 }

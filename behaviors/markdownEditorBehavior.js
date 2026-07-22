@@ -1,8 +1,11 @@
+import markdownToolbarBehavior from '~/behaviors/markdownToolbarBehavior';
+
 const { renderMarkdown } = require('../utils/towxmlLoader');
 
 /**
  * 发布页 / 文档编辑页共用的 Markdown 编辑器逻辑
- *（输入、预览、工具栏插入、历史撤销、滚动、清除、表单校验、本地草稿加载）。
+ *（输入、预览、历史撤销、滚动、清除、表单校验、本地草稿加载）。
+ * 工具栏插入见 markdownToolbarBehavior。
  *
  * 草稿持久化策略可能不同：
  * - 发布页：autoSave → saveDraft（本地 storage）
@@ -10,10 +13,11 @@ const { renderMarkdown } = require('../utils/towxmlLoader');
  * 页面可实现 onAutoSaveDraft / persistDraftLocal / beforeInitEditor 钩子。
  */
 const markdownEditorBehavior = Behavior({
+  behaviors: [markdownToolbarBehavior],
+
   data: {
     docTitle: '',
     markdownContent: '',
-    images: [],
 
     activeTab: 'edit',
     cursorPosition: 0,
@@ -21,8 +25,6 @@ const markdownEditorBehavior = Behavior({
     isPublishing: false,
     showConfirmDialog: false,
     showClearConfirmDialog: false,
-
-    showToolbarDropdown: false,
 
     contentHistory: [],
     historyIndex: -1,
@@ -32,7 +34,6 @@ const markdownEditorBehavior = Behavior({
     renderedContent: null,
     wordCount: 0,
     previewFullContent: '',
-    lastInsertType: '',
 
     editorScrollTop: 0,
     editorAutoScroll: false,
@@ -40,7 +41,7 @@ const markdownEditorBehavior = Behavior({
     isScrolling: false,
 
     editorLineCount: 1,
-    insertOperations: []
+    insertOperations: [],
   },
 
   methods: {
@@ -60,11 +61,11 @@ const markdownEditorBehavior = Behavior({
         this.setData(
           {
             markdownContent:
-              '# 欢迎使用技术文档编辑器\n\n这是一个支持Markdown实时预览的编辑器，您可以开始撰写您的技术文档。'
+              '# 欢迎使用技术文档编辑器\n\n这是一个支持Markdown实时预览的编辑器，您可以开始撰写您的技术文档。',
           },
           () => {
             this.updatePreviewContent();
-          }
+          },
         );
       }
     },
@@ -73,11 +74,11 @@ const markdownEditorBehavior = Behavior({
       const title = e.detail.value.trim();
       this.setData(
         {
-          docTitle: title
+          docTitle: title,
         },
         () => {
           this.updatePreviewContent();
-        }
+        },
       );
     },
 
@@ -88,12 +89,12 @@ const markdownEditorBehavior = Behavior({
       this.setData(
         {
           markdownContent: content,
-          wordCount: wordCount
+          wordCount: wordCount,
         },
         () => {
           this.updatePreviewContent();
           this.checkAutoScroll();
-        }
+        },
       );
 
       this.saveToHistory(content);
@@ -117,7 +118,7 @@ const markdownEditorBehavior = Behavior({
         contentHistory,
         historyIndex: contentHistory.length - 1,
         canUndo: contentHistory.length > 1,
-        canRedo: false
+        canRedo: false,
       });
     },
 
@@ -134,14 +135,14 @@ const markdownEditorBehavior = Behavior({
             markdownContent: content,
             historyIndex: newIndex,
             canUndo: newIndex > 0,
-            canRedo: true
+            canRedo: true,
           },
           () => {
             this.updatePreviewContent();
             setTimeout(() => {
               this.scrollToCursor();
             }, 100);
-          }
+          },
         );
       }
     },
@@ -159,21 +160,21 @@ const markdownEditorBehavior = Behavior({
             markdownContent: content,
             historyIndex: newIndex,
             canUndo: true,
-            canRedo: newIndex < contentHistory.length - 1
+            canRedo: newIndex < contentHistory.length - 1,
           },
           () => {
             this.updatePreviewContent();
             setTimeout(() => {
               this.scrollToCursor();
             }, 100);
-          }
+          },
         );
       }
     },
 
     onTabChange(e) {
       this.setData({
-        activeTab: e.detail.value
+        activeTab: e.detail.value,
       });
 
       if (e.detail.value === 'edit') {
@@ -220,23 +221,11 @@ const markdownEditorBehavior = Behavior({
       return fullContent;
     },
 
-    toggleToolbarDropdown() {
-      this.setData({
-        showToolbarDropdown: !this.data.showToolbarDropdown
-      });
-    },
-
-    closeToolbarDropdown() {
-      this.setData({
-        showToolbarDropdown: false
-      });
-    },
-
     updatePreviewContent() {
       const fullContent = this.buildFullPreviewContent();
 
       this.setData({
-        previewFullContent: fullContent
+        previewFullContent: fullContent,
       });
 
       if (!fullContent) return;
@@ -252,236 +241,22 @@ const markdownEditorBehavior = Behavior({
         });
     },
 
-    insertMarkdown(e) {
-      this.closeToolbarDropdown();
-
-      const type = e.currentTarget.dataset.type;
-      const { markdownContent } = this.data;
-
-      let insertText = '';
-      let insertTypeName = '';
-
-      switch (type) {
-        case 'h1':
-          insertText = '\n\n# 一级标题\n\n这里是标题内容...';
-          insertTypeName = '一级标题';
-          break;
-        case 'h2':
-          insertText = '\n\n## 二级标题\n\n这里是二级标题内容...';
-          insertTypeName = '二级标题';
-          break;
-        case 'h3':
-          insertText = '\n\n### 三级标题\n\n这里是三级标题内容...';
-          insertTypeName = '三级标题';
-          break;
-        case 'bold':
-          insertText = '\n\n**这里是粗体文字**';
-          insertTypeName = '粗体文字';
-          break;
-        case 'italic':
-          insertText = '\n\n*这里是斜体文字*';
-          insertTypeName = '斜体文字';
-          break;
-        case 'list':
-          insertText = '\n\n- 列表项一\n- 列表项二\n- 列表项三';
-          insertTypeName = '无序列表';
-          break;
-        case 'ordered-list':
-          insertText = '\n\n1. 列表项一\n2. 列表项二\n3. 列表项三';
-          insertTypeName = '有序列表';
-          break;
-        case 'quote':
-          insertText = '\n\n> 这里是引用内容\n> 可以多行显示引用内容';
-          insertTypeName = '引用块';
-          break;
-        case 'inline-code':
-          insertText = '\n\n`这里是行内代码`';
-          insertTypeName = '行内代码';
-          break;
-        case 'code':
-          insertText =
-            '\n\n```javascript\n// 这里是代码块\nfunction example() {\n  console.log("Hello World");\n}\n```';
-          insertTypeName = '代码块';
-          break;
-        case 'link':
-          insertText = '\n\n[链接文字](https://example.com)';
-          insertTypeName = '超链接';
-          break;
-        case 'table':
-          insertText =
-            '\n\n| 标题1 | 标题2 | 标题3 |\n|-------|-------|-------|\n| 内容1 | 内容2 | 内容3 |\n| 内容4 | 内容5 | 内容6 |';
-          insertTypeName = '表格';
-          break;
-        case 'divider':
-          insertText = '\n\n---\n\n';
-          insertTypeName = '分割线';
-          break;
-        case 'checklist':
-          insertText = '\n\n- [ ] 任务项一\n- [ ] 任务项二\n- [x] 已完成任务';
-          insertTypeName = '任务列表';
-          break;
-        case 'formula':
-          insertText = '\n\n$$\ne^{i\\pi} + 1 = 0\n$$\n\n这是一个数学公式示例。';
-          insertTypeName = '数学公式';
-          break;
-        case 'mermaid':
-          insertText =
-            '\n\n```mermaid\ngraph TD\n    A[开始] --> B(处理)\n    B --> C{判断}\n    C -->|是| D[结束]\n    C -->|否| B\n```';
-          insertTypeName = '流程图';
-          break;
-      }
-
-      const newContent = markdownContent + insertText;
-
-      this.setData(
-        {
-          markdownContent: newContent,
-          lastInsertType: insertTypeName,
-          cursorPosition: markdownContent.length
-        },
-        () => {
-          this.updatePreviewContent();
-          this.saveToHistory(newContent);
-
-          setTimeout(() => {
-            this.scrollToBottom();
-          }, 100);
-
-          wx.showToast({
-            title: `已插入${insertTypeName}到文档末尾`,
-            icon: 'success',
-            duration: 1500
-          });
-
-          console.log(`插入${insertTypeName}到文档末尾，新内容长度:`, newContent.length);
-        }
-      );
-    },
-
-    insertTemplate(e) {
-      this.closeToolbarDropdown();
-
-      const type = e.currentTarget.dataset.type;
-      const { markdownContent } = this.data;
-
-      let insertText = '';
-      let insertTypeName = '';
-
-      switch (type) {
-        case 'tutorial':
-          insertText =
-            '\n\n# 使用教程模板\n\n## 概述\n\n在这里描述您的产品/技术的背景和目的...\n\n## 安装步骤\n\n### 1. 环境准备\n\n确保您的系统满足以下要求：\n\n- Node.js 14.0 或更高版本\n- npm 6.0 或更高版本\n\n### 2. 安装命令\n\n```bash\nnpm install your-package --save\n```\n\n## 快速开始\n\n### 基本配置\n\n1. 导入模块\n2. 初始化配置\n3. 开始使用\n\n### 示例代码\n\n```javascript\nconst yourModule = require(\'your-package\');\n\n// 初始化\nconst instance = yourModule.init({\n  apiKey: \'your-api-key\',\n  endpoint: \'https://api.example.com\'\n});\n\n// 使用功能\ninstance.doSomething();\n```\n\n## 注意事项\n\n> 重要提示：在生产环境使用前，请确保充分测试。\n\n## 常见问题\n\n**Q: 如何解决常见错误？**\nA: 检查网络连接和配置参数。\n\n**Q: 如何获取支持？**\nA: 请访问我们的官方文档或联系技术支持。';
-          insertTypeName = '教程模板';
-          break;
-        case 'api':
-          insertText =
-            '\n\n# API 文档模板\n\n## 接口概览\n\n| 接口名称 | 请求方法 | 接口路径 | 描述 | 认证要求 |\n|----------|----------|----------|------|----------|\n| 获取用户 | GET | /api/users | 获取用户列表 | 需要token |\n| 创建用户 | POST | /api/users | 创建新用户 | 需要token |\n| 用户详情 | GET | /api/users/:id | 获取用户详情 | 需要token |\n| 更新用户 | PUT | /api/users/:id | 更新用户信息 | 需要token |\n| 删除用户 | DELETE | /api/users/:id | 删除用户 | 需要token |\n\n## 通用说明\n\n### 请求头\n\n```http\nAuthorization: Bearer {token}\nContent-Type: application/json\nAccept: application/json\n```\n\n### 请求示例\n\n```bash\ncurl -X GET \\\n  "https://api.example.com/users" \\\n  -H "Authorization: Bearer your-token-here" \\\n  -H "Content-Type: application/json"\n```\n\n### 响应格式\n\n所有响应都遵循以下格式：\n\n```json\n{\n  "code": 200,\n  "data": {},\n  "message": "success",\n  "timestamp": 1640995200000\n}\n```\n\n### 参数说明\n\n| 参数名 | 类型 | 必填 | 说明 | 示例 |\n|--------|------|------|------|------|\n| page   | number | 否 | 页码，从1开始 | 1 |\n| size   | number | 否 | 每页数量，默认20 | 20 |\n| sort   | string | 否 | 排序字段 | "createdAt:desc" |\n\n### 错误码\n\n| 错误码 | 说明 |\n|--------|------|\n| 400 | 请求参数错误 |\n| 401 | 未授权 |\n| 403 | 权限不足 |\n| 404 | 资源不存在 |\n| 500 | 服务器内部错误 |';
-          insertTypeName = 'API文档模板';
-          break;
-        case 'code':
-          insertText =
-            '\n\n```javascript\n// 代码模板\n\n/**\n * 函数名称\n * @param {string} param1 - 参数1描述\n * @param {number} param2 - 参数2描述\n * @returns {boolean} 返回值描述\n * @example\n * // 示例用法\n * const result = functionName(\'hello\', 123);\n */\nfunction functionName(param1, param2) {\n  // 函数实现\n  console.log(`参数1: ${param1}, 参数2: ${param2}`);\n  \n  // 返回结果\n  return true;\n}\n\n// 使用示例\nconst example = functionName(\'test\', 456);\nconsole.log(\'执行结果:\', example);\n```';
-          insertTypeName = '代码模板';
-          break;
-        case 'table':
-          insertText =
-            '\n\n| 参数名 | 类型 | 必填 | 默认值 | 说明 | 示例 |\n|--------|------|------|--------|------|------|\n| id     | string | 是 | 无 | 唯一标识 | "user_123" |\n| name   | string | 是 | 无 | 用户姓名 | "张三" |\n| age    | number | 否 | 18 | 用户年龄 | 25 |\n| email  | string | 是 | 无 | 用户邮箱 | "user@example.com" |\n| status | string | 否 | "active" | 用户状态 | "active", "inactive" |\n| createdAt | string | 否 | 无 | 创建时间 | "2024-01-23T10:30:00Z" |\n| updatedAt | string | 否 | 无 | 更新时间 | "2024-01-23T11:00:00Z" |';
-          insertTypeName = '表格模板';
-          break;
-      }
-
-      const newContent = markdownContent + insertText;
-
-      this.setData(
-        {
-          markdownContent: newContent,
-          lastInsertType: insertTypeName,
-          cursorPosition: markdownContent.length
-        },
-        () => {
-          this.updatePreviewContent();
-          this.saveToHistory(newContent);
-
-          setTimeout(() => {
-            this.scrollToBottom();
-          }, 100);
-
-          wx.showToast({
-            title: `已插入${insertTypeName}到文档末尾`,
-            icon: 'success',
-            duration: 1500
-          });
-
-          console.log(`插入${insertTypeName}到文档末尾，新内容长度:`, newContent.length);
-        }
-      );
-    },
-
-    chooseImage() {
-      this.closeToolbarDropdown();
-
-      wx.chooseMedia({
-        count: 9 - this.data.images.length,
-        mediaType: ['image'],
-        sourceType: ['album', 'camera'],
-        success: (res) => {
-          const newImages = res.tempFiles.map((file, index) => ({
-            id: Date.now() + index,
-            url: file.tempFilePath,
-            type: file.fileType
-          }));
-
-          this.setData({
-            images: [...this.data.images, ...newImages]
-          });
-
-          const imageMarkdown = newImages
-            .map((img, index) => `\n\n![图片${index + 1}](${img.url})`)
-            .join('\n');
-          const { markdownContent } = this.data;
-          const newContent = markdownContent + imageMarkdown;
-
-          this.setData(
-            {
-              markdownContent: newContent,
-              lastInsertType: '图片',
-              cursorPosition: newContent.length
-            },
-            () => {
-              this.updatePreviewContent();
-              this.saveToHistory(newContent);
-
-              setTimeout(() => {
-                this.scrollToBottom();
-              }, 100);
-
-              wx.showToast({
-                title: `已插入${newImages.length}张图片到文档末尾`,
-                icon: 'success',
-                duration: 1500
-              });
-            }
-          );
-        }
-      });
-    },
-
     onEditorFocus(e) {
       this.setData({
-        cursorPosition: e.detail.cursor
+        cursorPosition: e.detail.cursor,
       });
     },
 
     onEditorBlur(e) {
       this.setData({
-        cursorPosition: e.detail.cursor
+        cursorPosition: e.detail.cursor,
       });
     },
 
     onEditorLineChange(e) {
       const lineCount = e.detail.lineCount;
       this.setData({
-        editorLineCount: lineCount
+        editorLineCount: lineCount,
       });
     },
 
@@ -495,7 +270,7 @@ const markdownEditorBehavior = Behavior({
       const scrollTop = e.detail.scrollTop;
       this.setData({
         lastScrollPosition: scrollTop,
-        isScrolling: true
+        isScrolling: true,
       });
 
       if (this.autoScrollTimer) {
@@ -504,7 +279,7 @@ const markdownEditorBehavior = Behavior({
 
       this.autoScrollTimer = setTimeout(() => {
         this.setData({
-          isScrolling: false
+          isScrolling: false,
         });
       }, 2000);
     },
@@ -519,12 +294,12 @@ const markdownEditorBehavior = Behavior({
 
       this.setData({
         editorScrollTop: estimatedScrollTop,
-        editorAutoScroll: true
+        editorAutoScroll: true,
       });
 
       setTimeout(() => {
         this.setData({
-          editorAutoScroll: false
+          editorAutoScroll: false,
         });
       }, 3000);
     },
@@ -534,12 +309,12 @@ const markdownEditorBehavior = Behavior({
 
       this.setData({
         editorScrollTop: 999999,
-        editorAutoScroll: true
+        editorAutoScroll: true,
       });
 
       setTimeout(() => {
         this.setData({
-          editorAutoScroll: false
+          editorAutoScroll: false,
         });
       }, 3000);
     },
@@ -563,19 +338,19 @@ const markdownEditorBehavior = Behavior({
         wx.showToast({
           title: '暂无内容可清除',
           icon: 'none',
-          duration: 2000
+          duration: 2000,
         });
         return;
       }
 
       this.setData({
-        showClearConfirmDialog: true
+        showClearConfirmDialog: true,
       });
     },
 
     hideClearConfirmDialog() {
       this.setData({
-        showClearConfirmDialog: false
+        showClearConfirmDialog: false,
       });
     },
 
@@ -604,7 +379,7 @@ const markdownEditorBehavior = Behavior({
         categoryName: '',
         lastInsertType: '',
         editorScrollTop: 0,
-        editorAutoScroll: false
+        editorAutoScroll: false,
       });
 
       wx.removeStorageSync('markdown_draft');
@@ -612,7 +387,7 @@ const markdownEditorBehavior = Behavior({
       wx.showToast({
         title: '内容已清除',
         icon: 'success',
-        duration: 2000
+        duration: 2000,
       });
     },
 
@@ -650,14 +425,14 @@ const markdownEditorBehavior = Behavior({
         categorySuggestName: draft.categorySuggestName || '',
         isFallbackCategorySelected: !!(
           draft.categorySuggestName && String(draft.categorySuggestName).trim()
-        )
+        ),
       };
 
       let categoryPatch = {
         selectedCategory: '',
         selectedParentCategory: '',
         categoryLevel2: [],
-        categoryName: ''
+        categoryName: '',
       };
 
       if (draft.selectedParentCategory) {
@@ -670,12 +445,8 @@ const markdownEditorBehavior = Behavior({
         }
         let categoryName = draft.categoryName || '';
         if (!categoryName && draft.selectedCategory) {
-          const p = (this.data.categoryLevel1 || []).find(
-            (x) => String(x.id) === String(parentId)
-          );
-          const c = categoryLevel2.find(
-            (x) => String(x.id) === String(draft.selectedCategory)
-          );
+          const p = (this.data.categoryLevel1 || []).find((x) => String(x.id) === String(parentId));
+          const c = categoryLevel2.find((x) => String(x.id) === String(draft.selectedCategory));
           if (p && c) categoryName = `${p.name} / ${c.name}`;
           else if (c) categoryName = c.name;
           else if (p && String(draft.selectedCategory) === String(parentId)) {
@@ -686,12 +457,12 @@ const markdownEditorBehavior = Behavior({
           selectedParentCategory: parentId,
           selectedCategory: draft.selectedCategory || '',
           categoryLevel2,
-          categoryName
+          categoryName,
         };
       } else if (draft.selectedCategory) {
         const resolved = await this.resolveCategorySelection(
           draft.selectedCategory,
-          draft.categoryName || ''
+          draft.categoryName || '',
         );
         if (resolved) {
           categoryPatch = resolved;
@@ -704,16 +475,16 @@ const markdownEditorBehavior = Behavior({
           ...categoryPatch,
           ...this.syncCascaderFromSelection(
             categoryPatch.selectedCategory,
-            categoryPatch.categoryName
+            categoryPatch.categoryName,
           ),
-          wordCount: (draft.markdownContent || '').length
+          wordCount: (draft.markdownContent || '').length,
         },
         () => {
           this.updatePreviewContent();
           setTimeout(() => {
             this.scrollToBottom();
           }, 300);
-        }
+        },
       );
     },
 
@@ -722,7 +493,7 @@ const markdownEditorBehavior = Behavior({
         wx.showToast({
           title: '请填写文档标题',
           icon: 'none',
-          duration: 2000
+          duration: 2000,
         });
         return false;
       }
@@ -731,7 +502,7 @@ const markdownEditorBehavior = Behavior({
         wx.showToast({
           title: '标题至少需要2个字',
           icon: 'none',
-          duration: 2000
+          duration: 2000,
         });
         return false;
       }
@@ -740,7 +511,7 @@ const markdownEditorBehavior = Behavior({
         wx.showToast({
           title: '请选择文档分类',
           icon: 'none',
-          duration: 2000
+          duration: 2000,
         });
         return false;
       }
@@ -748,7 +519,7 @@ const markdownEditorBehavior = Behavior({
         wx.showToast({
           title: '请选择文档分类',
           icon: 'none',
-          duration: 2000
+          duration: 2000,
         });
         return false;
       }
@@ -760,7 +531,7 @@ const markdownEditorBehavior = Behavior({
           wx.showToast({
             title: '请填写建议分类名称',
             icon: 'none',
-            duration: 2000
+            duration: 2000,
           });
           return false;
         }
@@ -770,7 +541,7 @@ const markdownEditorBehavior = Behavior({
         wx.showToast({
           title: '请填写文档内容',
           icon: 'none',
-          duration: 2000
+          duration: 2000,
         });
         return false;
       }
@@ -779,7 +550,7 @@ const markdownEditorBehavior = Behavior({
         wx.showToast({
           title: '内容至少需要10个字',
           icon: 'none',
-          duration: 2000
+          duration: 2000,
         });
         return false;
       }
@@ -791,8 +562,8 @@ const markdownEditorBehavior = Behavior({
       if (this.data.showToolbarDropdown) {
         this.closeToolbarDropdown();
       }
-    }
-  }
+    },
+  },
 });
 
 export default markdownEditorBehavior;

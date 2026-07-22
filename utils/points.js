@@ -1,4 +1,5 @@
 import { pointsApi } from '~/api/index';
+import { AppEvents } from '~/utils/eventBus';
 
 /** 与后端 PointBizTypeEnum 对齐 */
 export const POINT_BIZ_TYPE_LABELS = {
@@ -14,32 +15,32 @@ export const POINT_BIZ_TYPE_LABELS = {
   AI_CITE_MILESTONE: 'AI检索引用达标',
   REDEEM: '积分兑换',
   ADMIN_ADJUST: '运营调账',
-  REVOKE: '积分追回'
+  REVOKE: '积分追回',
 };
 
 const LEDGER_STATUS_LABELS = {
   0: '待结算',
   1: '已到账',
   2: '已追回',
-  3: '已过期'
+  3: '已过期',
 };
 
 const REDEEM_ORDER_STATUS_LABELS = {
   0: '处理中',
   1: '已发放',
   2: '失败',
-  3: '已退款'
+  3: '已退款',
 };
 
 const APPEAL_STATUS_LABELS = {
   0: '待审核',
   1: '已通过',
-  2: '已驳回'
+  2: '已驳回',
 };
 
 const AI_QUOTA_LABELS = {
   AI_QA: 'AI 问答额外次数',
-  AI_INTERVIEW: 'AI 模拟面试额外次数'
+  AI_INTERVIEW: 'AI 模拟面试额外次数',
 };
 
 function pickPayload(res) {
@@ -90,7 +91,9 @@ export function formatLedgerTime(value) {
   if (Number.isNaN(ts)) return s.slice(0, 16);
   const dt = new Date(ts);
   const pad = (n) => `${n}`.padStart(2, '0');
-  return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())} ${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+  return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())} ${pad(
+    dt.getHours(),
+  )}:${pad(dt.getMinutes())}`;
 }
 
 export function normalizeAccount(raw) {
@@ -100,7 +103,7 @@ export function normalizeAccount(raw) {
       pendingPoints: 0,
       lifetimeEarned: 0,
       lifetimeSpent: 0,
-      reputationLevel: 0
+      reputationLevel: 0,
     };
   }
   return {
@@ -108,7 +111,7 @@ export function normalizeAccount(raw) {
     pendingPoints: Number(raw.pendingPoints ?? raw.pending_points ?? 0) || 0,
     lifetimeEarned: Number(raw.lifetimeEarned ?? raw.lifetime_earned ?? 0) || 0,
     lifetimeSpent: Number(raw.lifetimeSpent ?? raw.lifetime_spent ?? 0) || 0,
-    reputationLevel: Number(raw.reputationLevel ?? raw.reputation_level ?? 0) || 0
+    reputationLevel: Number(raw.reputationLevel ?? raw.reputation_level ?? 0) || 0,
   };
 }
 
@@ -146,7 +149,7 @@ export function normalizeLedgerRow(row, index) {
     statusTheme: status === 1 ? 'success' : status === 0 ? 'warning' : 'default',
     canAppeal: status === 2,
     timeText: formatLedgerTime(row.createdAt ?? row.created_at),
-    settleText: formatLedgerTime(row.settleAt ?? row.settle_at)
+    settleText: formatLedgerTime(row.settleAt ?? row.settle_at),
   };
 }
 
@@ -160,7 +163,7 @@ export function normalizeRuleRow(row) {
     dailyCap: row.dailyCap ?? row.daily_cap,
     weeklyCap: row.weeklyCap ?? row.weekly_cap,
     monthlyCap: row.monthlyCap ?? row.monthly_cap,
-    cooldownHours: Number(row.cooldownHours ?? row.cooldown_hours ?? 0) || 0
+    cooldownHours: Number(row.cooldownHours ?? row.cooldown_hours ?? 0) || 0,
   };
 }
 
@@ -175,7 +178,7 @@ export function normalizeRedeemItem(row) {
     stock: row.stock,
     itemType: row.itemType ?? row.item_type ?? '',
     dailyLimitPerUser: row.dailyLimitPerUser ?? row.daily_limit_per_user,
-    totalLimitPerUser: row.totalLimitPerUser ?? row.total_limit_per_user
+    totalLimitPerUser: row.totalLimitPerUser ?? row.total_limit_per_user,
   };
 }
 
@@ -189,8 +192,9 @@ export function normalizeRedeemOrder(row, index) {
     costPoints: Number(row.costPoints ?? row.cost_points ?? 0) || 0,
     status,
     statusLabel: REDEEM_ORDER_STATUS_LABELS[status] || '未知',
-    statusTheme: status === 1 ? 'success' : status === 3 ? 'warning' : status === 2 ? 'danger' : 'primary',
-    timeText: formatLedgerTime(row.createdAt ?? row.created_at)
+    statusTheme:
+      status === 1 ? 'success' : status === 3 ? 'warning' : status === 2 ? 'danger' : 'primary',
+    timeText: formatLedgerTime(row.createdAt ?? row.created_at),
   };
 }
 
@@ -206,7 +210,7 @@ export function normalizeAppealRow(row, index) {
     statusLabel: APPEAL_STATUS_LABELS[status] || '未知',
     statusTheme: status === 1 ? 'success' : status === 2 ? 'danger' : 'warning',
     timeText: formatLedgerTime(row.createdAt ?? row.created_at),
-    resolvedText: formatLedgerTime(row.resolvedAt ?? row.resolved_at)
+    resolvedText: formatLedgerTime(row.resolvedAt ?? row.resolved_at),
   };
 }
 
@@ -216,7 +220,7 @@ export function normalizeAiQuotaRow(row) {
     ...row,
     quotaType,
     label: AI_QUOTA_LABELS[quotaType] || quotaType,
-    remaining: Number(row.remaining ?? 0) || 0
+    remaining: Number(row.remaining ?? 0) || 0,
   };
 }
 
@@ -224,11 +228,8 @@ export function normalizeAiQuotaRow(row) {
 export function notifyPointsChanged() {
   try {
     const app = getApp();
-    if (app && typeof app.emit === 'function') {
-      app.emit('points-changed');
-    }
     if (app && app.eventBus && typeof app.eventBus.emit === 'function') {
-      app.eventBus.emit('points-changed');
+      app.eventBus.emit(AppEvents.POINTS_CHANGED);
     }
   } catch (e) {
     // ignore
@@ -266,7 +267,7 @@ export async function fetchRedeemItems() {
 export async function redeemPointItem(itemCode) {
   const idempotencyKey = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
   const res = await pointsApi.redeem({
-    toRequestData: () => ({ itemCode, idempotencyKey })
+    toRequestData: () => ({ itemCode, idempotencyKey }),
   });
   notifyPointsChanged();
   return normalizeRedeemOrder(pickPayload(res) || {}, 0);
@@ -286,7 +287,7 @@ export async function fetchAiQuota() {
 
 export async function submitPointAppeal(ledgerId, reason) {
   const res = await pointsApi.submitAppeal({
-    toRequestData: () => ({ ledgerId: Number(ledgerId), reason })
+    toRequestData: () => ({ ledgerId: Number(ledgerId), reason }),
   });
   return normalizeAppealRow(pickPayload(res) || {}, 0);
 }
@@ -310,14 +311,14 @@ export async function fetchMyInviteCode() {
 
 export async function bindInviteCode(inviteCode) {
   const res = await pointsApi.bindInviteCode({
-    toRequestData: () => ({ inviteCode: String(inviteCode || '').trim() })
+    toRequestData: () => ({ inviteCode: String(inviteCode || '').trim() }),
   });
   return pickPayload(res);
 }
 
 export async function completeSelfQuiz(questionId) {
   const res = await pointsApi.completeSelfQuiz({
-    toRequestData: () => ({ questionId: Number(questionId) })
+    toRequestData: () => ({ questionId: Number(questionId) }),
   });
   notifyPointsChanged();
   return pickPayload(res);

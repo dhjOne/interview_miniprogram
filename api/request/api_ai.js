@@ -185,6 +185,13 @@ export const aiApi = {
       ...options,
     }),
 
+  getQuota: (options = {}) =>
+    http.get('/ai/quota', null, {
+      showLoading: false,
+      checkBusinessCode: true,
+      ...options,
+    }),
+
   chatStream: (params, handlers = {}) => {
     let buffer = '';
     const streamDecoder = createStreamDecoder();

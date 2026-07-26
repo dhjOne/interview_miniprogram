@@ -109,6 +109,16 @@ const mknowChatBehavior = Behavior({
         return;
       }
 
+      const quota = this.data.aiQuota || {};
+      if (this.data.showAiQuota && Number(quota.totalRemaining || 0) <= 0) {
+        if (typeof this.showQuotaExhaustedGuide === 'function') {
+          this.showQuotaExhaustedGuide();
+        } else {
+          this.onShowToast('#t-toast', 'AI 次数已用完');
+        }
+        return;
+      }
+
       const userMsg = createMessage('user', content);
       const messages = [...this.data.messages, userMsg];
       const pendingId = `assistant_pending_${Date.now()}`;
@@ -142,6 +152,29 @@ const mknowChatBehavior = Behavior({
       this.requestAiReply(content, pendingId, messages);
     },
 
+    handleQuotaExceeded(pendingId, message) {
+      const messages = (this.data.messages || []).filter((m) => m.id !== pendingId);
+      // 同步去掉刚追加的用户消息，避免次数不足仍留下提问气泡
+      const last = messages[messages.length - 1];
+      const trimmed =
+        last && last.role === 'user' ? messages.slice(0, -1) : messages;
+      this.setData({
+        messages: trimmed,
+        sending: false,
+        streaming: false,
+      });
+      saveMessages(stripRendered(trimmed));
+      this.refreshHistoryList();
+      if (typeof this.loadAiQuota === 'function') {
+        this.loadAiQuota();
+      }
+      if (typeof this.showQuotaExhaustedGuide === 'function') {
+        this.showQuotaExhaustedGuide();
+      } else {
+        this.onShowToast('#t-toast', message || 'AI 次数已用完');
+      }
+    },
+
     async requestAiReply(content, pendingId, historyBeforeAssistant) {
       const { sessionId } = this.data;
       const payload = {
@@ -163,6 +196,10 @@ const mknowChatBehavior = Behavior({
           const reply = extractReplyText(res) || buildFallbackReply(content);
           const data = res && res.data ? res.data : {};
           const errorType = extractErrorType(res);
+          if (errorType === 'QUOTA_EXCEEDED') {
+            this.handleQuotaExceeded(pendingId, data.errorMessage || reply);
+            return;
+          }
           if (errorType) {
             this.onShowToast('#t-toast', data.errorMessage || reply);
           }
@@ -219,6 +256,11 @@ const mknowChatBehavior = Behavior({
           onError: (err) => {
             if (settled) return;
             settled = true;
+            if (err && err.errorType === 'QUOTA_EXCEEDED') {
+              this.handleQuotaExceeded(pendingId, err.errorMessage);
+              resolve(err);
+              return;
+            }
             if (received && err && err.errorMessage) {
               this.finishAssistantMessage(pendingId, err.errorMessage, true, {
                 sessionId: err.sessionId || meta.sessionId,
@@ -304,6 +346,13 @@ const mknowChatBehavior = Behavior({
       }
       saveMessages(stripRendered(messages));
       this.refreshHistoryList();
+      // 成功扣次后刷新；AI 失败已退次，也刷新以同步展示
+      if (
+        typeof this.loadAiQuota === 'function' &&
+        (!isFallback || extra.errorType === 'AI_UNAVAILABLE')
+      ) {
+        this.loadAiQuota();
+      }
       wx.nextTick(() => this.scrollToBottom());
     },
 

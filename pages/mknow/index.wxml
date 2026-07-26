@@ -16,11 +16,21 @@
   </nav>
 
   <view class="mknow-page__body">
-    <view wx:if="{{showAiQuota}}" class="mknow-ai-quota">
-      <view wx:for="{{aiQuotaList}}" wx:key="quotaType" wx:if="{{item.remaining > 0}}" class="mknow-ai-quota__item">
-        <text class="mknow-ai-quota__label">{{item.label}}</text>
-        <text class="mknow-ai-quota__value">剩余 {{item.remaining}} 次</text>
+    <view
+      wx:if="{{showAiQuota}}"
+      class="mknow-ai-quota {{aiQuota.exhausted ? 'mknow-ai-quota--exhausted' : ''}}"
+      hover-class="mknow-ai-quota--active"
+      bindtap="onOpenQuotaDetail"
+    >
+      <view class="mknow-ai-quota__main">
+        <t-icon name="info-circle" size="28rpx" />
+        <text class="mknow-ai-quota__summary">{{aiQuota.summaryText}}</text>
       </view>
+      <view wx:if="{{aiQuota.exhausted}}" class="mknow-ai-quota__action" catchtap="onGoRedeem">
+        <text>去兑换</text>
+        <t-icon name="chevron-right" size="28rpx" />
+      </view>
+      <t-icon wx:else name="chevron-right" size="28rpx" color="rgba(0,0,0,0.35)" />
     </view>
     <!-- <view class="mknow-topbar">
       <view class="mknow-topbar__title">
@@ -278,6 +288,55 @@
     </view>
   </view>
 </t-popup>
+
+<t-popup
+  visible="{{showQuotaDetail}}"
+  placement="bottom"
+  bind:visible-change="onCloseQuotaDetail"
+>
+  <view class="mknow-quota-sheet">
+    <view class="mknow-quota-sheet__head">
+      <text class="mknow-quota-sheet__title">AI 次数说明</text>
+      <view class="mknow-quota-sheet__close" bindtap="onCloseQuotaDetail">
+        <t-icon name="close" size="36rpx" color="rgba(0,0,0,0.55)" />
+      </view>
+    </view>
+    <view class="mknow-quota-sheet__body">
+      <view class="mknow-quota-sheet__row">
+        <text class="mknow-quota-sheet__label">信誉等级</text>
+        <text class="mknow-quota-sheet__value">L{{aiQuota.reputationLevel}}</text>
+      </view>
+      <view class="mknow-quota-sheet__row">
+        <text class="mknow-quota-sheet__label">今日免费</text>
+        <text class="mknow-quota-sheet__value">{{aiQuota.dailyFreeRemaining}} / {{aiQuota.dailyFreeTotal}}</text>
+      </view>
+      <view class="mknow-quota-sheet__row">
+        <text class="mknow-quota-sheet__label">兑换额外</text>
+        <text class="mknow-quota-sheet__value">{{aiQuota.bonusRemaining}} 次</text>
+      </view>
+      <view class="mknow-quota-sheet__row">
+        <text class="mknow-quota-sheet__label">免费重置</text>
+        <text class="mknow-quota-sheet__value">{{aiQuota.resetAtText}}</text>
+      </view>
+      <text class="mknow-quota-sheet__tip">先消耗今日免费次数，用尽后自动使用积分兑换的 AI 问答额外次数。可通过创作赚积分兑换更多次数。</text>
+    </view>
+    <view class="mknow-quota-sheet__foot" hover-class="mknow-quota-sheet__foot--active" bindtap="onGoRedeem">
+      <text>去兑换商城</text>
+      <t-icon name="chevron-right" size="32rpx" />
+    </view>
+  </view>
+</t-popup>
+
+<t-dialog
+  visible="{{showQuotaExhaustedDialog}}"
+  title="AI 次数已用完"
+  content="今日免费次数已用尽，且暂无兑换额度。可通过创作赚积分兑换 AI 问答次数。"
+  confirm-btn="去兑换"
+  cancel-btn="知道了"
+  bind:confirm="onQuotaExhaustedConfirm"
+  bind:cancel="onQuotaExhaustedCancel"
+  bind:close="onQuotaExhaustedCancel"
+/>
 
 <t-popup
   visible="{{showModelPicker}}"

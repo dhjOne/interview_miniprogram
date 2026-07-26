@@ -1,8 +1,9 @@
-import { aiApi } from '~/api/index';
+import { aiApi, unwrapData } from '~/api/index';
 import useToastBehavior from '~/behaviors/useToast';
 import mknowChatBehavior from './behaviors/chat';
 import mknowHistoryBehavior from './behaviors/history';
-import { fetchAiQuota } from '~/utils/points';
+import { AppEvents } from '~/utils/eventBus';
+import { openPage } from '~/utils/router';
 import {
   DEFAULT_MODEL_OPTIONS,
   filterModelOptions,
@@ -10,9 +11,14 @@ import {
   getStoredModelKey,
   groupModelOptions,
   hasLoginToken,
+  normalizeMknowQuota,
   normalizeModelOptions,
   saveStoredModelKey,
 } from '~/utils/mknowHelpers';
+
+const app = getApp();
+
+const EMPTY_QUOTA = normalizeMknowQuota(null);
 
 /**
  * m知道
@@ -33,8 +39,10 @@ Page({
     selectedModelIndex: 0,
     selectedModelKey: 'auto',
     selectedModelName: 'Auto',
-    aiQuotaList: [],
     showAiQuota: false,
+    aiQuota: EMPTY_QUOTA,
+    showQuotaDetail: false,
+    showQuotaExhaustedDialog: false,
   },
 
   onLoad() {
@@ -48,8 +56,17 @@ Page({
   },
 
   onShow() {
+    this._bindPointsChanged();
     this.initModelSelector();
     this.loadAiQuota();
+  },
+
+  onHide() {
+    this._unbindPointsChanged();
+  },
+
+  onUnload() {
+    this._unbindPointsChanged();
   },
 
   onPullDownRefresh() {
@@ -61,18 +78,76 @@ Page({
     ]);
   },
 
+  _bindPointsChanged() {
+    if (this._onPointsChanged) return;
+    this._onPointsChanged = () => {
+      this.loadAiQuota();
+    };
+    if (app.eventBus && typeof app.eventBus.on === 'function') {
+      app.eventBus.on(AppEvents.POINTS_CHANGED, this._onPointsChanged);
+    }
+  },
+
+  _unbindPointsChanged() {
+    if (!this._onPointsChanged) return;
+    if (app.eventBus && typeof app.eventBus.off === 'function') {
+      app.eventBus.off(AppEvents.POINTS_CHANGED, this._onPointsChanged);
+    }
+    this._onPointsChanged = null;
+  },
+
   async loadAiQuota() {
     if (!hasLoginToken()) {
-      this.setData({ aiQuotaList: [], showAiQuota: false });
+      this.setData({
+        showAiQuota: false,
+        aiQuota: EMPTY_QUOTA,
+        showQuotaDetail: false,
+      });
       return;
     }
     try {
-      const aiQuotaList = await fetchAiQuota();
-      const showAiQuota = aiQuotaList.some((item) => item.remaining > 0);
-      this.setData({ aiQuotaList, showAiQuota });
+      const res = await aiApi.getQuota();
+      const aiQuota = normalizeMknowQuota(unwrapData(res) || res);
+      this.setData({ aiQuota, showAiQuota: true });
     } catch (e) {
       console.warn('[mknow] ai quota load failed', e);
     }
+  },
+
+  onOpenQuotaDetail() {
+    if (!this.data.showAiQuota) return;
+    this.setData({ showQuotaDetail: true });
+  },
+
+  onCloseQuotaDetail(e) {
+    if (e && e.detail && e.detail.visible) return;
+    this.setData({ showQuotaDetail: false });
+  },
+
+  onGoRedeem() {
+    this.setData({
+      showQuotaDetail: false,
+      showQuotaExhaustedDialog: false,
+    });
+    openPage({
+      url: '/pages/ucenter/points/redeem/index',
+      fail: () => {
+        this.onShowToast('#t-toast', '无法打开兑换页');
+      },
+    });
+  },
+
+  showQuotaExhaustedGuide() {
+    this.setData({ showQuotaExhaustedDialog: true });
+  },
+
+  onQuotaExhaustedConfirm() {
+    this.setData({ showQuotaExhaustedDialog: false });
+    this.onGoRedeem();
+  },
+
+  onQuotaExhaustedCancel() {
+    this.setData({ showQuotaExhaustedDialog: false });
   },
 
   async initModelSelector() {
@@ -169,5 +244,4 @@ Page({
     });
     this.onShowToast('#t-toast', `已切换为 ${selected.label}`);
   },
-
 });

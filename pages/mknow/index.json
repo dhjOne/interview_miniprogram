@@ -6,6 +6,7 @@
     "t-loading": "/miniprogram_npm/tdesign-miniprogram/loading/loading",
     "t-toast": "/miniprogram_npm/tdesign-miniprogram/toast/toast",
     "t-popup": "/miniprogram_npm/tdesign-miniprogram/popup/popup",
+    "t-dialog": "/miniprogram_npm/tdesign-miniprogram/dialog/dialog",
     "towxml": "/subpackages/towxml/towxml"
   },
   "componentPlaceholder": {

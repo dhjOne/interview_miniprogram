@@ -265,6 +265,52 @@ export function getNavContentHeight() {
   return 44;
 }
 
+export function normalizeMknowQuota(payload) {
+  const data = payload && typeof payload === 'object' ? payload : {};
+  const reputationLevel = Number(data.reputationLevel ?? data.reputation_level ?? 1) || 1;
+  const dailyFreeTotal = Math.max(0, Number(data.dailyFreeTotal ?? data.daily_free_total ?? 0) || 0);
+  const dailyFreeRemaining = Math.max(
+    0,
+    Number(data.dailyFreeRemaining ?? data.daily_free_remaining ?? 0) || 0,
+  );
+  const bonusRemaining = Math.max(0, Number(data.bonusRemaining ?? data.bonus_remaining ?? 0) || 0);
+  const totalRemaining = Math.max(
+    0,
+    Number(data.totalRemaining ?? data.total_remaining ?? dailyFreeRemaining + bonusRemaining) || 0,
+  );
+  const resetAt = data.resetAt ?? data.reset_at ?? '';
+  const exhausted = totalRemaining <= 0;
+  let summaryText = '';
+  if (exhausted) {
+    summaryText = '次数已用完';
+  } else if (dailyFreeRemaining > 0) {
+    summaryText = `今日免费 ${dailyFreeRemaining}/${dailyFreeTotal} · 额外 ${bonusRemaining}`;
+  } else {
+    summaryText = `今日免费已用完 · 额外 ${bonusRemaining}`;
+  }
+  return {
+    reputationLevel,
+    dailyFreeTotal,
+    dailyFreeRemaining,
+    bonusRemaining,
+    totalRemaining,
+    resetAt,
+    resetAtText: formatQuotaResetAt(resetAt),
+    exhausted,
+    summaryText,
+  };
+}
+
+export function formatQuotaResetAt(value) {
+  if (!value) return '次日 0 点';
+  const s = String(value);
+  const m = s.match(/(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+  if (m) {
+    return `${Number(m[2])}月${Number(m[3])}日 ${m[4]}:${m[5]}`;
+  }
+  return '次日 0 点';
+}
+
 export function buildFallbackReply(question) {
   return [
     '我是 m知道，你的面试 AI 助手。',

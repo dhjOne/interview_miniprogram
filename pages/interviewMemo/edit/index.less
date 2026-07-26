@@ -1,0 +1,128 @@
+.memo-edit {
+  min-height: 100vh;
+  padding: 192rpx 28rpx 150rpx;
+  box-sizing: border-box;
+  background: #f7f8fa;
+}
+
+.memo-edit__loading {
+  min-height: 520rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.memo-edit__card {
+  padding: 28rpx;
+  margin-bottom: 22rpx;
+  border-radius: 28rpx;
+  background: #fff;
+  box-shadow: 0 12rpx 32rpx rgba(29, 33, 41, 0.05);
+}
+
+.memo-edit__field + .memo-edit__field {
+  margin-top: 24rpx;
+}
+
+.memo-edit__label {
+  display: block;
+  margin-bottom: 14rpx;
+  color: #1d2129;
+  font-size: 27rpx;
+  font-weight: 600;
+}
+
+.memo-edit__required {
+  color: #e34d59;
+}
+
+.memo-edit__textarea {
+  border-radius: 20rpx;
+  background: #f7f8fa;
+}
+
+.memo-edit__textarea--content {
+  min-height: 260rpx;
+}
+
+.memo-edit__grid {
+  display: flex;
+  gap: 20rpx;
+}
+
+.memo-edit__field--half {
+  flex: 1;
+  min-width: 0;
+}
+
+.memo-edit__field--half + .memo-edit__field--half {
+  margin-top: 0;
+}
+
+.memo-edit__picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 88rpx;
+  padding: 0 24rpx;
+  border-radius: 18rpx;
+  color: #1d2129;
+  font-size: 28rpx;
+  background: #f7f8fa;
+}
+
+.memo-edit__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 16rpx;
+}
+
+.memo-edit__tag {
+  margin-right: 0 !important;
+}
+
+.memo-edit__status-row {
+  display: flex;
+  gap: 14rpx;
+}
+
+.memo-edit__status {
+  flex: 1;
+  padding: 18rpx 0;
+  border: 1rpx solid #e5e6eb;
+  border-radius: 18rpx;
+  color: #4e5969;
+  font-size: 26rpx;
+  text-align: center;
+  background: #fff;
+}
+
+.memo-edit__status--active {
+  border-color: #0052d9;
+  color: #0052d9;
+  font-weight: 600;
+  background: #eef4ff;
+}
+
+.memo-edit__related {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-top: 20rpx;
+  padding: 18rpx 20rpx;
+  border-radius: 18rpx;
+  color: #0052d9;
+  font-size: 25rpx;
+  background: #eef4ff;
+}
+
+.memo-edit__footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 20rpx 28rpx calc(20rpx + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 -8rpx 24rpx rgba(29, 33, 41, 0.06);
+}

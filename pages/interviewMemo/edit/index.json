@@ -1,0 +1,13 @@
+{
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "t-navbar": "/miniprogram_npm/tdesign-miniprogram/navbar/navbar",
+    "t-input": "/miniprogram_npm/tdesign-miniprogram/input/input",
+    "t-textarea": "/miniprogram_npm/tdesign-miniprogram/textarea/textarea",
+    "t-button": "/miniprogram_npm/tdesign-miniprogram/button/button",
+    "t-icon": "/miniprogram_npm/tdesign-miniprogram/icon/icon",
+    "t-tag": "/miniprogram_npm/tdesign-miniprogram/tag/tag",
+    "t-loading": "/miniprogram_npm/tdesign-miniprogram/loading/loading",
+    "t-message": "/miniprogram_npm/tdesign-miniprogram/message/message"
+  }
+}

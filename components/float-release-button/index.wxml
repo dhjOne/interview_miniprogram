@@ -1,34 +1,61 @@
-<view
-  wx:if="{{innerShow && fabReady}}"
-  class="fab-root {{customClass}} {{docked ? 'fab-root--docked fab-root--docked-' + docked : ''}} {{isDragging ? 'fab-root--dragging' : ''}}"
-  style="left: {{fabLeft}}px; top: {{fabTop}}px; width: {{viewW}}px; height: {{viewH}}px; {{customStyle}}"
-  bindtouchstart="onDragStart"
-  catchtouchmove="onDragMove"
-  bindtouchend="onDragEnd"
-  bindtouchcancel="onDragEnd"
->
-  <view class="fab-stack" hover-class="{{docked ? 'fab-stack--peek' : 'fab-stack--active'}}">
-    <view class="fab-btn">
-      <view class="fab-btn__ring" aria-hidden="true" />
-      <t-icon
-        wx:if="{{!docked}}"
-        name="{{buttonIcon || 'edit-1'}}"
-        size="44rpx"
-        color="#ffffff"
-      />
-      <t-icon
-        wx:elif="{{docked === 'left'}}"
-        name="chevron-right"
-        size="32rpx"
-        color="#ffffff"
-      />
-      <t-icon
-        wx:else
-        name="chevron-left"
-        size="32rpx"
-        color="#ffffff"
-      />
+<view class="fab-host">
+  <view
+    wx:if="{{innerShow && fabReady && menuOpen}}"
+    class="fab-mask"
+    catchtouchstart="onMaskTap"
+  />
+
+  <view
+    wx:if="{{innerShow && fabReady}}"
+    class="fab-root {{customClass}} {{docked ? 'fab-root--docked fab-root--docked-' + docked : ''}} {{isDragging ? 'fab-root--dragging' : ''}} {{menuOpen ? 'fab-root--open' : ''}} {{actionsSide === 'left' ? 'fab-root--side-left' : 'fab-root--side-right'}}"
+    style="left: {{fabLeft}}px; top: {{fabTop}}px; width: {{viewW}}px; height: {{viewH}}px; {{customStyle}}"
+    bindtouchstart="onDragStart"
+    catchtouchmove="onDragMove"
+    bindtouchend="onDragEnd"
+    bindtouchcancel="onDragEnd"
+  >
+    <view wx:if="{{hasActions && menuOpen}}" class="fab-actions">
+      <view
+        wx:for="{{actionList}}"
+        wx:key="key"
+        class="fab-action"
+        data-key="{{item.key}}"
+        catchtap="onActionTap"
+      >
+        <text class="fab-action__label">{{item.text}}</text>
+        <view class="fab-action__btn">
+          <t-icon name="{{item.icon || 'edit-1'}}" size="40rpx" color="#0052d9" />
+        </view>
+      </view>
     </view>
-    <text wx:if="{{!docked}}" class="fab-label">{{buttonText || '发布'}}</text>
+
+    <view class="fab-stack" hover-class="{{docked ? 'fab-stack--peek' : 'fab-stack--active'}}">
+      <view class="fab-btn {{menuOpen ? 'fab-btn--open' : ''}}">
+        <view class="fab-btn__ring" aria-hidden="true" />
+        <view
+          wx:if="{{!docked}}"
+          class="fab-btn__icon {{hasActions && menuOpen ? 'fab-btn__icon--open' : ''}}"
+        >
+          <t-icon
+            name="{{menuOpen ? 'close' : (buttonIcon || (hasActions ? 'add' : 'edit-1'))}}"
+            size="44rpx"
+            color="#ffffff"
+          />
+        </view>
+        <t-icon
+          wx:elif="{{docked === 'left'}}"
+          name="chevron-right"
+          size="32rpx"
+          color="#ffffff"
+        />
+        <t-icon
+          wx:else
+          name="chevron-left"
+          size="32rpx"
+          color="#ffffff"
+        />
+      </view>
+      <text wx:if="{{!docked && !menuOpen}}" class="fab-label">{{buttonText || (hasActions ? '创作' : '发布')}}</text>
+    </view>
   </view>
 </view>

@@ -1,6 +1,7 @@
 /** 与 app.json tabBar.list 保持一致 */
 export const TAB_ROOTS = [
   '/pages/category/index',
+  '/pages/interviewMemo/index',
   '/pages/mknow/index',
   '/pages/my/index',
 ];

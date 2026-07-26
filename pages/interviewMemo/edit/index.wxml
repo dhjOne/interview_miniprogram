@@ -1,0 +1,134 @@
+<view class="memo-edit">
+  <t-message id="t-message" />
+  <t-navbar left-arrow title="{{id ? '编辑速记' : '新增速记'}}" fixed safe-area-inset-top />
+
+  <view wx:if="{{loading}}" class="memo-edit__loading">
+    <t-loading size="40rpx" text="加载中…" />
+  </view>
+
+  <view wx:else class="memo-edit__body">
+    <view class="memo-edit__card">
+      <view class="memo-edit__field">
+        <text class="memo-edit__label">问题标题 <text class="memo-edit__required">*</text></text>
+        <t-textarea
+          value="{{form.questionTitle}}"
+          placeholder="例如：Redis 缓存击穿怎么解决？"
+          maxlength="255"
+          autosize
+          data-field="questionTitle"
+          bind:change="onInputChange"
+          t-class="memo-edit__textarea"
+        />
+      </view>
+
+      <view class="memo-edit__field">
+        <text class="memo-edit__label">答案要点 / 复盘</text>
+        <t-textarea
+          value="{{form.content}}"
+          placeholder="快速写下追问点、没答好的地方、后续要复习的方向…"
+          maxlength="4000"
+          autosize
+          data-field="content"
+          bind:change="onInputChange"
+          t-class="memo-edit__textarea memo-edit__textarea--content"
+        />
+      </view>
+    </view>
+
+    <view class="memo-edit__card">
+      <view class="memo-edit__grid">
+        <view class="memo-edit__field memo-edit__field--half">
+          <text class="memo-edit__label">公司</text>
+          <t-input
+            value="{{form.companyName}}"
+            placeholder="公司名称"
+            data-field="companyName"
+            bind:change="onInputChange"
+            clearable
+          />
+        </view>
+        <view class="memo-edit__field memo-edit__field--half">
+          <text class="memo-edit__label">岗位</text>
+          <t-input
+            value="{{form.positionName}}"
+            placeholder="岗位方向"
+            data-field="positionName"
+            bind:change="onInputChange"
+            clearable
+          />
+        </view>
+      </view>
+
+      <view class="memo-edit__field">
+        <text class="memo-edit__label">面试日期</text>
+        <picker mode="date" value="{{form.interviewedAt}}" bindchange="onDateChange">
+          <view class="memo-edit__picker">
+            <text>{{form.interviewedAt || '请选择日期'}}</text>
+            <t-icon name="calendar" size="34rpx" color="#86909c" />
+          </view>
+        </picker>
+      </view>
+
+      <view class="memo-edit__field">
+        <text class="memo-edit__label">分类</text>
+        <t-input
+          value="{{form.categoryName}}"
+          placeholder="例如：Redis / JVM / 项目经验"
+          data-field="categoryName"
+          bind:change="onInputChange"
+          clearable
+        />
+      </view>
+
+      <view class="memo-edit__field">
+        <text class="memo-edit__label">知识点标签</text>
+        <t-input
+          value="{{tagsText}}"
+          placeholder="用逗号分隔，例如：缓存击穿，高并发"
+          bind:change="onTagsChange"
+          clearable
+        />
+        <view wx:if="{{tags.length}}" class="memo-edit__tags">
+          <t-tag
+            wx:for="{{tags}}"
+            wx:key="*this"
+            theme="primary"
+            variant="light"
+            size="small"
+            t-class="memo-edit__tag"
+          >{{item}}</t-tag>
+        </view>
+      </view>
+    </view>
+
+    <view class="memo-edit__card">
+      <view class="memo-edit__field">
+        <text class="memo-edit__label">掌握状态</text>
+        <view class="memo-edit__status-row">
+          <view
+            wx:for="{{statusOptions}}"
+            wx:key="value"
+            class="memo-edit__status {{form.status === item.value ? 'memo-edit__status--active' : ''}}"
+            data-status="{{item.value}}"
+            bindtap="onStatusTap"
+          >{{item.label}}</view>
+        </view>
+      </view>
+
+      <view wx:if="{{form.relatedQuestionId}}" class="memo-edit__related">
+        <t-icon name="link" size="32rpx" color="#0052d9" />
+        <text>已关联题目 ID：{{form.relatedQuestionId}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="memo-edit__footer">
+    <t-button
+      theme="primary"
+      block
+      loading="{{saving}}"
+      disabled="{{saving}}"
+      bindtap="onSaveTap"
+    >保存速记</t-button>
+  </view>
+</view>

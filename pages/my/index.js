@@ -26,7 +26,7 @@ Page({
     historyCount: 0,
     notifyUnread: 0,
     carousel: getDefaultMyCarousel(),
-    /** 高频学习入口：保持一行三格 */
+    /** 高频学习入口：保持一行三格；速记已提升为底部 Tab */
     service: [
       {
         name: '浏览历史',
@@ -323,7 +323,7 @@ Page({
     this.onShowToast('#t-toast', item.name || '敬请期待');
   },
 
-  /** 常用服务：浏览历史免登录；收藏与排行需登录 */
+  /** 常用服务：浏览历史免登录；其他个人数据需登录 */
   onServiceItemTap(e) {
     const item = e.currentTarget.dataset.item;
     if (!item || !item.url) return;

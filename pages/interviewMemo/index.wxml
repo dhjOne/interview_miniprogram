@@ -1,0 +1,205 @@
+<view class="memo-tab">
+  <t-message id="t-message" />
+  <image class="memo-tab__nav-bg" src="/static/bg_navbar.png" mode="aspectFill" />
+  <nav title-text="速记" />
+
+  <view class="memo-tab__body">
+    <!-- 一句话速记 -->
+    <view class="memo-compose">
+      <view class="memo-compose__head">
+        <view class="memo-compose__title-wrap">
+          <text class="memo-compose__title">快速记下来</text>
+          <text class="memo-compose__desc">面试后 10 秒沉淀问题，之后再整理</text>
+        </view>
+        <view class="memo-compose__count" wx:if="{{totalCount}}">
+          <text class="memo-compose__count-num">{{totalCount}}</text>
+          <text class="memo-compose__count-unit">条</text>
+        </view>
+      </view>
+
+      <view class="memo-compose__box">
+        <t-textarea
+          value="{{draftTitle}}"
+          placeholder="这次面试问了什么？先记一句话…"
+          maxlength="255"
+          autosize
+          disable-default-padding="{{true}}"
+          bind:change="onDraftChange"
+          t-class="memo-compose__input"
+        />
+      </view>
+
+      <scroll-view class="memo-compose__tags" scroll-x enhanced show-scrollbar="{{false}}">
+        <view class="memo-compose__tags-row">
+          <view
+            wx:for="{{quickTags}}"
+            wx:key="label"
+            class="memo-quick-tag {{item.selected ? 'memo-quick-tag--on' : ''}}"
+            data-tag="{{item.label}}"
+            bindtap="onQuickTagTap"
+          >{{item.label}}</view>
+        </view>
+      </scroll-view>
+
+      <view wx:if="{{draftExtraOpen}}" class="memo-compose__extra">
+        <input
+          class="memo-compose__field"
+          value="{{draftCompany}}"
+          placeholder="公司（可选）"
+          bindinput="onDraftCompanyChange"
+        />
+        <input
+          class="memo-compose__field"
+          value="{{draftPosition}}"
+          placeholder="岗位（可选）"
+          bindinput="onDraftPositionChange"
+        />
+      </view>
+
+      <view class="memo-compose__actions">
+        <view class="memo-compose__side">
+          <view class="memo-compose__link" bindtap="onToggleExtra">
+            <t-icon name="{{draftExtraOpen ? 'chevron-up' : 'chevron-down'}}" size="28rpx" />
+            <text>{{draftExtraOpen ? '收起' : '公司/岗位'}}</text>
+          </view>
+          <view class="memo-compose__link" bindtap="onOpenFullEdit">
+            <t-icon name="edit-1" size="28rpx" />
+            <text>完整编辑</text>
+          </view>
+        </view>
+        <view
+          class="memo-compose__save {{savingDraft ? 'memo-compose__save--busy' : ''}}"
+          hover-class="memo-compose__save--active"
+          bindtap="onQuickSave"
+        >
+          <text>{{savingDraft ? '保存中' : '速记'}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 筛选 -->
+    <view class="memo-filter">
+      <t-search
+        value="{{searchValue}}"
+        placeholder="搜索问题、公司、知识点"
+        shape="round"
+        bind:change="onSearchChange"
+        bind:submit="onSearchSubmit"
+        bind:action-click="onSearchAction"
+        bind:clear="onSearchClear"
+        t-class="memo-filter__search"
+      />
+
+      <scroll-view class="memo-filter__chips" scroll-x enhanced show-scrollbar="{{false}}">
+        <view class="memo-filter__row">
+          <view
+            wx:for="{{statusChips}}"
+            wx:key="value"
+            class="memo-chip {{status === item.value ? 'memo-chip--active' : ''}}"
+            data-status="{{item.value}}"
+            bindtap="onStatusTap"
+          >{{item.label}}</view>
+        </view>
+      </scroll-view>
+
+      <scroll-view wx:if="{{tagChips.length}}" class="memo-filter__chips" scroll-x enhanced show-scrollbar="{{false}}">
+        <view class="memo-filter__row">
+          <view
+            wx:for="{{tagChips}}"
+            wx:key="*this"
+            class="memo-chip memo-chip--tag {{tag === item ? 'memo-chip--active' : ''}}"
+            data-tag="{{item}}"
+            bindtap="onTagTap"
+          ># {{item}}</view>
+        </view>
+      </scroll-view>
+    </view>
+
+    <!-- 列表 -->
+    <view wx:if="{{loading && memoList.length === 0}}" class="memo-state">
+      <t-loading size="40rpx" text="加载中…" />
+    </view>
+
+    <view wx:elif="{{!memoList.length && loadAttempted}}" class="memo-state">
+      <view class="memo-state__icon">
+        <t-icon name="edit-1" size="72rpx" color="#b3c7ff" />
+      </view>
+      <text class="memo-state__title">
+        {{searchValue || status || tag ? '没有匹配的速记' : '还没有速记'}}
+      </text>
+      <text class="memo-state__desc">
+        {{searchValue || status || tag ? '换个关键词或清空筛选试试' : '面试结束后先记一句话，后面再慢慢补'}}
+      </text>
+      <view
+        wx:if="{{!isLoggedIn}}"
+        class="memo-state__btn"
+        hover-class="memo-state__btn--active"
+        bindtap="onLoginTap"
+      >登录后同步速记</view>
+    </view>
+
+    <view wx:else class="memo-list">
+      <view
+        wx:for="{{memoList}}"
+        wx:key="id"
+        class="memo-card"
+        hover-class="memo-card--active"
+        data-id="{{item.id}}"
+        bindtap="onMemoTap"
+      >
+        <view class="memo-card__head">
+          <view class="memo-card__main">
+            <view class="memo-card__title-row">
+              <text class="memo-card__title">{{item.questionTitle || '未命名问题'}}</text>
+              <t-tag size="small" theme="{{item.statusTheme}}" variant="light">{{item.statusText}}</t-tag>
+            </view>
+            <view class="memo-card__meta">
+              <text>{{item.dateText}}</text>
+              <text wx:if="{{item.companyName}}" class="memo-card__dot">·</text>
+              <text wx:if="{{item.companyName}}">{{item.companyName}}</text>
+              <text wx:if="{{item.positionName}}" class="memo-card__dot">·</text>
+              <text wx:if="{{item.positionName}}">{{item.positionName}}</text>
+            </view>
+          </view>
+          <view class="memo-card__delete" catchtap="onDeleteTap" data-id="{{item.id}}">
+            <t-icon name="delete" size="34rpx" color="#c9cdd4" />
+          </view>
+        </view>
+
+        <view wx:if="{{item.summary}}" class="memo-card__summary">{{item.summary}}</view>
+
+        <view wx:if="{{item.knowledgeTags.length}}" class="memo-card__tags">
+          <t-tag
+            wx:for="{{item.knowledgeTags}}"
+            wx:for-item="tagItem"
+            wx:key="*this"
+            size="small"
+            variant="light"
+            theme="primary"
+          >{{tagItem}}</t-tag>
+        </view>
+
+        <view class="memo-card__foot">
+          <text wx:if="{{item.categoryName}}" class="memo-card__category">{{item.categoryName}}</text>
+          <view
+            wx:if="{{item.relatedQuestionId}}"
+            class="memo-card__related"
+            catchtap="onRelatedQuestionTap"
+            data-id="{{item.relatedQuestionId}}"
+            data-title="{{item.relatedQuestionTitle || item.questionTitle}}"
+          >
+            <t-icon name="link" size="28rpx" />
+            <text>去学习</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="memo-list__footer">
+        <view wx:if="{{loading}}">
+          <t-loading size="36rpx" text="加载中…" />
+        </view>
+        <text wx:elif="{{!hasMore && memoList.length}}" class="memo-list__end">— 已加载全部 —</text>
+      </view>
+    </view>
+  </view>
+</view>

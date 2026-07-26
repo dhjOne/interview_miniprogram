@@ -49,6 +49,9 @@ const questionShareBehavior = Behavior({
         case 'refresh':
           this.refreshPage();
           break;
+        case 'memo':
+          this.createInterviewMemo();
+          break;
         case 'reportQuestion':
           this.reportQuestion();
           break;
@@ -61,6 +64,23 @@ const questionShareBehavior = Behavior({
         default:
           break;
       }
+    },
+
+    createInterviewMemo() {
+      const detail = this.data.questionDetail || {};
+      const params = [
+        `questionId=${encodeURIComponent(this.data.questionId || detail.id || '')}`,
+        `title=${encodeURIComponent(detail.title || '')}`,
+        `categoryId=${encodeURIComponent(detail.categoryId || this.data.categoryId || '')}`,
+        `categoryName=${encodeURIComponent(detail.categoryName || this.data.categoryName || '')}`,
+      ].join('&');
+      const url = `/pages/interviewMemo/edit/index?${params}`;
+      const app = getApp();
+      if (app && typeof app.navigateToLogin === 'function') {
+        app.navigateToLogin({ url });
+        return;
+      }
+      wx.navigateTo({ url });
     },
 
     /** 兼容旧 ActionSheet */

@@ -64,6 +64,7 @@ export function buildSharePanels(isSelfAuthor) {
       title: '分享与操作',
       items: [
         { label: '刷新', value: 'refresh', icon: 'refresh', tone: 'brand' },
+        { label: '记到速记', value: 'memo', icon: 'edit-1', tone: 'brand' },
         { label: '复制链接', value: 'copy', icon: 'link', tone: 'brand' },
         { label: '微信好友', value: 'wechat', icon: 'logo-wechat-stroke', tone: 'wechat' },
         { label: '朋友圈', value: 'moment', icon: 'share', tone: 'wechat' }

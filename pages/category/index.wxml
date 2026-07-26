@@ -113,5 +113,11 @@
   </view>
 </view>
 
-<float-release-button bind:onTap="onReleaseTap" />
+<float-release-button
+  button-text="创作"
+  button-icon="add"
+  actions="{{fabActions}}"
+  bind:onAction="onFabAction"
+  bind:onTap="onReleaseTap"
+/>
 <t-message id="t-message" />

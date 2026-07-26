@@ -1,9 +1,11 @@
 {
   "pages": [
     "pages/category/index",
+    "pages/interviewMemo/index",
     "pages/mknow/index",
     "pages/my/index",
-    "pages/agreement/agreement"
+    "pages/agreement/agreement",
+    "pages/interviewMemo/edit/index"
   ],
   "usingComponents": {
     "nav": "/components/nav",
@@ -110,6 +112,10 @@
       {
         "pagePath": "pages/category/index",
         "text": "题库"
+      },
+      {
+        "pagePath": "pages/interviewMemo/index",
+        "text": "速记"
       },
       {
         "pagePath": "pages/mknow/index",

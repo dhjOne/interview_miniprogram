@@ -10,6 +10,11 @@ Component({
         label: '题库',
       },
       {
+        icon: 'edit-1',
+        value: 'interviewMemo',
+        label: '速记',
+      },
+      {
         icon: 'chat-bubble',
         value: 'mknow',
         label: 'm知道',
@@ -41,7 +46,7 @@ Component({
       const nameRe = /pages\/(\w+)\/index/.exec(curPage.route);
       if (!nameRe || !nameRe[1]) return;
       const name = nameRe[1];
-      const allowed = ['category', 'mknow', 'my'];
+      const allowed = ['category', 'interviewMemo', 'mknow', 'my'];
       if (!allowed.includes(name)) return;
       if (name !== this.data.value) {
         this.setData({ value: name });

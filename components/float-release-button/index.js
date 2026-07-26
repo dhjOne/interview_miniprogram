@@ -1,6 +1,7 @@
 import { openPage, redirectPage, switchTabPage, reLaunchPage } from '~/utils/router';
 
-const STORAGE_KEY = 'float_release_fab_fixed_v3';
+const DEFAULT_STORAGE_KEY = 'float_release_fab_fixed_v3';
+const DRAG_THRESHOLD_PX = 12;
 
 function getWindowMetrics() {
   if (wx.getWindowInfo) {
@@ -11,6 +12,22 @@ function getWindowMetrics() {
     windowWidth: s.windowWidth,
     windowHeight: s.windowHeight
   };
+}
+
+function normalizeActions(actions) {
+  if (!Array.isArray(actions)) return [];
+  return actions
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+      const key = item.key || item.value || item.id;
+      if (!key) return null;
+      return {
+        key: String(key),
+        text: item.text || item.label || String(key),
+        icon: item.icon || 'edit-1'
+      };
+    })
+    .filter(Boolean);
 }
 
 Component({
@@ -43,6 +60,21 @@ Component({
       type: String,
       value: '发布'
     },
+    /** Speed Dial 子动作：[{ key, text, icon }]；有值时主按钮改为展开菜单 */
+    actions: {
+      type: Array,
+      value: []
+    },
+    /** 独立存储键，避免多个悬浮按钮互相覆盖位置 */
+    storageKey: {
+      type: String,
+      value: DEFAULT_STORAGE_KEY
+    },
+    /** 距底部默认外边距（rpx） */
+    marginBottomRpx: {
+      type: Number,
+      value: 200
+    },
     showButton: {
       type: Boolean,
       value: true,
@@ -60,6 +92,12 @@ Component({
     }
   },
 
+  observers: {
+    actions(actions) {
+      this._syncActions(actions);
+    }
+  },
+
   data: {
     innerShow: true,
     fabReady: false,
@@ -70,7 +108,11 @@ Component({
     viewW: 130,
     viewH: 48,
     docked: '',
-    isDragging: false
+    isDragging: false,
+    hasActions: false,
+    actionList: [],
+    menuOpen: false,
+    actionsSide: 'right'
   },
 
   lifetimes: {
@@ -78,6 +120,8 @@ Component({
       this.setData({ innerShow: this.properties.showButton !== false });
       this._dragSession = null;
       this._dragMoved = false;
+      this._closedMenuOnStart = false;
+      this._syncActions(this.properties.actions);
       wx.nextTick(() => {
         this._initLayout();
       });
@@ -91,10 +135,27 @@ Component({
           this._initLayout();
         });
       }
+    },
+    hide() {
+      this._closeMenu();
     }
   },
 
   methods: {
+    _syncActions(rawActions) {
+      const actions = normalizeActions(
+        rawActions !== undefined ? rawActions : this.properties.actions
+      );
+      const patch = {
+        hasActions: actions.length > 0,
+        actionList: actions
+      };
+      if (!actions.length && this.data.menuOpen) {
+        patch.menuOpen = false;
+      }
+      this.setData(patch);
+    },
+
     _rpxToPx(rpx, windowWidth) {
       return (rpx * windowWidth) / 750;
     },
@@ -124,6 +185,11 @@ Component({
       return side === 'left' ? edgeMargin : winW - viewW - edgeMargin;
     },
 
+    _resolveActionsSide(fabLeft, viewW, winW) {
+      const center = fabLeft + viewW / 2;
+      return center < winW / 2 ? 'left' : 'right';
+    },
+
     _initLayout() {
       const win = getWindowMetrics();
       let w = Number(win.windowWidth) || 0;
@@ -139,14 +205,16 @@ Component({
       metrics.winW = w;
       const { viewW, viewH } = metrics;
       const marginR = Math.ceil(this._rpxToPx(24, w));
-      const marginB = Math.ceil(this._rpxToPx(200, w));
+      const marginBottomRpx = Number(this.properties.marginBottomRpx) || 200;
+      const marginB = Math.ceil(this._rpxToPx(marginBottomRpx, w));
+      const storageKey = this.properties.storageKey || DEFAULT_STORAGE_KEY;
 
       let fabLeft = Math.round(w - viewW - marginR);
       let fabTop = Math.round(h - viewH - marginB);
       let docked = '';
 
       try {
-        const saved = wx.getStorageSync(STORAGE_KEY);
+        const saved = wx.getStorageSync(storageKey);
         if (
           saved &&
           typeof saved.top === 'number' &&
@@ -185,13 +253,14 @@ Component({
         viewH,
         fabLeft,
         fabTop,
-        docked
+        docked,
+        actionsSide: this._resolveActionsSide(fabLeft, viewW, w)
       });
     },
 
     _savePosition() {
       try {
-        wx.setStorageSync(STORAGE_KEY, {
+        wx.setStorageSync(this.properties.storageKey || DEFAULT_STORAGE_KEY, {
           left: this.data.fabLeft,
           top: this.data.fabTop,
           w: this.data.viewW,
@@ -206,22 +275,28 @@ Component({
     _dockTo(side) {
       const metrics = this._getLayoutMetrics(this.data.winW);
       metrics.winW = this.data.winW;
+      const fabLeft = this._dockLeft(side, metrics);
       this.setData({
         docked: side,
-        fabLeft: this._dockLeft(side, metrics)
+        fabLeft,
+        menuOpen: false,
+        actionsSide: side === 'left' ? 'left' : 'right'
       });
       this._savePosition();
     },
 
     _expandFromDock() {
       const { docked, winW } = this.data;
-      if (!docked) return;
+      if (!docked) return false;
       const metrics = this._getLayoutMetrics(winW);
+      const fabLeft = this._expandedLeft(docked, metrics, winW);
       this.setData({
         docked: '',
-        fabLeft: this._expandedLeft(docked, metrics, winW)
+        fabLeft,
+        actionsSide: this._resolveActionsSide(fabLeft, this.data.viewW, winW)
       });
       this._savePosition();
+      return true;
     },
 
     _tryDockAfterDrag() {
@@ -237,15 +312,61 @@ Component({
         return true;
       }
 
-      this.setData({ docked: '' });
+      this.setData({
+        docked: '',
+        actionsSide: this._resolveActionsSide(fabLeft, viewW, winW)
+      });
       this._savePosition();
       return false;
+    },
+
+    _closeMenu() {
+      if (!this.data.menuOpen) return;
+      this.setData({ menuOpen: false });
+    },
+
+    _hasSpeedDial() {
+      if (this.data.hasActions && this.data.actionList.length > 0) {
+        return true;
+      }
+      return normalizeActions(this.properties.actions).length > 0;
+    },
+
+    _openMenu() {
+      const actions = normalizeActions(this.properties.actions);
+      if (!actions.length) {
+        this._emitTap();
+        return;
+      }
+      this.setData({
+        hasActions: true,
+        actionList: actions,
+        menuOpen: true,
+        actionsSide: this._resolveActionsSide(
+          this.data.fabLeft,
+          this.data.viewW,
+          this.data.winW
+        )
+      });
+    },
+
+    _handlePrimaryTap() {
+      if (this._hasSpeedDial()) {
+        if (this.data.menuOpen) {
+          this._closeMenu();
+          return;
+        }
+        this._openMenu();
+        return;
+      }
+      this._emitTap();
     },
 
     onDragStart(e) {
       const t = e.touches && e.touches[0];
       if (!t) return;
       this._dragMoved = false;
+      this._closedMenuOnStart = !!this.data.menuOpen;
       this._dragSession = {
         startX: t.clientX,
         startY: t.clientY,
@@ -253,7 +374,8 @@ Component({
         originTop: this.data.fabTop,
         wasDocked: !!this.data.docked
       };
-      this.setData({ isDragging: true });
+      // 展开菜单时按下主按钮：先记下，抬手再决定是收起还是拖走
+      this.setData({ isDragging: false });
     },
 
     onDragMove(e) {
@@ -262,8 +384,18 @@ Component({
       if (!t) return;
       const dx = t.clientX - this._dragSession.startX;
       const dy = t.clientY - this._dragSession.startY;
-      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+      const distance = Math.abs(dx) + Math.abs(dy);
+
+      if (!this._dragMoved && distance < DRAG_THRESHOLD_PX) {
+        return;
+      }
+
+      if (!this._dragMoved) {
         this._dragMoved = true;
+        if (this.data.menuOpen) {
+          this._closeMenu();
+        }
+        this.setData({ isDragging: true });
       }
 
       const { winW, winH, viewW, viewH } = this.data;
@@ -282,8 +414,12 @@ Component({
         Math.max(0, winH - viewH)
       );
 
-      const patch = { fabLeft: left, fabTop: top };
-      if (this._dragSession.wasDocked && this._dragMoved) {
+      const patch = {
+        fabLeft: left,
+        fabTop: top,
+        actionsSide: this._resolveActionsSide(left, viewW, winW)
+      };
+      if (this._dragSession.wasDocked) {
         patch.docked = '';
       }
       this.setData(patch);
@@ -291,7 +427,9 @@ Component({
 
     onDragEnd() {
       const session = this._dragSession;
+      const closedMenuOnStart = this._closedMenuOnStart;
       this._dragSession = null;
+      this._closedMenuOnStart = false;
       this.setData({ isDragging: false });
       if (!session) return;
 
@@ -300,16 +438,40 @@ Component({
         return;
       }
 
-      if (this.data.docked) {
-        this._expandFromDock();
+      // 菜单已展开时再点主按钮：收起
+      if (closedMenuOnStart) {
+        this._closeMenu();
         return;
       }
 
-      this._emitTap();
+      if (this.data.docked) {
+        this._expandFromDock();
+        // 贴边展开后直接打开菜单，避免「点了没反应」的错觉
+        if (this._hasSpeedDial()) {
+          setTimeout(() => this._openMenu(), 40);
+        }
+        return;
+      }
+
+      this._handlePrimaryTap();
+    },
+
+    onMaskTap() {
+      this._closeMenu();
+    },
+
+    onActionTap(e) {
+      const key = e.currentTarget.dataset.key;
+      if (!key) return;
+      this._closeMenu();
+      this.triggerEvent('onAction', { key });
+      // 兼容 bind:action / bindaction
+      this.triggerEvent('action', { key });
     },
 
     _emitTap() {
       this.triggerEvent('onTap');
+      this.triggerEvent('tap');
       const { pagePath } = this.properties;
       if (pagePath) {
         this.navigateToPage();
@@ -346,7 +508,7 @@ Component({
     },
 
     hide() {
-      this.setData({ innerShow: false });
+      this.setData({ innerShow: false, menuOpen: false });
     }
   }
 });

@@ -30,6 +30,10 @@ Page({
     secondaryTotal: 0,
     secondaryHasMore: true,
     secondaryLoadingMore: false,
+    fabActions: [
+      { key: 'memo', text: '新建速记', icon: 'edit-1' },
+      { key: 'publish', text: '发布题目', icon: 'upload' },
+    ],
   },
 
   _secondaryRows: [],
@@ -317,11 +321,27 @@ Page({
     openPage({ url: '/pages/publish/index' });
   },
 
+  onFabAction(e) {
+    const key = (e.detail && e.detail.key) || '';
+    if (key === 'memo') {
+      app.navigateToLogin({
+        url: '/pages/interviewMemo/edit/index',
+        fail(res) {
+          console.error('跳转新建速记失败', res);
+        },
+      });
+      return;
+    }
+    if (key === 'publish') {
+      this.onReleaseTap();
+    }
+  },
+
   onReleaseTap() {
     app.navigateToLogin({
-      url: `/pages/publish/index`,
+      url: '/pages/publish/index',
       fail(res) {
-        console.error('跳转失败', res);
+        console.error('跳转发布失败', res);
       },
     });
   },

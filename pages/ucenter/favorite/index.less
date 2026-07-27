@@ -73,6 +73,238 @@
   line-height: 1.45;
 }
 
+.uc-fav__tabs {
+  margin-top: 24rpx;
+  display: flex;
+  padding: 6rpx;
+  border-radius: 18rpx;
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.uc-fav__tab {
+  flex: 1;
+  height: 64rpx;
+  border-radius: 14rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26rpx;
+  color: @fav-muted;
+  font-weight: 500;
+
+  &--active {
+    background: #fff;
+    color: @fav-brand;
+    font-weight: 700;
+    box-shadow: 0 4rpx 14rpx rgba(15, 23, 42, 0.06);
+  }
+}
+
+.uc-fav__folders {
+  padding: 8rpx 24rpx 24rpx;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+}
+
+.uc-fav__folder {
+  min-height: 220rpx;
+  padding: 24rpx;
+  border-radius: 24rpx;
+  background: #fff;
+  border: 1rpx solid @fav-border;
+  box-shadow: 0 8rpx 28rpx rgba(15, 23, 42, 0.03);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+
+  &--active {
+    transform: scale(0.985);
+    opacity: 0.92;
+  }
+
+  &--rose {
+    background: linear-gradient(160deg, #ffffff 0%, #fff7f8 100%);
+  }
+
+  &--blue {
+    background: linear-gradient(160deg, #ffffff 0%, #f5f8ff 100%);
+  }
+
+  &--teal {
+    background: linear-gradient(160deg, #ffffff 0%, #f2fbfa 100%);
+  }
+
+  &--amber {
+    background: linear-gradient(160deg, #ffffff 0%, #fffaf0 100%);
+  }
+
+  &--violet {
+    background: linear-gradient(160deg, #ffffff 0%, #f8f5ff 100%);
+  }
+
+  &--slate {
+    background: linear-gradient(160deg, #ffffff 0%, #f8fafc 100%);
+  }
+
+  &--create {
+    border-style: dashed;
+    border-color: rgba(0, 82, 217, 0.25);
+    background: rgba(0, 82, 217, 0.02);
+  }
+}
+
+.uc-fav__folder-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28rpx;
+}
+
+.uc-fav__folder-badge {
+  width: 68rpx;
+  height: 68rpx;
+  border-radius: 18rpx;
+  background: rgba(0, 82, 217, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &--dashed {
+    border: 1rpx dashed rgba(0, 82, 217, 0.3);
+    background: #fff;
+  }
+}
+
+.uc-fav__folder-tag {
+  font-size: 20rpx;
+  color: @fav-heart;
+  background: rgba(227, 77, 89, 0.1);
+  padding: 4rpx 12rpx;
+  border-radius: 999rpx;
+  font-weight: 600;
+}
+
+.uc-fav__folder-name {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: @fav-ink;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.uc-fav__folder-count {
+  margin-top: auto;
+  padding-top: 16rpx;
+  font-size: 22rpx;
+  color: @fav-subtle;
+}
+
+.uc-fav__folder-bar {
+  margin: 0 24rpx 8rpx;
+  padding: 8rpx 4rpx;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.uc-fav__folder-bar-back {
+  display: flex;
+  align-items: center;
+  gap: 2rpx;
+  color: @fav-brand;
+  font-size: 24rpx;
+  font-weight: 600;
+  padding: 8rpx 4rpx;
+
+  &--active {
+    opacity: 0.7;
+  }
+}
+
+.uc-fav__folder-bar-title {
+  flex: 1;
+  text-align: center;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: @fav-ink;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.uc-fav__folder-bar-more {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.uc-fav__folder-chip {
+  font-size: 22rpx;
+  color: @fav-brand;
+  background: rgba(0, 82, 217, 0.08);
+  padding: 4rpx 12rpx;
+  border-radius: 999rpx;
+  font-weight: 600;
+  max-width: 180rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &--muted {
+    color: @fav-muted;
+    background: rgba(15, 23, 42, 0.05);
+  }
+}
+
+.uc-fav-create {
+  background: #fff;
+  border-radius: 28rpx 28rpx 0 0;
+  padding: 32rpx 32rpx calc(24rpx + env(safe-area-inset-bottom));
+}
+
+.uc-fav-create__title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: @fav-ink;
+  margin-bottom: 24rpx;
+}
+
+.uc-fav-create__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16rpx;
+  margin-top: 28rpx;
+}
+
+.uc-fav-create__btn {
+  min-width: 140rpx;
+  height: 72rpx;
+  padding: 0 28rpx;
+  border-radius: 36rpx;
+  background: @fav-brand;
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &--ghost {
+    background: #f1f5f9;
+    color: @fav-muted;
+  }
+
+  &--disabled {
+    opacity: 0.55;
+  }
+}
+
 .uc-fav__toolbar {
   margin: 8rpx 24rpx 16rpx;
   padding: 20rpx 20rpx 18rpx;

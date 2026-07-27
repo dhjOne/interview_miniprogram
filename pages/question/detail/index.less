@@ -205,6 +205,12 @@
   padding: 28rpx 28rpx 32rpx;
 }
 
+.content-rendering {
+  padding: 48rpx 0 24rpx;
+  display: flex;
+  justify-content: center;
+}
+
 .markdown-content {
   font-size: 30rpx;
   line-height: 1.75;
@@ -243,11 +249,11 @@
     font-size: 28rpx;
     line-height: 1.6;
     color: #333;
-    
+
     .content-text {
       white-space: pre-wrap;
       word-break: break-word;
-      
+
       /* 首行缩进样式 */
       &.indent-paragraph {
         text-indent: 2em; /* 2个字符的缩进，适合中文排版 */
@@ -298,7 +304,6 @@
   }
 }
 
-
 /* 元信息区域 */
 /* 元信息区域 */
 .meta-section {
@@ -312,14 +317,14 @@
     justify-content: space-between;
     margin-bottom: 16rpx;
     padding: 0 10rpx; /* 调整内边距以适应更多项目 */
-    
+
     .stat-item {
       display: flex;
       align-items: center;
       gap: 6rpx;
       flex: 1; /* 每个项目平均分配空间 */
       justify-content: center; /* 内容居中 */
-      
+
       .stat-text {
         font-size: 22rpx; /* 稍微调小字体以适应更多项目 */
         color: #666;
@@ -548,11 +553,16 @@
 }
 
 @keyframes commentLikePulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.15); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
-
 
 /* 分享弹窗 */
 .share-popup {
@@ -651,7 +661,9 @@
   gap: 12rpx;
   padding: 8rpx 0;
   border-radius: 16rpx;
-  transition: transform 0.18s ease, opacity 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease;
 }
 
 .share-panel__item--pressed {
@@ -843,7 +855,6 @@
   }
 }
 
-
 /* 底部导航栏 — 悬浮 Dock */
 .detail-bottom-bar {
   flex-shrink: 0;
@@ -897,7 +908,9 @@
   gap: 6rpx;
   padding: 6rpx 0;
   border-radius: 18rpx;
-  transition: transform 0.18s ease, opacity 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease;
 }
 
 .bottom-tool__icon {
@@ -1284,7 +1297,6 @@
   }
 }
 
-
 /* 确保引导组件在最顶层 */
 .global-guide {
   z-index: 10000 !important;
@@ -1320,7 +1332,7 @@
 
 .guide-detail {
   margin-bottom: 32rpx;
-  
+
   text {
     font-size: 28rpx;
     color: #666;
@@ -1338,7 +1350,6 @@
 .guide-btn {
   flex: 1;
 }
-
 
 /* 自定义引导弹窗样式 */
 .custom-guide-popup {
@@ -1381,9 +1392,6 @@
   display: flex;
   justify-content: center;
 }
-
-
-
 
 /* 重新设计点赞和收藏样式 - 方案一：简洁图标变色 */
 .action-item {
@@ -1432,16 +1440,28 @@
 
 /* 点赞动画 */
 @keyframes likePulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.2); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 /* 收藏动画 */
 @keyframes collectPulse {
-  0% { transform: scale(1) rotate(0deg); }
-  50% { transform: scale(1.2) rotate(10deg); }
-  100% { transform: scale(1) rotate(0deg); }
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.2) rotate(10deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
 }
 
 .action-count {
@@ -1455,7 +1475,9 @@
 //加载样式
 
 /* 增强版状态样式 */
-.loading-state, .error-state, .empty-state {
+.loading-state,
+.error-state,
+.empty-state {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1463,7 +1485,9 @@
   padding: 80rpx 40rpx;
 }
 
-.loading-content, .error-content, .empty-content {
+.loading-content,
+.error-content,
+.empty-content {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1485,12 +1509,12 @@
   padding: 60rpx 40rpx;
   border-radius: 20rpx;
   box-shadow: 0 8rpx 40rpx rgba(0, 0, 0, 0.08);
-  
+
   .t-icon {
     margin-bottom: 40rpx;
     color: #ff4d4f;
   }
-  
+
   .error-text {
     font-size: 34rpx;
     color: #333;
@@ -1498,7 +1522,7 @@
     font-weight: 600;
     line-height: 1.4;
   }
-  
+
   .retry-btn {
     margin-top: 24rpx;
     min-width: 240rpx;
@@ -1513,12 +1537,12 @@
   padding: 60rpx 40rpx;
   border-radius: 20rpx;
   box-shadow: 0 8rpx 40rpx rgba(0, 0, 0, 0.08);
-  
+
   .t-icon {
     margin-bottom: 40rpx;
     color: #ccc;
   }
-  
+
   .empty-text {
     font-size: 34rpx;
     color: #333;
@@ -1526,14 +1550,14 @@
     font-weight: 600;
     line-height: 1.4;
   }
-  
+
   .empty-desc {
     font-size: 28rpx;
     color: #999;
     margin-bottom: 40rpx;
     line-height: 1.5;
   }
-  
+
   .empty-btn {
     min-width: 240rpx;
     height: 80rpx;
@@ -1543,16 +1567,18 @@
 
 /* 响应式调整 */
 @media (max-width: 375px) {
-  .loading-state, .error-state, .empty-state {
+  .loading-state,
+  .error-state,
+  .empty-state {
     padding: 60rpx 30rpx;
     min-height: 60vh;
   }
-  
-  .error-content, .empty-content {
+
+  .error-content,
+  .empty-content {
     padding: 50rpx 30rpx;
   }
 }
-
 
 /**内容块渲染  开始**/
 /* pages/question/detail/index.wxss */
@@ -1693,8 +1719,8 @@
 /* 技术文档特殊样式 */
 .td-diff-paragraph .bold-text {
   font-weight: bold;
-  color: #0052D9;
-  background: #F0F5FF;
+  color: #0052d9;
+  background: #f0f5ff;
   padding: 4rpx 8rpx;
   border-radius: 4rpx;
   margin: 0 4rpx;
@@ -1703,19 +1729,19 @@
 /* 限制性内容样式 */
 .td-null-restriction .bold-text {
   font-weight: bold;
-  color: #E34D59;
+  color: #e34d59;
 }
 
 .td-null-support .bold-text {
   font-weight: bold;
-  color: #00A870;
+  color: #00a870;
 }
 
 /* 建议段落特殊样式 */
 .td-suggestion-paragraph .bold-text {
   font-weight: bold;
-  color: #EB2F96;
-  background: #FFF0F6;
+  color: #eb2f96;
+  background: #fff0f6;
   padding: 4rpx 8rpx;
   border-radius: 4rpx;
   margin: 0 4rpx;
@@ -1723,18 +1749,18 @@
 
 /* 代码块特殊样式 */
 .td-hashmap-code .code-header {
-  background: #00A870;
+  background: #00a870;
   color: white;
 }
 
 .td-hashtable-code .code-header {
-  background: #E34D59;
+  background: #e34d59;
   color: white;
 }
 
 /* 表格特殊样式 */
 .td-comparison-table .table-header {
-  background: linear-gradient(135deg, #722ED1 0%, #9254DE 100%);
+  background: linear-gradient(135deg, #722ed1 0%, #9254de 100%);
   color: white;
 }
 
@@ -1747,7 +1773,6 @@
   font-weight: bold;
   background: transparent;
 }
-
 
 .text-content {
   font-size: 30rpx;
@@ -1797,39 +1822,54 @@
 }
 /**内容块渲染  结束**/
 
-
-
 /* 修改 markdown 样式部分，替换以下代码 */
 
 /* Markdown 内容区域样式 */
 .markdown-content {
   padding: 0;
-  
+
   /* 重置 towxml 的一些样式 */
   font-size: 32rpx;
   line-height: 1.6;
   color: #333;
-  
+
   /* 标题样式 */
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-weight: 600;
     margin: 48rpx 0 32rpx;
     line-height: 1.4;
   }
-  
-  h1 { font-size: 48rpx; }
-  h2 { font-size: 44rpx; }
-  h3 { font-size: 40rpx; }
-  h4 { font-size: 36rpx; }
-  h5 { font-size: 32rpx; }
-  h6 { font-size: 28rpx; }
-  
+
+  h1 {
+    font-size: 48rpx;
+  }
+  h2 {
+    font-size: 44rpx;
+  }
+  h3 {
+    font-size: 40rpx;
+  }
+  h4 {
+    font-size: 36rpx;
+  }
+  h5 {
+    font-size: 32rpx;
+  }
+  h6 {
+    font-size: 28rpx;
+  }
+
   /* 段落样式 */
   p {
     margin: 24rpx 0;
     line-height: 1.6;
   }
-  
+
   /* 代码块样式 */
   pre {
     background: #f6f8fa;
@@ -1837,7 +1877,7 @@
     padding: 24rpx;
     margin: 20rpx 0;
     overflow-x: auto;
-    
+
     code {
       font-family: 'Monaco', 'Consolas', monospace;
       font-size: 28rpx;
@@ -1848,7 +1888,7 @@
       border-radius: 0 !important;
     }
   }
-  
+
   /* 行内代码 - 修改这部分，使用不同的选择器 */
   code {
     background: #f6f8fa;
@@ -1858,7 +1898,7 @@
     font-size: 28rpx;
     color: #e96900;
   }
-  
+
   /* 确保代码块中的code元素没有内联代码的样式 */
   pre code {
     background: transparent;
@@ -1866,7 +1906,7 @@
     border-radius: 0;
     color: #333;
   }
-  
+
   /* 引用块 */
   blockquote {
     border-left: 4rpx solid #1890ff;
@@ -1875,41 +1915,43 @@
     background: #f8f9fa;
     border-radius: 0 8rpx 8rpx 0;
     color: #666;
-    
+
     p {
       margin: 0;
     }
   }
-  
+
   /* 列表 */
-  ul, ol {
+  ul,
+  ol {
     margin: 24rpx 0;
     padding-left: 40rpx;
-    
+
     li {
       margin: 12rpx 0;
       line-height: 1.6;
     }
   }
-  
+
   /* 表格 */
   table {
     width: 100%;
     margin: 24rpx 0;
     border-collapse: collapse;
-    
-    th, td {
+
+    th,
+    td {
       padding: 20rpx 16rpx;
       border: 1rpx solid #e0e0e0;
       text-align: left;
     }
-    
+
     th {
       background: #f8f9fa;
       font-weight: 600;
     }
   }
-  
+
   /* 图片 */
   img {
     max-width: 100%;
@@ -1917,13 +1959,13 @@
     border-radius: 8rpx;
     margin: 20rpx 0;
   }
-  
+
   /* 链接 */
   a {
     color: #1890ff;
     text-decoration: none;
   }
-  
+
   /* 水平线 */
   hr {
     border: none;
@@ -1947,7 +1989,6 @@
   padding: 0 !important;
   border-radius: 0 !important;
 }
-
 
 /* 作者信息区域 */
 .author-info-section {
@@ -1994,7 +2035,10 @@
   background: #fff;
   border: 1rpx solid rgba(0, 82, 217, 0.18);
   box-shadow: 0 4rpx 12rpx rgba(0, 82, 217, 0.08);
-  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 
   &__icon {
     color: @qd-brand !important;
@@ -2097,11 +2141,11 @@
   background: #f8f9fa;
   padding: 8rpx 16rpx;
   border-radius: 20rpx;
-  
+
   .t-icon {
     margin-right: 6rpx;
   }
-  
+
   .view-count {
     font-size: 22rpx;
     color: #666;
@@ -2117,30 +2161,30 @@
   margin: 20rpx 0 32rpx;
   display: flex;
   align-items: center;
-  
+
   .author-avatar {
     width: 48rpx;
     height: 48rpx;
     margin-right: 16rpx;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    
+
     .t-icon {
       color: white !important;
     }
   }
-  
+
   .author-name {
     font-size: 26rpx;
     color: #333;
     font-weight: 500;
     margin-bottom: 2rpx;
   }
-  
+
   .author-meta {
     font-size: 22rpx;
     color: #999;
   }
-  
+
   .view-stat {
     margin-left: auto;
     padding: 6rpx 12rpx;
@@ -2156,23 +2200,23 @@
   align-items: center;
   font-size: 24rpx;
   color: #999;
-  
+
   .author-name {
     color: #1890ff;
     font-weight: 500;
     margin-right: 8rpx;
   }
-  
+
   .meta-divider {
     margin: 0 8rpx;
     color: #ddd;
   }
-  
+
   .view-stat {
     margin-left: auto;
     display: flex;
     align-items: center;
-    
+
     .t-icon {
       margin-right: 4rpx;
     }
@@ -2185,23 +2229,21 @@
     margin: 16rpx 0 24rpx;
     padding: 20rpx 0;
   }
-  
+
   .author-avatar {
     width: 48rpx;
     height: 48rpx;
   }
-  
+
   .author-name {
     font-size: 26rpx;
   }
-  
+
   .author-meta,
   .view-count {
     font-size: 20rpx;
   }
 }
-
-
 
 /* 标签卡片风格 */
 .author-tags {
@@ -2219,7 +2261,7 @@
   border-radius: 20rpx;
   font-size: 22rpx;
   color: #666;
-  
+
   .t-icon {
     margin-right: 6rpx;
   }

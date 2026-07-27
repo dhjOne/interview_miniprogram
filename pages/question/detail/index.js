@@ -1,5 +1,5 @@
 import Message from 'tdesign-miniprogram/message/index';
-import { questionApi, socialApi, handleApiError } from '~/api/index';
+import { questionApi, socialApi, handleApiError, unwrapData } from '~/api/index';
 import { QuestionLikeOrCollectParams, QuestionParams } from '~/api/param/param_question';
 import questionCommentsBehavior from './behaviors/comments';
 import questionShareBehavior from './behaviors/share';
@@ -58,6 +58,7 @@ Page({
     isSelfAuthor: false,
 
     loading: true,
+    contentRendering: false,
     error: false,
     errorMessage: '',
     isEmpty: false,
@@ -83,6 +84,10 @@ Page({
         linktap: () => {},
       },
     },
+
+    collectPickerVisible: false,
+    collectPickerMode: 'collect',
+    collectPickerFolderId: null,
   },
 
   onLoad(options) {
@@ -117,14 +122,32 @@ Page({
     });
   },
 
+  onShow() {
+    // 登录回跳等场景：页面已挂载但详情未成功展示时自动重试
+    if (
+      this.data.questionId &&
+      !this.data.loading &&
+      !this._detailLoading &&
+      !this.data.error &&
+      !this.data.isEmpty &&
+      !this.data.questionDetail?.id &&
+      !this.data.questionDetail?.title
+    ) {
+      this.loadQuestionDetail();
+    }
+  },
+
   onPullDownRefresh() {
     return this.refreshPage();
   },
 
   async loadQuestionDetail() {
+    if (this._detailLoading) return;
+    this._detailLoading = true;
     try {
       this.setData({
         loading: true,
+        contentRendering: false,
         error: false,
         isEmpty: false,
         isMarkdown: false,
@@ -133,9 +156,10 @@ Page({
 
       const questionParams = new QuestionParams(null, null, this.data.questionId);
       const response = await questionApi.getQuestionDetail(questionParams);
+      const detailPayload = unwrapData(response) || response?.data || null;
 
-      if (response.data) {
-        const questionDetail = normalizeQuestionDetail(response.data);
+      if (detailPayload && (detailPayload.id || detailPayload.title || detailPayload.contentType)) {
+        const questionDetail = normalizeQuestionDetail(detailPayload);
         const isMarkdownContent = questionDetail.contentType === 'markdown';
 
         const authorId = resolveAuthorId(questionDetail);
@@ -145,6 +169,7 @@ Page({
         const patch = {
           questionDetail,
           loading: false,
+          contentRendering: isMarkdownContent,
           isMarkdown: isMarkdownContent,
           authorId,
           authorDisplayName,
@@ -168,6 +193,9 @@ Page({
         if (questionDetail.categoryName) {
           patch.catalogTitle = questionDetail.categoryName;
         }
+        if (questionDetail.title) {
+          wx.setNavigationBarTitle({ title: questionDetail.title });
+        }
 
         this.setData(patch);
 
@@ -186,6 +214,7 @@ Page({
       } else {
         this.setData({
           loading: false,
+          contentRendering: false,
           error: false,
           isEmpty: true,
         });
@@ -194,10 +223,12 @@ Page({
       console.error('加载题目详情失败:', error);
       this.setData({
         loading: false,
+        contentRendering: false,
         error: true,
         errorMessage: '网络错误，请重试',
       });
     } finally {
+      this._detailLoading = false;
       wx.stopPullDownRefresh();
     }
   },
@@ -206,6 +237,7 @@ Page({
     const contentBlocks = questionDetail.contentList || [];
     this.setData({
       contentBlocks: processContentBlocks(contentBlocks),
+      contentRendering: false,
     });
   },
 
@@ -214,7 +246,7 @@ Page({
 
     if (!markdownContent) {
       console.warn('Markdown 内容为空');
-      this.setData({ contentBlocks: [] });
+      this.setData({ contentBlocks: [], contentRendering: false });
       return;
     }
 
@@ -233,6 +265,7 @@ Page({
         this.setData({
           towxmlData,
           contentBlocks: [],
+          contentRendering: false,
         });
       })
       .catch((error) => {
@@ -242,6 +275,7 @@ Page({
           this.renderWithContentBlocks(questionDetail);
         } else {
           this.setData({
+            contentRendering: false,
             error: true,
             errorMessage: '内容解析失败',
           });
@@ -252,6 +286,7 @@ Page({
   _resetDetailTransientState() {
     return {
       loading: true,
+      contentRendering: false,
       error: false,
       errorMessage: '',
       isEmpty: false,
@@ -518,22 +553,100 @@ Page({
     const { questionDetail } = this.data;
     const collected = !!(questionDetail.collected ?? questionDetail.isCollected);
 
+    if (collected) {
+      wx.showActionSheet({
+        itemList: ['更换分类', '取消收藏'],
+        success: (res) => {
+          if (res.tapIndex === 0) {
+            this.setData({
+              collectPickerVisible: true,
+              collectPickerMode: 'move',
+              collectPickerFolderId: questionDetail.collectFolderId || null,
+            });
+          } else if (res.tapIndex === 1) {
+            this.uncollectQuestion();
+          }
+        },
+      });
+      return;
+    }
+
+    this.setData({
+      collectPickerVisible: true,
+      collectPickerMode: 'collect',
+      collectPickerFolderId: questionDetail.collectFolderId || null,
+    });
+  },
+
+  onCollectPickerClose() {
+    this.setData({ collectPickerVisible: false });
+  },
+
+  async onCollectPickerConfirm(e) {
+    const { folderId, folderName, mode } = e.detail || {};
+    if (!folderId) return;
+
+    const { questionDetail } = this.data;
+    const collected = !!(questionDetail.collected ?? questionDetail.isCollected);
+
     try {
+      if (mode === 'move' || collected) {
+        await questionApi.moveCollect({
+          questionId: this.data.questionId,
+          folderId,
+        });
+        this.setData({
+          collectPickerVisible: false,
+          'questionDetail.collectFolderId': folderId,
+          'questionDetail.collectFolderName': folderName || '',
+        });
+        Message.success({
+          content: e.detail?.created
+            ? '已新建并移动到「' + (folderName || '分类') + '」'
+            : '已移动到「' + (folderName || '分类') + '」',
+          duration: 2000,
+        });
+        return;
+      }
+
       const collectQuestion = new QuestionLikeOrCollectParams(
         this.data.questionId,
         null,
-        !collected,
+        true,
+        folderId,
       );
       await questionApi.toggleCollect(collectQuestion);
       this.setData({
-        'questionDetail.collected': !collected,
-        'questionDetail.collectCount': collected
-          ? Math.max(0, (questionDetail.collectCount || 0) - 1)
-          : (questionDetail.collectCount || 0) + 1,
+        collectPickerVisible: false,
+        'questionDetail.collected': true,
+        'questionDetail.collectCount': (questionDetail.collectCount || 0) + 1,
+        'questionDetail.collectFolderId': folderId,
+        'questionDetail.collectFolderName': folderName || '',
       });
-
       Message.success({
-        content: collected ? '已取消收藏' : '收藏成功',
+        content: e.detail?.created
+          ? '已新建并收藏到「' + (folderName || '分类') + '」'
+          : '已收藏到「' + (folderName || '默认收藏') + '」',
+        duration: 2000,
+      });
+    } catch (error) {
+      handleApiError(error, { fallbackMessage: '操作失败，请重试' });
+    }
+  },
+
+  async uncollectQuestion() {
+    const { questionDetail } = this.data;
+    try {
+      const collectQuestion = new QuestionLikeOrCollectParams(this.data.questionId, null, false);
+      await questionApi.toggleCollect(collectQuestion);
+      this.setData({
+        'questionDetail.collected': false,
+        'questionDetail.collectCount': Math.max(0, (questionDetail.collectCount || 0) - 1),
+        'questionDetail.collectFolderId': null,
+        'questionDetail.collectFolderName': '',
+      });
+      Message.success({
+        content: '已取消收藏',
         duration: 2000,
       });
     } catch (error) {

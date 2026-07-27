@@ -85,7 +85,11 @@
         </view>
 
         <view class="content-area">
-          <block wx:if="{{isMarkdown && towxmlData}}">
+          <view wx:if="{{contentRendering}}" class="content-rendering">
+            <t-loading size="40rpx" text="内容渲染中…" />
+          </view>
+
+          <block wx:elif="{{isMarkdown && towxmlData}}">
             <view class="markdown-content">
               <towxml nodes="{{towxmlData}}" />
             </view>
@@ -552,5 +556,13 @@
     </view>
   </view>
 </t-popup>
+
+<collect-folder-picker
+  visible="{{collectPickerVisible}}"
+  mode="{{collectPickerMode}}"
+  selected-folder-id="{{collectPickerFolderId}}"
+  bind:close="onCollectPickerClose"
+  bind:confirm="onCollectPickerConfirm"
+/>
 
 <t-message id="t-message" />

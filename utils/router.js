@@ -207,7 +207,7 @@ export function openUrlCascade(url, options = {}) {
 /**
  * 登录成功后回到业务页：
  * - Tab → switchTab
- * - 非 Tab → 先 navigateBack，再 navigate；失败则 redirect / reLaunch
+ * - 非 Tab → redirectTo 替换登录页（避免 navigateBack + navigateTo 抢栈导致目标页白屏）
  */
 export function resumeAfterLogin(url) {
   const targetUrl = normalizeUrl(url);
@@ -221,15 +221,12 @@ export function resumeAfterLogin(url) {
     return;
   }
 
-  wx.navigateBack({
-    delta: 1,
-    success: () => {
-      openUrlCascade(targetUrl);
-    },
+  wx.redirectTo({
+    url: targetUrl,
     fail: () => {
-      wx.redirectTo({
+      wx.reLaunch({
         url: targetUrl,
-        fail: () => wx.reLaunch({ url: targetUrl }),
+        fail: () => switchTabPage({ url: '/pages/my/index' }),
       });
     },
   });

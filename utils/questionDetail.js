@@ -48,13 +48,15 @@ export function normalizeQuestionDetail(detail) {
     ...detail,
     liked: !!(detail.liked ?? detail.isLiked),
     collected: !!(detail.collected ?? detail.isCollected),
+    collectFolderId: detail.collectFolderId ?? detail.collect_folder_id ?? null,
+    collectFolderName: detail.collectFolderName ?? detail.collect_folder_name ?? '',
     likeCount: detail.likeCount ?? detail.like_count ?? 0,
     collectCount: detail.collectCount ?? detail.collect_count ?? 0,
     viewCount: detail.viewCount ?? detail.view_count ?? 0,
     commentCount: detail.commentCount ?? detail.comment_count ?? 0,
     createdAt: formatDisplayDate(
-      detail.createdAt ?? detail.created_at ?? detail.createTime ?? detail.create_time
-    )
+      detail.createdAt ?? detail.created_at ?? detail.createTime ?? detail.create_time,
+    ),
   };
 }
 
@@ -67,9 +69,9 @@ export function buildSharePanels(isSelfAuthor) {
         { label: '记到速记', value: 'memo', icon: 'edit-1', tone: 'brand' },
         { label: '复制链接', value: 'copy', icon: 'link', tone: 'brand' },
         { label: '微信好友', value: 'wechat', icon: 'logo-wechat-stroke', tone: 'wechat' },
-        { label: '朋友圈', value: 'moment', icon: 'share', tone: 'wechat' }
-      ]
-    }
+        { label: '朋友圈', value: 'moment', icon: 'share', tone: 'wechat' },
+      ],
+    },
   ];
 
   if (!isSelfAuthor) {
@@ -78,8 +80,8 @@ export function buildSharePanels(isSelfAuthor) {
       items: [
         { label: '举报题目', value: 'reportQuestion', icon: 'error-circle', tone: 'warn' },
         { label: '举报作者', value: 'reportAuthor', icon: 'user-circle', tone: 'warn' },
-        { label: '拉黑作者', value: 'blockAuthor', icon: 'close-circle', tone: 'danger' }
-      ]
+        { label: '拉黑作者', value: 'blockAuthor', icon: 'close-circle', tone: 'danger' },
+      ],
     });
   }
 
@@ -109,7 +111,7 @@ export function normalizeComment(row, extra = {}) {
     replyCount,
     replies: embeddedReplies,
     repliesLoaded: embeddedReplies.length > 0,
-    repliesLoading: false
+    repliesLoading: false,
   };
 }
 
@@ -119,7 +121,7 @@ export function parseCommentListResponse(response) {
     return {
       rows: data,
       total: data.length,
-      hasTotal: false
+      hasTotal: false,
     };
   }
   const rows = data?.rows ?? data?.list ?? data?.records ?? [];
@@ -128,7 +130,7 @@ export function parseCommentListResponse(response) {
   return {
     rows: Array.isArray(rows) ? rows : [],
     total: hasTotal ? parsedTotal : 0,
-    hasTotal
+    hasTotal,
   };
 }
 
@@ -145,7 +147,7 @@ export async function fetchReplyThread(rootComment) {
         const normalized = normalizeComment(row, {
           rootId: rootComment.id,
           replyToName: parent?.userName || '匿名用户',
-          replyToId: parentId
+          replyToId: parentId,
         });
         commentById[String(row.id)] = normalized;
         replies.push(normalized);
@@ -171,7 +173,7 @@ export function patchCommentLike(list, commentId, nextLiked) {
     if (String(item.id) === String(commentId)) {
       return {
         ...item,
-        likeCount: Math.max(0, (item.likeCount || 0) + delta)
+        likeCount: Math.max(0, (item.likeCount || 0) + delta),
       };
     }
     if (item.replies?.length) {
@@ -179,7 +181,7 @@ export function patchCommentLike(list, commentId, nextLiked) {
         if (String(reply.id) === String(commentId)) {
           return {
             ...reply,
-            likeCount: Math.max(0, (reply.likeCount || 0) + delta)
+            likeCount: Math.max(0, (reply.likeCount || 0) + delta),
           };
         }
         return reply;

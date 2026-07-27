@@ -9,117 +9,250 @@
       </view>
       <view class="uc-fav__summary-copy">
         <view class="uc-fav__summary-title-row">
-          <text class="uc-fav__summary-count">{{totalCount}}</text>
+          <text class="uc-fav__summary-count">{{totalCollectCount}}</text>
           <text class="uc-fav__summary-unit">道收藏</text>
         </view>
         <text class="uc-fav__summary-desc">
-          {{searchValue ? '正在筛选「' + searchValue + '」' : '收藏的题目会集中出现在这里'}}
+          {{activeFolderName
+            ? ('当前查看「' + activeFolderName + '」')
+            : (viewMode === 'folders' ? '按分类整理，复习更高效' : '按题目浏览全部收藏')}}
         </text>
       </view>
     </view>
+
+    <view class="uc-fav__tabs">
+      <view
+        wx:for="{{viewTabs}}"
+        wx:key="value"
+        class="uc-fav__tab {{viewMode === item.value && !activeFolderId ? 'uc-fav__tab--active' : ''}} {{activeFolderId && item.value === 'questions' ? 'uc-fav__tab--active' : ''}}"
+        data-mode="{{item.value}}"
+        bindtap="onViewTabTap"
+      >{{item.label}}</view>
+    </view>
   </view>
 
-  <view class="uc-fav__toolbar">
-    <view class="uc-fav__search">
-      <t-search
-        value="{{searchValue}}"
-        placeholder="搜索已收藏题目…"
-        action="搜索"
-        bind:change="onSearchChange"
-        bind:submit="onSearchSubmit"
-        bind:action-click="onSearchAction"
-        bind:clear="onSearchClear"
-        shape="round"
-        t-class="uc-fav-search"
-        t-class-input-container="uc-fav-search__box"
-        t-class-input="uc-fav-search__input"
-        t-class-action="uc-fav-search__action"
-      />
+  <!-- 分类视图 -->
+  <block wx:if="{{viewMode === 'folders' && !activeFolderId}}">
+    <view wx:if="{{folderLoading && folders.length === 0}}" class="uc-fav__loading">
+      <t-loading size="40rpx" text="加载中…" />
     </view>
 
-    <scroll-view class="uc-fav__chips" scroll-x enhanced show-scrollbar="{{false}}">
-      <view class="uc-fav__chips-row">
-        <view
-          wx:for="{{sortChips}}"
-          wx:key="value"
-          class="uc-fav__chip {{sortType === item.value ? 'uc-fav__chip--active' : ''}}"
-          data-sort="{{item.value}}"
-          bindtap="onSortTap"
-        >{{item.label}}</view>
+    <view wx:elif="{{folders.length === 0 && folderLoadAttempted}}" class="uc-fav__empty">
+      <view class="uc-fav__empty-icon">
+        <t-icon name="folder" size="72rpx" color="#93c5fd" />
       </view>
-    </scroll-view>
-  </view>
-
-  <view wx:if="{{loading && questionList.length === 0}}" class="uc-fav__loading">
-    <t-loading size="40rpx" text="加载中…" />
-  </view>
-
-  <view wx:elif="{{questionList.length === 0 && loadAttempted}}" class="uc-fav__empty">
-    <view class="uc-fav__empty-icon">
-      <t-icon name="heart" size="72rpx" color="#f9a8b0" />
+      <text class="uc-fav__empty-title">还没有收藏分类</text>
+      <text class="uc-fav__empty-desc">收藏题目后会自动生成「默认收藏」，也可新建主题分类</text>
+      <view class="uc-fav__empty-btn" hover-class="uc-fav__empty-btn--active" bindtap="onShowCreateFolder">新建分类</view>
     </view>
-    <text class="uc-fav__empty-title">{{searchValue ? '没有匹配的收藏' : '还没有收藏题目'}}</text>
-    <text class="uc-fav__empty-desc">
-      {{searchValue ? '试试其他关键词，或清空搜索查看全部' : '在题库点心形即可收藏，方便下次复习'}}
-    </text>
-    <view
-      wx:if="{{searchValue}}"
-      class="uc-fav__empty-btn uc-fav__empty-btn--ghost"
-      hover-class="uc-fav__empty-btn--active"
-      bindtap="onSearchClear"
-    >清空搜索</view>
-    <view
-      wx:else
-      class="uc-fav__empty-btn"
-      hover-class="uc-fav__empty-btn--active"
-      bindtap="goBrowse"
-    >去刷题</view>
-  </view>
 
-  <view wx:else class="uc-fav__list">
-    <view
-      wx:for="{{questionList}}"
-      wx:key="id"
-      class="uc-fav__card"
-      hover-class="uc-fav__card--active"
-      bindtap="onQuestionClick"
-      data-id="{{item.id}}"
-      data-title="{{item.title}}"
-    >
-      <view class="uc-fav__card-head">
-        <view class="uc-fav__card-index">{{index + 1}}</view>
-        <view class="uc-fav__card-main">
-          <view class="uc-fav__title-row">
-            <text class="uc-fav__title">{{item.title || '无标题'}}</text>
-            <view wx:if="{{item.difficultyTag}}" class="uc-fav__diff uc-fav__diff--{{item.difficultyTag.theme}}">
-              {{item.difficultyTag.text}}
+    <view wx:else class="uc-fav__folders">
+      <view
+        wx:for="{{folders}}"
+        wx:key="id"
+        class="uc-fav__folder uc-fav__folder--{{item.tone}}"
+        hover-class="uc-fav__folder--active"
+        data-id="{{item.id}}"
+        data-name="{{item.name}}"
+        data-is-default="{{item.isDefault}}"
+        bindtap="onFolderTap"
+        bindlongpress="onFolderLongPress"
+      >
+        <view class="uc-fav__folder-top">
+          <view class="uc-fav__folder-badge">
+            <t-icon
+              name="{{item.isDefault ? 'heart-filled' : 'folder'}}"
+              size="36rpx"
+              color="{{item.isDefault ? '#e34d59' : '#0052d9'}}"
+            />
+          </view>
+          <text wx:if="{{item.isDefault}}" class="uc-fav__folder-tag">默认</text>
+        </view>
+        <text class="uc-fav__folder-name">{{item.name}}</text>
+        <text class="uc-fav__folder-count">{{item.itemCount}} 道题</text>
+      </view>
+
+      <view
+        class="uc-fav__folder uc-fav__folder--create"
+        hover-class="uc-fav__folder--active"
+        bindtap="onShowCreateFolder"
+      >
+        <view class="uc-fav__folder-badge uc-fav__folder-badge--dashed">
+          <t-icon name="add" size="40rpx" color="#0052d9" />
+        </view>
+        <text class="uc-fav__folder-name">新建分类</text>
+        <text class="uc-fav__folder-count">长按可管理分类</text>
+      </view>
+    </view>
+  </block>
+
+  <!-- 问题视图 -->
+  <block wx:else>
+    <view wx:if="{{activeFolderId}}" class="uc-fav__folder-bar">
+      <view class="uc-fav__folder-bar-back" hover-class="uc-fav__folder-bar-back--active" bindtap="onBackToFolders">
+        <t-icon name="chevron-left" size="36rpx" color="#0052d9" />
+        <text>全部分类</text>
+      </view>
+      <text class="uc-fav__folder-bar-title">{{activeFolderName}}</text>
+      <view
+        wx:if="{{!activeFolderIsDefault}}"
+        class="uc-fav__folder-bar-more"
+        data-id="{{activeFolderId}}"
+        data-name="{{activeFolderName}}"
+        data-is-default="{{false}}"
+        bindtap="onFolderLongPress"
+      >
+        <t-icon name="more" size="36rpx" color="#64748b" />
+      </view>
+      <view wx:else class="uc-fav__folder-bar-more" />
+    </view>
+
+    <view class="uc-fav__toolbar">
+      <view class="uc-fav__search">
+        <t-search
+          value="{{searchValue}}"
+          placeholder="搜索已收藏题目…"
+          action="搜索"
+          bind:change="onSearchChange"
+          bind:submit="onSearchSubmit"
+          bind:action-click="onSearchAction"
+          bind:clear="onSearchClear"
+          shape="round"
+          t-class="uc-fav-search"
+          t-class-input-container="uc-fav-search__box"
+          t-class-input="uc-fav-search__input"
+          t-class-action="uc-fav-search__action"
+        />
+      </view>
+
+      <scroll-view class="uc-fav__chips" scroll-x enhanced show-scrollbar="{{false}}">
+        <view class="uc-fav__chips-row">
+          <view
+            wx:for="{{sortChips}}"
+            wx:key="value"
+            class="uc-fav__chip {{sortType === item.value ? 'uc-fav__chip--active' : ''}}"
+            data-sort="{{item.value}}"
+            bindtap="onSortTap"
+          >{{item.label}}</view>
+        </view>
+      </scroll-view>
+    </view>
+
+    <view wx:if="{{loading && questionList.length === 0}}" class="uc-fav__loading">
+      <t-loading size="40rpx" text="加载中…" />
+    </view>
+
+    <view wx:elif="{{questionList.length === 0 && loadAttempted}}" class="uc-fav__empty">
+      <view class="uc-fav__empty-icon">
+        <t-icon name="heart" size="72rpx" color="#f9a8b0" />
+      </view>
+      <text class="uc-fav__empty-title">{{searchValue ? '没有匹配的收藏' : (activeFolderName ? '该分类还是空的' : '还没有收藏题目')}}</text>
+      <text class="uc-fav__empty-desc">
+        {{searchValue ? '试试其他关键词，或清空搜索查看全部' : '在题目详情页收藏时可选择分类'}}
+      </text>
+      <view
+        wx:if="{{searchValue}}"
+        class="uc-fav__empty-btn uc-fav__empty-btn--ghost"
+        hover-class="uc-fav__empty-btn--active"
+        bindtap="onSearchClear"
+      >清空搜索</view>
+      <view
+        wx:else
+        class="uc-fav__empty-btn"
+        hover-class="uc-fav__empty-btn--active"
+        bindtap="goBrowse"
+      >去刷题</view>
+    </view>
+
+    <view wx:else class="uc-fav__list">
+      <view
+        wx:for="{{questionList}}"
+        wx:key="id"
+        class="uc-fav__card"
+        hover-class="uc-fav__card--active"
+        bindtap="onQuestionClick"
+        data-id="{{item.id}}"
+        data-title="{{item.title}}"
+      >
+        <view class="uc-fav__card-head">
+          <view class="uc-fav__card-index">{{index + 1}}</view>
+          <view class="uc-fav__card-main">
+            <view class="uc-fav__title-row">
+              <text class="uc-fav__title">{{item.title || '无标题'}}</text>
+              <view wx:if="{{item.difficultyTag}}" class="uc-fav__diff uc-fav__diff--{{item.difficultyTag.theme}}">
+                {{item.difficultyTag.text}}
+              </view>
+            </view>
+            <view class="uc-fav__meta">
+              <text
+                wx:if="{{item.collectFolderName && !activeFolderId}}"
+                class="uc-fav__folder-chip"
+                catchtap="onFolderChipTap"
+                data-id="{{item.id}}"
+                data-folder-id="{{item.collectFolderId}}"
+                data-folder-name="{{item.collectFolderName}}"
+              >{{item.collectFolderName}}</text>
+              <text
+                wx:elif="{{item.collectFolderName && activeFolderId}}"
+                class="uc-fav__folder-chip uc-fav__folder-chip--muted"
+                catchtap="onFolderChipTap"
+                data-id="{{item.id}}"
+                data-folder-id="{{item.collectFolderId}}"
+                data-folder-name="{{item.collectFolderName}}"
+              >更换分类</text>
+              <text wx:if="{{item.collectFolderName}}" class="uc-fav__meta-dot">·</text>
+              <text class="uc-fav__meta-item">{{item.displayDate}}</text>
+              <text class="uc-fav__meta-dot">·</text>
+              <text class="uc-fav__meta-item">{{item.viewCount}} 浏览</text>
+              <text wx:if="{{item.likeCount > 0}}" class="uc-fav__meta-dot">·</text>
+              <text wx:if="{{item.likeCount > 0}}" class="uc-fav__meta-item">{{item.likeCount}} 赞</text>
             </view>
           </view>
-          <view class="uc-fav__meta">
-            <text class="uc-fav__meta-item">{{item.displayDate}}</text>
-            <text class="uc-fav__meta-dot">·</text>
-            <text class="uc-fav__meta-item">{{item.viewCount}} 浏览</text>
-            <text wx:if="{{item.likeCount > 0}}" class="uc-fav__meta-dot">·</text>
-            <text wx:if="{{item.likeCount > 0}}" class="uc-fav__meta-item">{{item.likeCount}} 赞</text>
+          <view
+            class="uc-fav__heart"
+            catchtap="onCollect"
+            data-id="{{item.id}}"
+            hover-class="uc-fav__heart--active"
+          >
+            <t-icon name="heart-filled" size="40rpx" color="#e34d59" />
           </view>
         </view>
-        <view
-          class="uc-fav__heart"
-          catchtap="onCollect"
-          data-id="{{item.id}}"
-          hover-class="uc-fav__heart--active"
-        >
-          <t-icon name="heart-filled" size="40rpx" color="#e34d59" />
+        <view wx:if="{{item.description}}" class="uc-fav__desc">{{item.description}}</view>
+      </view>
+
+      <view class="uc-fav__footer">
+        <view wx:if="{{loading}}">
+          <t-loading size="36rpx" text="加载中…" />
+        </view>
+        <text wx:elif="{{!hasMore}}" class="uc-fav__end">— 已加载全部收藏 —</text>
+      </view>
+    </view>
+  </block>
+
+  <collect-folder-picker
+    visible="{{pickerVisible}}"
+    mode="{{pickerMode}}"
+    selected-folder-id="{{pickerFolderId}}"
+    bind:close="onPickerClose"
+    bind:confirm="onPickerConfirm"
+  />
+
+  <t-popup visible="{{createVisible}}" placement="bottom" bind:visible-change="onCreateVisibleChange">
+    <view class="uc-fav-create">
+      <view class="uc-fav-create__title">新建收藏分类</view>
+      <t-input
+        value="{{createName}}"
+        placeholder="例如：JVM / 系统设计 / 高频题"
+        maxlength="{{20}}"
+        bind:change="onCreateNameInput"
+        borderless
+      />
+      <view class="uc-fav-create__actions">
+        <view class="uc-fav-create__btn uc-fav-create__btn--ghost" bindtap="onCloseCreate">取消</view>
+        <view class="uc-fav-create__btn {{creating ? 'uc-fav-create__btn--disabled' : ''}}" bindtap="onConfirmCreate">
+          {{creating ? '创建中…' : '创建'}}
         </view>
       </view>
-      <view wx:if="{{item.description}}" class="uc-fav__desc">{{item.description}}</view>
     </view>
-
-    <view class="uc-fav__footer">
-      <view wx:if="{{loading}}">
-        <t-loading size="36rpx" text="加载中…" />
-      </view>
-      <text wx:elif="{{!hasMore}}" class="uc-fav__end">— 已加载全部收藏 —</text>
-    </view>
-  </view>
+  </t-popup>
 </view>

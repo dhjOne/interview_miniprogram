@@ -5,6 +5,9 @@
     "t-search": "/miniprogram_npm/tdesign-miniprogram/search/search",
     "t-loading": "/miniprogram_npm/tdesign-miniprogram/loading/loading",
     "t-icon": "/miniprogram_npm/tdesign-miniprogram/icon/icon",
-    "t-message": "/miniprogram_npm/tdesign-miniprogram/message/message"
+    "t-message": "/miniprogram_npm/tdesign-miniprogram/message/message",
+    "t-popup": "/miniprogram_npm/tdesign-miniprogram/popup/popup",
+    "t-input": "/miniprogram_npm/tdesign-miniprogram/input/input",
+    "collect-folder-picker": "/components/collect-folder-picker/index"
   }
 }

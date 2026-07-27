@@ -2,12 +2,7 @@ import { handleApiError } from '~/api/index';
 import useToastBehavior from '~/behaviors/useToast';
 import { fetchPersonalInfo, savePersonalInfo } from '~/utils/userProfile';
 import { fetchProfessionOptions, formatProfessionText } from '~/utils/profession';
-import {
-  backPage,
-  isTabPage,
-  redirectPage,
-  switchTabPage,
-} from '~/utils/router';
+import { backPage, isTabPage, redirectPage, resumeAfterLogin, switchTabPage } from '~/utils/router';
 
 Page({
   behaviors: [useToastBehavior],
@@ -22,7 +17,7 @@ Page({
     selectedMap: {},
     selectedLabels: [],
     summaryText: '尚未选择职业方向',
-    selectedCount: 0
+    selectedCount: 0,
   },
 
   onLoad(options) {
@@ -36,7 +31,7 @@ Page({
     }
     this.setData({
       fromLogin: options.from === 'login',
-      returnUrl
+      returnUrl,
     });
     this.bootstrap();
   },
@@ -50,7 +45,7 @@ Page({
     try {
       const [info, options] = await Promise.all([
         fetchPersonalInfo(),
-        fetchProfessionOptions(true)
+        fetchProfessionOptions(true),
       ]);
       const selected = Array.isArray(info.professionCodes) ? [...info.professionCodes] : [];
       this.applySelected(selected, options);
@@ -80,7 +75,7 @@ Page({
       selectedCount: selected.length,
       summaryText: selected.length
         ? formatProfessionText(selected, optionList)
-        : '选择你正在准备或从事的方向，我们将推荐更匹配的题库'
+        : '选择你正在准备或从事的方向，我们将推荐更匹配的题库',
     });
   },
 
@@ -157,12 +152,9 @@ Page({
         switchTabPage({ url: openUrl });
         return;
       }
-      redirectPage({
-        url: openUrl,
-        fail: () => switchTabPage({ url: '/pages/my/index' })
-      });
+      resumeAfterLogin(openUrl);
       return;
     }
     switchTabPage({ url: '/pages/my/index' });
-  }
+  },
 });

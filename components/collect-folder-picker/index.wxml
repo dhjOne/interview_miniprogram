@@ -1,0 +1,89 @@
+<t-popup
+  visible="{{visible}}"
+  placement="bottom"
+  z-index="{{12000}}"
+  bind:visible-change="onVisibleChange"
+>
+  <view class="cfp">
+    <view class="cfp__handle" />
+
+    <view wx:if="{{loading}}" class="cfp__loading">
+      <t-loading size="40rpx" text="加载分类…" />
+    </view>
+
+    <block wx:else>
+      <scroll-view class="cfp__list" scroll-y enhanced show-scrollbar="{{false}}">
+        <view
+          wx:for="{{folders}}"
+          wx:key="idKey"
+          class="cfp__item {{activeFolderId === item.idKey && !showCreate ? 'cfp__item--on' : ''}}"
+          data-id="{{item.idKey}}"
+          data-name="{{item.name}}"
+          bindtap="onSelect"
+          hover-class="cfp__item--press"
+        >
+          <view class="cfp__item-icon {{item.isDefault ? 'cfp__item-icon--heart' : ''}}">
+            <t-icon
+              name="{{item.isDefault ? 'heart-filled' : 'folder'}}"
+              size="34rpx"
+              color="{{item.isDefault ? '#e34d59' : (activeFolderId === item.idKey && !showCreate ? '#0052d9' : '#64748b')}}"
+            />
+          </view>
+
+          <view class="cfp__item-main">
+            <view class="cfp__item-row">
+              <text class="cfp__item-name">{{item.name}}</text>
+              <text wx:if="{{item.isDefault}}" class="cfp__tag">默认</text>
+            </view>
+            <text class="cfp__item-count">{{item.itemCount || 0}} 道题</text>
+          </view>
+
+          <view class="cfp__radio {{activeFolderId === item.idKey && !showCreate ? 'cfp__radio--on' : ''}}">
+            <t-icon
+              wx:if="{{activeFolderId === item.idKey && !showCreate}}"
+              name="check"
+              size="28rpx"
+              color="#fff"
+            />
+          </view>
+        </view>
+
+        <view wx:if="{{folders.length === 0 && !showCreate}}" class="cfp__empty">暂无分类，可先新建一个</view>
+      </scroll-view>
+
+      <view wx:if="{{!showCreate}}" class="cfp__create" hover-class="cfp__create--active" catchtap="onShowCreate">
+        <t-icon name="add" size="32rpx" color="#0052d9" />
+        <text>新建分类</text>
+      </view>
+
+      <view wx:else class="cfp__create-panel">
+        <input
+          class="cfp__input"
+          value="{{newFolderName}}"
+          placeholder="输入分类名称，如 JVM / 高频题"
+          maxlength="20"
+          focus="{{showCreate}}"
+          confirm-type="done"
+          bindinput="onNameInput"
+          bindconfirm="onCreateConfirm"
+        />
+        <view class="cfp__create-actions">
+          <view class="cfp__link" catchtap="onCancelCreate">取消</view>
+          <view class="cfp__link cfp__link--primary {{creating ? 'cfp__link--disabled' : ''}}" catchtap="onCreateConfirm">
+            {{creating ? '创建中' : '创建'}}
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <view class="cfp__footer">
+      <view
+        class="cfp__confirm {{creating ? 'cfp__confirm--disabled' : ''}}"
+        hover-class="cfp__confirm--active"
+        bindtap="onConfirm"
+      >
+        {{showCreate ? (mode === 'move' ? '创建并移动' : '创建并收藏') : confirmText}}
+      </view>
+    </view>
+  </view>
+</t-popup>

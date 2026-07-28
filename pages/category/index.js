@@ -7,12 +7,13 @@ import { decorateCategoryRows } from '~/utils/categoryDecorate';
 import { openPage } from '~/utils/router';
 
 const app = getApp();
+const RAIL_COLLAPSED_KEY = 'category_rail_collapsed';
 
 /**
  * 题库 Tab
  * - behaviors/scope：职业 / 全部 scope
  * - behaviors/ops：顶部与信息流运营位
- * - 本文件：一二级分类加载与切换
+ * - 本文件：一二级分类加载与切换、一级侧栏收缩
  */
 Page({
   behaviors: [categoryScopeBehavior, categoryOpsBehavior],
@@ -21,6 +22,8 @@ Page({
     primaryCategories: [],
     secondaryCategories: [],
     currentPrimaryId: null,
+    currentPrimaryName: '',
+    railCollapsed: false,
     navBarHeight: 90,
     loading: false,
     messageOffset: 100,
@@ -44,6 +47,7 @@ Page({
     this._secondaryRows = [];
     this._categoryFeedAds = [];
     this.calculateNavBarHeight();
+    this.restoreRailCollapsed();
     this.loadOpsSlots();
     this.initCategoryScope(options.scope).finally(() => this.loadPrimaryCategories());
   },
@@ -119,6 +123,7 @@ Page({
       this.setData({
         primaryCategories,
         currentPrimaryId,
+        currentPrimaryName: this.resolvePrimaryName(primaryCategories, currentPrimaryId),
       });
 
       if (currentPrimaryId) {
@@ -145,6 +150,7 @@ Page({
         secondaryCategories: [],
         secondaryDisplayList: [],
         currentPrimaryId: null,
+        currentPrimaryName: '',
         categoryLoading: false,
         secondaryTotal: 0,
         secondaryHasMore: false,
@@ -276,6 +282,93 @@ Page({
     });
   },
 
+  resolvePrimaryName(list, id) {
+    if (id == null || !Array.isArray(list)) {
+      return '';
+    }
+    const hit = list.find((item) => item.id == id);
+    return (hit && hit.name) || '';
+  },
+
+  restoreRailCollapsed() {
+    try {
+      const stored = wx.getStorageSync(RAIL_COLLAPSED_KEY);
+      if (stored === true || stored === '1' || stored === 1) {
+        this.setData({ railCollapsed: true });
+      }
+    } catch (error) {
+      // ignore storage read failure
+    }
+  },
+
+  persistRailCollapsed(collapsed) {
+    try {
+      wx.setStorageSync(RAIL_COLLAPSED_KEY, collapsed ? 1 : 0);
+    } catch (error) {
+      // ignore storage write failure
+    }
+  },
+
+  setRailCollapsed(collapsed) {
+    if (!!collapsed === !!this.data.railCollapsed) {
+      return;
+    }
+    this.setData({ railCollapsed: !!collapsed });
+    this.persistRailCollapsed(!!collapsed);
+  },
+
+  toggleRailCollapsed() {
+    this.setRailCollapsed(!this.data.railCollapsed);
+  },
+
+  expandRail() {
+    this.setRailCollapsed(false);
+  },
+
+  onLayoutTouchStart(e) {
+    const touch = e.touches && e.touches[0];
+    if (!touch) {
+      return;
+    }
+    this._swipe = {
+      x: touch.clientX,
+      y: touch.clientY,
+      t: Date.now(),
+    };
+  },
+
+  onLayoutTouchEnd(e) {
+    const start = this._swipe;
+    this._swipe = null;
+    if (!start) {
+      return;
+    }
+
+    const touch = e.changedTouches && e.changedTouches[0];
+    if (!touch) {
+      return;
+    }
+
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+    const elapsed = Date.now() - start.t;
+
+    // 仅识别明确的横向轻扫，避免和纵向滚动冲突
+    if (elapsed > 480 || absX < 56 || absX < absY * 1.6) {
+      return;
+    }
+
+    if (dx < 0 && !this.data.railCollapsed) {
+      this.setRailCollapsed(true);
+      return;
+    }
+    if (dx > 0 && this.data.railCollapsed) {
+      this.setRailCollapsed(false);
+    }
+  },
+
   async switchPrimaryCategory(e) {
     const raw = e.currentTarget.dataset.id;
     const categoryId = typeof raw === 'number' ? raw : parseInt(String(raw), 10);
@@ -285,6 +378,7 @@ Page({
 
     this.setData({
       currentPrimaryId: categoryId,
+      currentPrimaryName: this.resolvePrimaryName(this.data.primaryCategories, categoryId),
       secondaryCategories: [],
       secondaryDisplayList: [],
       secondaryPage: 1,

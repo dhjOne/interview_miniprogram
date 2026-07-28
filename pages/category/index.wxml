@@ -35,19 +35,52 @@
         bind:dismiss="onTopBannerDismiss"
       />
 
-      <view wx:if="{{primaryCategories.length}}" class="category-layout">
-        <scroll-view class="category-rail" scroll-y show-scrollbar="{{false}}">
-          <block wx:for="{{primaryCategories}}" wx:key="id">
-            <view
-              class="category-rail-item {{currentPrimaryId == item.id ? 'is-active' : ''}}"
-              bindtap="switchPrimaryCategory"
-              data-id="{{item.id}}"
-              hover-class="category-rail-item--hover"
-            >
-              <text class="category-rail-text">{{item.name}}</text>
-            </view>
-          </block>
-        </scroll-view>
+      <view
+        wx:if="{{primaryCategories.length}}"
+        class="category-layout {{railCollapsed ? 'is-collapsed' : ''}}"
+        bindtouchstart="onLayoutTouchStart"
+        bindtouchend="onLayoutTouchEnd"
+      >
+        <view class="category-rail-wrap">
+          <view
+            class="category-rail-toggle"
+            bindtap="toggleRailCollapsed"
+            hover-class="category-rail-toggle--hover"
+            aria-role="button"
+            aria-label="收起分类目录"
+          >
+            <t-icon name="chevron-left" size="28rpx" color="#64748b" />
+            <text class="category-rail-toggle__text">收起</text>
+          </view>
+          <scroll-view class="category-rail" scroll-y show-scrollbar="{{false}}">
+            <block wx:for="{{primaryCategories}}" wx:key="id">
+              <view
+                class="category-rail-item {{currentPrimaryId == item.id ? 'is-active' : ''}}"
+                bindtap="switchPrimaryCategory"
+                data-id="{{item.id}}"
+                hover-class="category-rail-item--hover"
+              >
+                <text class="category-rail-text">{{item.name}}</text>
+              </view>
+            </block>
+          </scroll-view>
+        </view>
+
+        <!-- 收缩后：左侧目录提示条 -->
+        <view
+          class="category-toc-handle"
+          bindtap="expandRail"
+          hover-class="category-toc-handle--hover"
+          aria-role="button"
+          aria-label="展开分类目录"
+        >
+          <view class="category-toc-handle__icon">
+            <t-icon name="view-list" size="28rpx" color="#0052d9" />
+          </view>
+          <text class="category-toc-handle__label">目录</text>
+          <view class="category-toc-handle__divider"></view>
+          <text class="category-toc-handle__current">{{currentPrimaryName || '分类'}}</text>
+        </view>
 
         <scroll-view
           class="category-main-scroll"
@@ -58,6 +91,26 @@
           show-scrollbar="{{false}}"
         >
           <view class="category-main">
+            <view
+              class="category-context"
+              bindtap="expandRail"
+              hover-class="category-context--hover"
+            >
+              <view class="category-context__left">
+                <view class="category-context__badge">
+                  <t-icon name="view-list" size="26rpx" color="#0052d9" />
+                </view>
+                <view class="category-context__copy">
+                  <text class="category-context__eyebrow">当前分类</text>
+                  <text class="category-context__name">{{currentPrimaryName || '未选择'}}</text>
+                </view>
+              </view>
+              <view class="category-context__action">
+                <text>切换</text>
+                <t-icon name="chevron-right" size="28rpx" color="#0052d9" />
+              </view>
+            </view>
+
             <view wx:if="{{secondaryDisplayList.length}}" class="secondary-list">
               <block wx:for="{{secondaryDisplayList}}" wx:key="_rowKey">
                 <ops-banner

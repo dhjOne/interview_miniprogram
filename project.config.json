@@ -94,7 +94,9 @@
       "outputPath": ""
     },
     "disableUseStrict": false,
-    "useCompilerPlugins": ["less"],
+    "useCompilerPlugins": [
+      "less"
+    ],
     "condition": false,
     "ignoreUploadUnusedFiles": true,
     "compileWorklet": false,

@@ -1,5 +1,12 @@
+@import '/variable.less';
+
 .memo-tab {
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - @tab-bar-height - constant(safe-area-inset-bottom));
+  height: calc(100vh - @tab-bar-height - env(safe-area-inset-bottom));
+  min-height: 0;
+  overflow: hidden;
   box-sizing: border-box;
   background: linear-gradient(180deg, #eaf1ff 0%, #f7f8fa 420rpx, #f7f8fa 100%);
 }
@@ -14,10 +21,18 @@
   pointer-events: none;
 }
 
+.memo-tab__scroll {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  height: 0;
+  min-height: 0;
+}
+
 .memo-tab__body {
   position: relative;
   z-index: 1;
-  padding: 12rpx 28rpx calc(140rpx + env(safe-area-inset-bottom));
+  padding: 12rpx 28rpx calc(48rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 

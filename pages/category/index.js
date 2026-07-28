@@ -8,6 +8,9 @@ import { openPage } from '~/utils/router';
 
 const app = getApp();
 const RAIL_COLLAPSED_KEY = 'category_rail_collapsed';
+const TOC_HANDLE_TOP_KEY = 'category_toc_handle_top';
+const TOC_HANDLE_DEFAULT_TOP = 50;
+const TOC_HANDLE_DRAG_THRESHOLD = 6;
 
 /**
  * 题库 Tab
@@ -24,8 +27,11 @@ Page({
     currentPrimaryId: null,
     currentPrimaryName: '',
     railCollapsed: false,
+    tocHandleTop: TOC_HANDLE_DEFAULT_TOP,
+    tocHandleDragging: false,
     navBarHeight: 90,
     loading: false,
+    refreshing: false,
     messageOffset: 100,
     categoryLoading: false,
     secondaryPage: 1,
@@ -48,13 +54,19 @@ Page({
     this._categoryFeedAds = [];
     this.calculateNavBarHeight();
     this.restoreRailCollapsed();
+    this.restoreTocHandleTop();
     this.loadOpsSlots();
     this.initCategoryScope(options.scope).finally(() => this.loadPrimaryCategories());
   },
 
-  async onPullDownRefresh() {
-    await Promise.all([this.refreshProfessionScope(false), this.loadOpsSlots()]);
-    return this.refreshCurrentData();
+  async onScrollRefresh() {
+    this.setData({ refreshing: true });
+    try {
+      await Promise.all([this.refreshProfessionScope(false), this.loadOpsSlots()]);
+      await this.refreshCurrentData();
+    } finally {
+      this.setData({ refreshing: false });
+    }
   },
 
   async onShow() {
@@ -315,6 +327,33 @@ Page({
     }
     this.setData({ railCollapsed: !!collapsed });
     this.persistRailCollapsed(!!collapsed);
+    if (collapsed) {
+      // 收起后预量布局，拖动更跟手
+      setTimeout(() => this.measureTocHandleBounds(), 320);
+    }
+  },
+
+  measureTocHandleBounds() {
+    wx.createSelectorQuery()
+      .in(this)
+      .select('.category-layout')
+      .boundingClientRect()
+      .select('.category-toc-handle')
+      .boundingClientRect()
+      .exec((res) => {
+        if (!res || !res[0] || !res[1] || !res[0].height) {
+          return;
+        }
+        const nextBounds = {
+          layoutTop: res[0].top,
+          layoutH: res[0].height,
+          handleH: res[1].height || 0,
+        };
+        this._tocBounds = nextBounds;
+        if (this._tocDrag) {
+          this._tocDrag.bounds = nextBounds;
+        }
+      });
   },
 
   toggleRailCollapsed() {
@@ -323,6 +362,109 @@ Page({
 
   expandRail() {
     this.setRailCollapsed(false);
+  },
+
+  clampTocHandleTop(top) {
+    const num = Number(top);
+    if (Number.isNaN(num)) {
+      return TOC_HANDLE_DEFAULT_TOP;
+    }
+    return Math.min(92, Math.max(8, Math.round(num * 10) / 10));
+  },
+
+  restoreTocHandleTop() {
+    try {
+      const stored = wx.getStorageSync(TOC_HANDLE_TOP_KEY);
+      if (stored === '' || stored == null) {
+        return;
+      }
+      this.setData({ tocHandleTop: this.clampTocHandleTop(stored) });
+    } catch (error) {
+      // ignore storage read failure
+    }
+  },
+
+  persistTocHandleTop(top) {
+    try {
+      wx.setStorageSync(TOC_HANDLE_TOP_KEY, this.clampTocHandleTop(top));
+    } catch (error) {
+      // ignore storage write failure
+    }
+  },
+
+  onTocHandleTouchStart(e) {
+    const touch = e.touches && e.touches[0];
+    if (!touch) {
+      return;
+    }
+
+    this._tocDrag = {
+      startY: touch.clientY,
+      startTop: this.data.tocHandleTop,
+      moved: false,
+      bounds: this._tocBounds || null,
+    };
+
+    // 每次按下刷新尺寸，避免高度变化后边界不准
+    this.measureTocHandleBounds();
+  },
+
+  onTocHandleTouchMove(e) {
+    const drag = this._tocDrag;
+    if (!drag) {
+      return;
+    }
+
+    const touch = e.touches && e.touches[0];
+    if (!touch) {
+      return;
+    }
+
+    const dy = touch.clientY - drag.startY;
+    if (Math.abs(dy) > TOC_HANDLE_DRAG_THRESHOLD) {
+      drag.moved = true;
+      if (!this.data.tocHandleDragging) {
+        this.setData({ tocHandleDragging: true });
+      }
+    }
+
+    const bounds = drag.bounds || this._tocBounds;
+    if (!bounds || !bounds.layoutH) {
+      return;
+    }
+
+    const halfH = Math.min(bounds.handleH / 2, bounds.layoutH / 2);
+    const startCenterY = bounds.layoutTop + (bounds.layoutH * drag.startTop) / 100;
+    let nextCenterY = startCenterY + dy;
+    const minY = bounds.layoutTop + halfH;
+    const maxY = bounds.layoutTop + bounds.layoutH - halfH;
+    nextCenterY = Math.min(maxY, Math.max(minY, nextCenterY));
+    const nextTop = this.clampTocHandleTop(((nextCenterY - bounds.layoutTop) / bounds.layoutH) * 100);
+
+    if (nextTop !== this.data.tocHandleTop) {
+      this.setData({ tocHandleTop: nextTop });
+    }
+  },
+
+  onTocHandleTouchEnd() {
+    const drag = this._tocDrag;
+    this._tocDrag = null;
+
+    if (this.data.tocHandleDragging) {
+      this.setData({ tocHandleDragging: false });
+    }
+
+    if (!drag) {
+      return;
+    }
+
+    // 未明显移动视为点击，展开一级目录
+    if (!drag.moved) {
+      this.expandRail();
+      return;
+    }
+
+    this.persistTocHandleTop(this.data.tocHandleTop);
   },
 
   onLayoutTouchStart(e) {

@@ -1,5 +1,7 @@
 {
   "navigationStyle": "custom",
+  "disableScroll": true,
+  "enablePullDownRefresh": false,
   "usingComponents": {
     "t-cell": "/miniprogram_npm/tdesign-miniprogram/cell/cell",
     "t-cell-group": "/miniprogram_npm/tdesign-miniprogram/cell-group/cell-group",

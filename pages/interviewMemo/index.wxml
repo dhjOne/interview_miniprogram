@@ -3,6 +3,17 @@
   <image class="memo-tab__nav-bg" src="/static/bg_navbar.png" mode="aspectFill" />
   <nav title-text="速记" />
 
+  <scroll-view
+    class="memo-tab__scroll"
+    scroll-y
+    enhanced
+    show-scrollbar="{{false}}"
+    refresher-enabled
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onScrollRefresh"
+    bindscrolltolower="onScrollToLower"
+    lower-threshold="120"
+  >
   <view class="memo-tab__body">
     <!-- 一句话速记 -->
     <view class="memo-compose">
@@ -202,4 +213,5 @@
       </view>
     </view>
   </view>
+  </scroll-view>
 </view>

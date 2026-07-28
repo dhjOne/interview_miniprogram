@@ -4,6 +4,15 @@
   <image class="my-page__nav-bg" src="/static/bg_navbar.png" mode="aspectFill" />
   <nav title-text="我的" />
 
+  <scroll-view
+    class="my-page__scroll"
+    scroll-y
+    enhanced
+    show-scrollbar="{{false}}"
+    refresher-enabled
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onScrollRefresh"
+  >
   <view class="my-page__body">
     <!-- 个人资料 + 创作中心入口 -->
     <t-cell-group theme="card" bordered="{{false}}" t-class="my-page__card-group">
@@ -230,4 +239,5 @@
       <text class="my-footer__copy">{{siteInfo.copyright}}</text>
     </view>
   </view>
+  </scroll-view>
 </view>

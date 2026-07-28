@@ -66,13 +66,17 @@
           </scroll-view>
         </view>
 
-        <!-- 收缩后：左侧目录提示条 -->
+        <!-- 收缩后：左侧目录提示条（可上下拖动，点击展开） -->
         <view
-          class="category-toc-handle"
-          bindtap="expandRail"
+          class="category-toc-handle {{tocHandleDragging ? 'is-dragging' : ''}}"
+          style="top: {{tocHandleTop}}%;"
+          catchtouchstart="onTocHandleTouchStart"
+          catchtouchmove="onTocHandleTouchMove"
+          catchtouchend="onTocHandleTouchEnd"
+          catchtouchcancel="onTocHandleTouchEnd"
           hover-class="category-toc-handle--hover"
           aria-role="button"
-          aria-label="展开分类目录"
+          aria-label="展开分类目录，可上下拖动"
         >
           <view class="category-toc-handle__icon">
             <t-icon name="view-list" size="28rpx" color="#0052d9" />
@@ -85,7 +89,11 @@
         <scroll-view
           class="category-main-scroll"
           scroll-y
+          enhanced
           enable-flex
+          refresher-enabled
+          refresher-triggered="{{refreshing}}"
+          bindrefresherrefresh="onScrollRefresh"
           bindscrolltolower="loadMoreSecondaryCategories"
           lower-threshold="120"
           show-scrollbar="{{false}}"

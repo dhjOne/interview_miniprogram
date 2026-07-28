@@ -53,7 +53,16 @@
       </picker>
     </view> -->
 
-    <view wx:if="{{!messages.length}}" class="mknow-welcome">
+    <scroll-view
+      wx:if="{{!messages.length}}"
+      class="mknow-welcome"
+      scroll-y
+      enhanced
+      show-scrollbar="{{false}}"
+      refresher-enabled
+      refresher-triggered="{{refreshing}}"
+      bindrefresherrefresh="onScrollRefresh"
+    >
       <view class="mknow-brand">
         <view class="mknow-brand__glow" aria-hidden="true" />
         <view class="mknow-brand__badge">
@@ -87,15 +96,19 @@
         <t-icon name="info-circle" size="28rpx" />
         <text>当前模型：{{selectedModelName}} · 登录后同步历史，可整理为 Markdown 发布到文档</text>
       </view>
-    </view>
+    </scroll-view>
 
     <scroll-view
       wx:else
       class="mknow-chat"
       scroll-y
+      enhanced
       scroll-into-view="{{anchor}}"
       scroll-with-animation
       show-scrollbar="{{false}}"
+      refresher-enabled
+      refresher-triggered="{{refreshing}}"
+      bindrefresherrefresh="onScrollRefresh"
     >
       <view class="mknow-messages">
         <block wx:for="{{messages}}" wx:key="id">

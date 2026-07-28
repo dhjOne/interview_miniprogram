@@ -11,7 +11,10 @@
 .category-page {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - @tab-bar-height);
+  height: calc(100vh - @tab-bar-height - constant(safe-area-inset-bottom));
+  height: calc(100vh - @tab-bar-height - env(safe-area-inset-bottom));
+  min-height: 0;
+  overflow: hidden;
   box-sizing: border-box;
   background: var(--td-bg-color-page, #f5f5f5);
   --td-brand-color: @cat-brand;
@@ -131,11 +134,21 @@
       pointer-events: auto;
     }
 
+    .category-main-scroll {
+      flex-direction: column;
+      background: rgba(248, 250, 252, 0.72);
+    }
+
     .category-main {
-      padding-left: 72rpx;
+      flex: 1;
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
     }
 
     .category-context {
+      flex-shrink: 0;
       max-height: 140rpx;
       opacity: 1;
       margin-bottom: 16rpx;
@@ -145,8 +158,20 @@
       pointer-events: auto;
     }
 
-    .category-main-scroll {
-      background: rgba(248, 250, 252, 0.72);
+    /* 二级列表在收缩后撑满剩余可视区域，目录悬浮条样式保持不变 */
+    .secondary-list {
+      flex: 1 0 auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .secondary-list .list-footer {
+      margin-top: auto;
+    }
+
+    .category-inline-loading,
+    .empty-state:not(.empty-state--page) {
+      flex: 1 0 auto;
     }
   }
 }
@@ -234,7 +259,7 @@
   font-weight: 600;
 }
 
-/* 收缩后：左侧竖向目录提示 */
+/* 收缩后：左侧竖向目录提示（可上下拖动） */
 .category-toc-handle {
   position: absolute;
   left: 0;
@@ -255,10 +280,16 @@
   opacity: 0;
   transform: translateY(-50%) translateX(-12rpx);
   pointer-events: none;
-  will-change: transform, opacity;
+  will-change: transform, opacity, top;
   transition:
     opacity 0.24s ease 0.06s,
     transform 0.3s cubic-bezier(0.22, 1, 0.36, 1) 0.06s;
+  touch-action: none;
+
+  &.is-dragging {
+    transition: none;
+    box-shadow: 8rpx 12rpx 32rpx rgba(15, 23, 42, 0.16);
+  }
 
   &--hover {
     background: #fff;

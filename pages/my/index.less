@@ -1,8 +1,14 @@
+@import '/variable.less';
+
 /* 我的：页背景 + TDesign 卡片式分区 */
 .my-page {
-  min-height: calc(100vh - 56px);
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - @tab-bar-height - constant(safe-area-inset-bottom));
+  height: calc(100vh - @tab-bar-height - env(safe-area-inset-bottom));
+  min-height: 0;
+  overflow: hidden;
   box-sizing: border-box;
-  padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
   background: var(--td-bg-color-page, #f5f5f5);
 
   --td-navbar-bg-color: transparent;
@@ -17,10 +23,20 @@
     pointer-events: none;
   }
 
+  &__scroll {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    height: 0;
+    min-height: 0;
+  }
+
   &__body {
     position: relative;
     z-index: 1;
     padding-top: 8rpx;
+    padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
+    box-sizing: border-box;
   }
 
   /* 与 TDesign cell-group--card 对齐的外边距与圆角 */

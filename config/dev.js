@@ -1,7 +1,8 @@
 // config/dev.js
 export default {
   env: 'development',
-  baseUrl: 'http://localhost:9991',
+  // baseUrl: 'http://localhost:9991',
+  baseUrl: 'https://favorite-swim-chambers-role.trycloudflare.com',
   apiPrefix: '/api',
   successCode: '0000',
   timeout: 10000,

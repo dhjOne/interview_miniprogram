@@ -13,6 +13,7 @@
   height: calc(100vh - @tab-bar-height - constant(safe-area-inset-bottom));
   height: calc(100vh - @tab-bar-height - env(safe-area-inset-bottom));
   min-height: 0;
+  overflow: hidden;
   box-sizing: border-box;
   background: var(--td-bg-color-page, #f5f5f5);
   --td-navbar-bg-color: transparent;
@@ -322,9 +323,9 @@
 
 .mknow-welcome {
   flex: 1;
+  height: 0;
   min-height: 0;
   padding-top: 56rpx;
-  overflow: auto;
   box-sizing: border-box;
 
   &__section {

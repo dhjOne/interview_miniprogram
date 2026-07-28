@@ -35,6 +35,7 @@ Page({
     topBanner: null,
     totalCount: 0,
     loading: false,
+    refreshing: false,
     hasMore: true,
     page: 1,
     pageSize: 20,
@@ -93,8 +94,13 @@ Page({
     }
   },
 
-  onPullDownRefresh() {
-    return Promise.all([this.loadOpsSlots(), this.loadQuestions(true)]);
+  async onScrollRefresh() {
+    this.setData({ refreshing: true });
+    try {
+      await Promise.all([this.loadOpsSlots(), this.loadQuestions(true)]);
+    } finally {
+      this.setData({ refreshing: false });
+    }
   },
 
   onPageScroll(e) {

@@ -89,6 +89,7 @@ Page({
     memoList: [],
     totalCount: 0,
     loading: false,
+    refreshing: false,
     hasMore: true,
     page: 1,
     pageSize: 20,
@@ -129,15 +130,18 @@ Page({
     }
   },
 
-  onPullDownRefresh() {
-    if (!hasLoginToken()) {
-      wx.stopPullDownRefresh();
-      return Promise.resolve();
+  async onScrollRefresh() {
+    this.setData({ refreshing: true });
+    try {
+      if (hasLoginToken()) {
+        await this.refreshAll();
+      }
+    } finally {
+      this.setData({ refreshing: false });
     }
-    return this.refreshAll();
   },
 
-  onReachBottom() {
+  onScrollToLower() {
     this.loadMore();
   },
 

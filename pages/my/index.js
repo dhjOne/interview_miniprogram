@@ -23,6 +23,7 @@ Page({
 
   data: {
     isLoad: false,
+    refreshing: false,
     historyCount: 0,
     notifyUnread: 0,
     carousel: getDefaultMyCarousel(),
@@ -119,8 +120,13 @@ Page({
     return this.refreshPersonalCenter();
   },
 
-  async onPullDownRefresh() {
-    return this.refreshPersonalCenter();
+  async onScrollRefresh() {
+    this.setData({ refreshing: true });
+    try {
+      await this.refreshPersonalCenter();
+    } finally {
+      this.setData({ refreshing: false });
+    }
   },
 
   async refreshPersonalCenter() {

@@ -1,6 +1,7 @@
 {
   "navigationStyle": "custom",
-  "onReachBottomDistance": 50,
+  "disableScroll": true,
+  "enablePullDownRefresh": false,
   "usingComponents": {
     "t-swiper": "/miniprogram_npm/tdesign-miniprogram/swiper/swiper",
     "t-swiper-nav": "/miniprogram_npm/tdesign-miniprogram/swiper-nav/swiper-nav",

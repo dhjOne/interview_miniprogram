@@ -70,6 +70,9 @@
       show-scrollbar="{{false}}"
       scroll-into-view="{{scrollIntoView}}"
       scroll-with-animation
+      refresher-enabled
+      refresher-triggered="{{refreshing}}"
+      bindrefresherrefresh="onScrollRefresh"
       bindscroll="onPageScroll"
       bindscrolltolower="loadMore"
       bindtouchstart="onSortSwipeStart"

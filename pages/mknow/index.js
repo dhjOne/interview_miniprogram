@@ -43,6 +43,7 @@ Page({
     aiQuota: EMPTY_QUOTA,
     showQuotaDetail: false,
     showQuotaExhaustedDialog: false,
+    refreshing: false,
   },
 
   onLoad() {
@@ -69,13 +70,18 @@ Page({
     this._unbindPointsChanged();
   },
 
-  onPullDownRefresh() {
-    return Promise.all([
-      this.initModelSelector(),
-      this.loadAiQuota(),
-      this.refreshConversationState(),
-      this.refreshHistoryList({ fetchRemote: true }),
-    ]);
+  async onScrollRefresh() {
+    this.setData({ refreshing: true });
+    try {
+      await Promise.all([
+        this.initModelSelector(),
+        this.loadAiQuota(),
+        this.refreshConversationState(),
+        this.refreshHistoryList({ fetchRemote: true }),
+      ]);
+    } finally {
+      this.setData({ refreshing: false });
+    }
   },
 
   _bindPointsChanged() {

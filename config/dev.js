@@ -1,8 +1,8 @@
 // config/dev.js
 export default {
   env: 'development',
-  // baseUrl: 'http://localhost:9991',
-  baseUrl: 'https://nelson-perceived-poker-stones.trycloudflare.com',
+  baseUrl: 'http://localhost:9991',
+  // baseUrl: 'https://nelson-perceived-poker-stones.trycloudflare.com',
   apiPrefix: '/api',
   successCode: '0000',
   timeout: 10000,

@@ -113,6 +113,28 @@
       </t-grid>
     </t-cell-group>
 
+    <!-- 移动管理台：仅有后台权限的账号可见 -->
+    <view
+      wx:if="{{mobileAdminVisible}}"
+      class="my-page__card my-page__card--admin"
+      hover-class="my-admin-entry--active"
+      bindtap="onMobileAdminTap"
+    >
+      <view class="my-admin-entry">
+        <view class="my-admin-entry__icon">
+          <t-icon name="setting" size="44rpx" />
+        </view>
+        <view class="my-admin-entry__body">
+          <view class="my-admin-entry__title-row">
+            <text class="my-admin-entry__title">移动管理台</text>
+            <t-badge count="{{mobileAdminPendingCount}}" max-count="99" wx:if="{{mobileAdminPendingCount > 0}}" />
+          </view>
+          <text class="my-admin-entry__desc">{{mobileAdminModuleText}}</text>
+        </view>
+        <t-icon name="chevron-right" size="34rpx" class="my-admin-entry__arrow" />
+      </view>
+    </view>
+
     <!-- 运营轮播 -->
     <view class="my-page__card my-page__card--media">
       <swiper

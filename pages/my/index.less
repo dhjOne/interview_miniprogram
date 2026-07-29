@@ -223,6 +223,68 @@
   }
 }
 
+.my-page__card--admin {
+  padding: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(255, 255, 255, 0.32), transparent 30%),
+    linear-gradient(135deg, #0f5cff 0%, #645bff 52%, #8b5cf6 100%);
+  box-shadow: 0 16rpx 40rpx rgba(37, 99, 235, 0.18);
+}
+
+.my-admin-entry {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 26rpx 28rpx;
+  color: #fff;
+
+  &--active {
+    opacity: 0.88;
+  }
+
+  &__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 76rpx;
+    height: 76rpx;
+    flex-shrink: 0;
+    border-radius: 24rpx;
+    background: rgba(255, 255, 255, 0.18);
+  }
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__title-row {
+    display: flex;
+    align-items: center;
+    gap: 14rpx;
+  }
+
+  &__title {
+    font-size: 31rpx;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+
+  &__desc {
+    display: block;
+    margin-top: 8rpx;
+    font-size: 24rpx;
+    color: rgba(255, 255, 255, 0.82);
+    line-height: 1.4;
+  }
+
+  &__arrow {
+    flex-shrink: 0;
+    color: rgba(255, 255, 255, 0.86) !important;
+  }
+}
+
 /* 社交数据条 */
 .my-stats {
   display: flex;

@@ -25,3 +25,4 @@ export { creatorInsightsApi } from './request/api_creator_insights';
 export { aiApi } from './request/api_ai';
 export { interviewMemoApi } from './request/api_interview_memo';
 export { collectFolderApi } from './request/api_collect_folder';
+export { mobileAdminApi } from './request/api_mobile_admin';

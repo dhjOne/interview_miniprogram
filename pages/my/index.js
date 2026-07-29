@@ -4,7 +4,7 @@ import { SOCIAL_STAT_ITEMS, fetchSocialSummary, formatStatCount } from '~/utils/
 import { fetchPointAccount } from '~/utils/points';
 import { fetchPersonalInfo, syncCachedUserInfo } from '~/utils/userProfile';
 import { fetchCreatorPreview } from '~/utils/creatorCenter';
-import { socialApi, handleApiError } from '~/api/index';
+import { socialApi, handleApiError, mobileAdminApi } from '~/api/index';
 import { fetchSiteInfo, getDefaultSiteInfo, isCallablePhone } from '~/utils/site';
 import {
   bannerNeedsLogin,
@@ -68,6 +68,9 @@ Page({
     ],
     siteInfo: getDefaultSiteInfo(),
     personalInfo: {},
+    mobileAdminVisible: false,
+    mobileAdminPendingCount: 0,
+    mobileAdminModuleText: '内容与资料审批',
     socialStats: SOCIAL_STAT_ITEMS.map((item) => ({
       ...item,
       count: 0,
@@ -175,6 +178,7 @@ Page({
         this.loadSocialStats(),
         this.loadCreatorPreview(),
         this.loadNotificationPreview(),
+        this.loadMobileAdminOverview(),
         publicPromise,
       ]);
     } else {
@@ -184,6 +188,8 @@ Page({
         socialStats: this._buildSocialStatsDisplay(null),
         creatorPreviewText: '登录后管理作品与数据',
         notifyUnread: 0,
+        mobileAdminVisible: false,
+        mobileAdminPendingCount: 0,
       });
       await publicPromise;
     }
@@ -236,6 +242,36 @@ Page({
       console.warn('[my] notification unread failed', e);
       handleApiError(e, { showToast: false, fallbackMessage: '未读消息加载失败' });
       this.setData({ notifyUnread: 0 });
+    }
+  },
+
+  async loadMobileAdminOverview() {
+    try {
+      const res = await mobileAdminApi.getOverview();
+      const overview = res.data || {};
+      if (!overview.hasAccess) {
+        this.setData({ mobileAdminVisible: false, mobileAdminPendingCount: 0 });
+        return;
+      }
+      const modules = ['questions', 'profiles', 'categories']
+        .map((key) => ({ key, ...(overview[key] || {}) }))
+        .filter((item) => item.visible);
+      const pendingCount = modules.reduce((sum, item) => sum + (Number(item.pendingCount) || 0), 0);
+      const moduleNameMap = {
+        questions: '内容审核',
+        profiles: '资料审核',
+        categories: '分类建议',
+      };
+      const moduleText = modules.map((item) => moduleNameMap[item.key]).filter(Boolean).join(' · ');
+      this.setData({
+        mobileAdminVisible: true,
+        mobileAdminPendingCount: pendingCount,
+        mobileAdminModuleText: moduleText || '移动管理台',
+      });
+    } catch (e) {
+      console.warn('[my] mobile admin overview failed', e);
+      this.setData({ mobileAdminVisible: false, mobileAdminPendingCount: 0 });
+      handleApiError(e, { showToast: false, fallbackMessage: '移动管理台权限加载失败' });
     }
   },
 
@@ -346,6 +382,10 @@ Page({
     }
 
     this.onShowToast('#t-toast', item.name || '敬请期待');
+  },
+
+  onMobileAdminTap() {
+    app.navigateToLogin({ url: '/pages/mobileAdmin/index' });
   },
 
   /** 常用服务：浏览历史免登录；其他个人数据需登录 */

@@ -1,0 +1,174 @@
+<view class="mobile-admin">
+  <image class="mobile-admin__bg" src="/static/bg_navbar.png" mode="aspectFill" />
+  <nav title-text="移动管理台" />
+
+  <scroll-view
+    class="mobile-admin__scroll"
+    scroll-y
+    enhanced
+    show-scrollbar="{{false}}"
+    bindscrolltolower="onListLower"
+  >
+    <view class="mobile-admin__body">
+      <view class="admin-hero">
+        <view class="admin-hero__text">
+          <text class="admin-hero__eyebrow">Admin Console</text>
+          <text class="admin-hero__title">随时处理待办审批</text>
+          <text class="admin-hero__desc">仅展示你有权限操作的模块，所有操作仍由后端权限校验。</text>
+        </view>
+        <view class="admin-hero__badge">
+          <text class="admin-hero__num">{{total}}</text>
+          <text class="admin-hero__label">当前列表</text>
+        </view>
+      </view>
+
+      <block wx:if="{{loading}}">
+        <view class="admin-loading">
+          <t-loading theme="spinner" size="48rpx" text="加载管理权限..." />
+        </view>
+      </block>
+
+      <block wx:elif="{{!overview.hasAccess}}">
+        <view class="admin-empty-card">
+          <t-empty description="当前账号暂无移动管理权限" />
+        </view>
+      </block>
+
+      <block wx:else>
+        <view class="admin-module-row">
+          <view
+            wx:for="{{modules}}"
+            wx:key="key"
+            class="admin-module {{activeModule === item.key ? 'admin-module--active' : ''}}"
+            data-key="{{item.key}}"
+            bindtap="onModuleTap"
+          >
+            <view class="admin-module__top">
+              <view class="admin-module__icon">
+                <t-icon name="{{item.icon}}" size="34rpx" />
+              </view>
+              <text class="admin-module__count">{{item.pendingCount}}</text>
+            </view>
+            <text class="admin-module__title">{{item.title}}</text>
+            <text class="admin-module__desc">{{item.desc}}</text>
+          </view>
+        </view>
+
+        <view class="admin-list-head">
+          <text class="admin-list-head__title">{{activeTitle}}</text>
+          <text class="admin-list-head__desc">待处理 {{total}} 条</text>
+        </view>
+
+        <view wx:if="{{rows.length === 0 && !listLoading}}" class="admin-empty-card">
+          <t-empty description="{{emptyText}}" />
+        </view>
+
+        <block wx:if="{{activeModule === 'questions'}}">
+          <view wx:for="{{rows}}" wx:key="id" class="admin-card">
+            <view class="admin-card__head">
+              <view class="admin-card__main">
+                <text class="admin-card__title">{{item.title}}</text>
+                <text class="admin-card__meta">{{item.metaText}}</text>
+              </view>
+              <t-tag theme="warning" variant="light" size="small">{{item.statusText}}</t-tag>
+            </view>
+            <text class="admin-card__content">{{item.contentPreview}}</text>
+            <view class="admin-card__stats">
+              <text>浏览 {{item.viewCount || 0}}</text>
+              <text>点赞 {{item.likeCount || 0}}</text>
+              <text>评论 {{item.commentCount || 0}}</text>
+            </view>
+            <view wx:if="{{activeModuleInfo.canApprove || activeModuleInfo.canReject}}" class="admin-card__actions">
+              <t-button
+                wx:if="{{activeModuleInfo.canReject}}"
+                theme="danger"
+                variant="outline"
+                size="small"
+                data-row="{{item}}"
+                bindtap="onRejectQuestion"
+              >
+                驳回
+              </t-button>
+              <t-button wx:if="{{activeModuleInfo.canApprove}}" theme="success" size="small" data-row="{{item}}" bindtap="onApproveQuestion">
+                通过
+              </t-button>
+            </view>
+          </view>
+        </block>
+
+        <block wx:elif="{{activeModule === 'profiles'}}">
+          <view wx:for="{{rows}}" wx:key="userId" class="admin-card admin-card--profile">
+            <view class="admin-card__head">
+              <view class="profile-user">
+                <t-avatar image="{{item.avatar || '/static/avatar1.png'}}" size="96rpx" />
+                <view class="profile-user__body">
+                  <text class="admin-card__title">{{item.nameText}}</text>
+                  <text class="admin-card__meta">ID: {{item.userId}}</text>
+                </view>
+              </view>
+              <t-tag theme="warning" variant="light" size="small">待审核</t-tag>
+            </view>
+            <text class="admin-card__content">{{item.bioText}}</text>
+            <view class="admin-card__stats">
+              <text>{{item.statsText}}</text>
+            </view>
+            <scroll-view wx:if="{{item.photos && item.photos.length}}" class="profile-photos" scroll-x>
+              <image
+                wx:for="{{item.photos}}"
+                wx:for-item="photo"
+                wx:key="*this"
+                src="{{photo}}"
+                mode="aspectFill"
+                class="profile-photos__item"
+              />
+            </scroll-view>
+            <view
+              wx:if="{{activeModuleInfo.canApprove || activeModuleInfo.canReject || activeModuleInfo.canReset}}"
+              class="admin-card__actions admin-card__actions--three"
+            >
+              <t-button wx:if="{{activeModuleInfo.canReset}}" theme="default" variant="outline" size="small" data-row="{{item}}" bindtap="onResetProfile">
+                重置
+              </t-button>
+              <t-button wx:if="{{activeModuleInfo.canReject}}" theme="danger" variant="outline" size="small" data-row="{{item}}" bindtap="onRejectProfile">
+                驳回
+              </t-button>
+              <t-button wx:if="{{activeModuleInfo.canApprove}}" theme="success" size="small" data-row="{{item}}" bindtap="onApproveProfile">
+                通过
+              </t-button>
+            </view>
+          </view>
+        </block>
+
+        <block wx:else>
+          <view wx:for="{{rows}}" wx:key="id" class="admin-card">
+            <view class="admin-card__head">
+              <view class="admin-card__main">
+                <text class="admin-card__title">{{item.suggestedName}}</text>
+                <text class="admin-card__meta">{{item.submitText}}</text>
+              </view>
+              <t-tag theme="primary" variant="light" size="small">待处理</t-tag>
+            </view>
+            <text class="admin-card__content">{{item.reasonText}}</text>
+            <view class="admin-card__stats">
+              <text>关联题目 #{{item.questionId || '-'}}</text>
+              <text>父级 #{{item.parentId || 0}}</text>
+            </view>
+            <view wx:if="{{activeModuleInfo.canApprove || activeModuleInfo.canReject}}" class="admin-card__actions">
+              <t-button wx:if="{{activeModuleInfo.canReject}}" theme="danger" variant="outline" size="small" data-row="{{item}}" bindtap="onRejectCategory">
+                驳回
+              </t-button>
+              <t-button wx:if="{{activeModuleInfo.canApprove}}" theme="success" size="small" data-row="{{item}}" bindtap="onAcceptCategory">
+                采纳
+              </t-button>
+            </view>
+          </view>
+        </block>
+
+        <view wx:if="{{listLoading}}" class="admin-loading admin-loading--list">
+          <t-loading theme="spinner" size="40rpx" text="加载中..." />
+        </view>
+        <view wx:if="{{!hasMore && rows.length}}" class="admin-list-end">没有更多了</view>
+      </block>
+    </view>
+  </scroll-view>
+</view>

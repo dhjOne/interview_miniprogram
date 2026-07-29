@@ -5,6 +5,7 @@
     "pages/interviewMemo/index",
     "pages/mknow/index",
     "pages/my/index",
+    "pages/mobileAdmin/index",
     "pages/agreement/agreement",
     "pages/interviewMemo/edit/index"
   ],

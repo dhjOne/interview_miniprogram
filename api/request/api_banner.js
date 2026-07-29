@@ -6,7 +6,12 @@ import http from '../api_request';
  */
 export const bannerApi = {
   listByPosition: (position = 'MY_CAROUSEL') =>
-    http.get('/repository/banners', { position }, {
-      showLoading: false
-    })
+    http.get(
+      '/repository/banners',
+      { position },
+      {
+        showLoading: false,
+        skipEnsureSession: true,
+      },
+    ),
 };

@@ -1,4 +1,5 @@
 import { siteApi } from '~/api/index';
+import { getPersistedTtlCache, setPersistedTtlCache } from '~/utils/ttlCache';
 
 const DEFAULT_SITE_INFO = {
   productName: '面试胶囊',
@@ -6,8 +7,12 @@ const DEFAULT_SITE_INFO = {
   phone: '400-xxx-xxxx',
   email: 'service@yourcompany.com',
   icp: '京ICP备xxxxxxxx号',
-  copyright: '© 2026 面试胶囊'
+  copyright: '© 2026 面试胶囊',
 };
+
+const SITE_TTL_MS = 30 * 60 * 1000;
+const SITE_CACHE_KEY = 'site:info';
+const SITE_STORAGE_KEY = 'site_info_cache';
 
 function pickPayload(res) {
   if (!res || typeof res !== 'object') return null;
@@ -29,15 +34,22 @@ export function normalizeSiteInfo(raw) {
     phone: source.phone || source.servicePhone || DEFAULT_SITE_INFO.phone,
     email: source.email || source.serviceEmail || DEFAULT_SITE_INFO.email,
     icp: source.icp || source.icpNo || DEFAULT_SITE_INFO.icp,
-    copyright: source.copyright || DEFAULT_SITE_INFO.copyright
+    copyright: source.copyright || DEFAULT_SITE_INFO.copyright,
   };
 }
 
-/** 拉取站点页脚信息；失败回落本地默认 */
+/** 拉取站点页脚信息；失败回落本地默认（带 TTL 缓存） */
 export async function fetchSiteInfo() {
+  const cached = getPersistedTtlCache(SITE_CACHE_KEY, SITE_STORAGE_KEY);
+  if (cached && typeof cached === 'object') {
+    return { ...cached };
+  }
+
   try {
     const res = await siteApi.getSiteInfo();
-    return normalizeSiteInfo(pickPayload(res));
+    const info = normalizeSiteInfo(pickPayload(res));
+    setPersistedTtlCache(SITE_CACHE_KEY, info, SITE_TTL_MS, SITE_STORAGE_KEY);
+    return info;
   } catch (e) {
     console.warn('[site] fetch site info failed', e);
     return getDefaultSiteInfo();

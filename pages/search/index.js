@@ -1,8 +1,11 @@
 import { searchApi, unwrapData, handleApiError } from '~/api/index';
 import { openPage } from '~/utils/router';
+import { getTtlCache, setTtlCache } from '~/utils/ttlCache';
 
 const LOCAL_HISTORY_KEY = 'mini_search_history';
 const MAX_LOCAL_HISTORY = 20;
+const POPULAR_CACHE_KEY = 'search:popular';
+const POPULAR_TTL_MS = 10 * 60 * 1000;
 
 function isLoggedIn() {
   try {
@@ -47,24 +50,20 @@ Page({
     dialog: {
       title: '确认删除当前历史记录',
       showCancelButton: true,
-      message: ''
+      message: '',
     },
-    dialogShow: false
+    dialogShow: false,
   },
 
   deleteType: 0,
   deleteIndex: '',
 
   onShow() {
-    this.queryHistory();
-    this.queryPopular();
+    Promise.all([this.queryHistory(), this.queryPopular()]);
   },
 
   onPullDownRefresh() {
-    return Promise.all([
-      this.queryHistory(),
-      this.queryPopular()
-    ]);
+    return Promise.all([this.queryHistory(), this.queryPopular(true)]);
   },
 
   async queryHistory() {
@@ -83,16 +82,23 @@ Page({
     const historyWords = readLocalHistory();
     this.setData({
       historyWords,
-      historyItems: historyWords.map((keyword, index) => ({ id: index, keyword }))
+      historyItems: historyWords.map((keyword, index) => ({ id: index, keyword })),
     });
   },
 
-  async queryPopular() {
+  async queryPopular(force = false) {
+    if (!force) {
+      const cached = getTtlCache(POPULAR_CACHE_KEY);
+      if (Array.isArray(cached)) {
+        this.setData({ popularWords: cached });
+        return;
+      }
+    }
     try {
       const data = unwrapData(await searchApi.getPopular()) || {};
-      this.setData({
-        popularWords: data.popularWords || []
-      });
+      const popularWords = data.popularWords || [];
+      setTtlCache(POPULAR_CACHE_KEY, popularWords, POPULAR_TTL_MS);
+      this.setData({ popularWords });
     } catch (error) {
       console.warn('[search] 读取热门搜索失败', error);
     }
@@ -115,7 +121,7 @@ Page({
     const historyWords = upsertLocalHistory(value);
     this.setData({
       historyWords,
-      historyItems: historyWords.map((item, index) => ({ id: index, keyword: item }))
+      historyItems: historyWords.map((item, index) => ({ id: index, keyword: item })),
     });
   },
 
@@ -123,7 +129,7 @@ Page({
     const value = (keyword || '').trim();
     if (!value) return;
     openPage({
-      url: `/pages/search/result/index?keyword=${encodeURIComponent(value)}`
+      url: `/pages/search/result/index?keyword=${encodeURIComponent(value)}`,
     });
   },
 
@@ -190,9 +196,9 @@ Page({
     this.setData({
       dialog: {
         ...dialog,
-        message: '确认删除所有历史记录'
+        message: '确认删除所有历史记录',
       },
-      dialogShow: true
+      dialogShow: true,
     });
   },
 
@@ -204,9 +210,9 @@ Page({
     this.setData({
       dialog: {
         ...dialog,
-        message: '确认删除当前历史记录'
+        message: '确认删除当前历史记录',
       },
-      dialogShow: true
+      dialogShow: true,
     });
   },
 
@@ -233,5 +239,5 @@ Page({
   actionHandle() {
     this.setData({ searchValue: '' });
     openPage({ url: '/pages/category/index' });
-  }
+  },
 });

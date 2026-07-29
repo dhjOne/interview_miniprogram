@@ -16,6 +16,8 @@ import { openPage } from '~/utils/router';
 import { AppEvents } from '~/utils/eventBus';
 
 const NOTIFY_URL = '/pages/ucenter/notifications/index';
+/** 「我的」Tab 短缓存：切回来 60s 内不重复打接口（下拉刷新强制） */
+const MY_REFRESH_TTL_MS = 60 * 1000;
 
 const app = getApp();
 Page({
@@ -102,7 +104,10 @@ Page({
   },
 
   onLoad() {
+    this._lastRefreshAt = 0;
+    this._lastRefreshToken = '';
     this._onPointsChanged = () => {
+      this._lastRefreshAt = 0;
       if (wx.getStorageSync('access_token')) {
         this.loadSocialStats();
       }
@@ -117,45 +122,56 @@ Page({
   },
 
   async onShow() {
-    return this.refreshPersonalCenter();
+    return this.refreshPersonalCenter(false);
   },
 
   async onScrollRefresh() {
     this.setData({ refreshing: true });
     try {
-      await this.refreshPersonalCenter();
+      await this.refreshPersonalCenter(true);
     } finally {
       this.setData({ refreshing: false });
     }
   },
 
-  async refreshPersonalCenter() {
+  async refreshPersonalCenter(force = false) {
     const historyCount = getQuestionBrowseHistoryCount();
     this.setData({ historyCount });
+
+    const Token = wx.getStorageSync('access_token') || '';
+    const now = Date.now();
+    if (
+      !force &&
+      this._lastRefreshAt &&
+      now - this._lastRefreshAt < MY_REFRESH_TTL_MS &&
+      this._lastRefreshToken === Token
+    ) {
+      return;
+    }
 
     // 站点页脚、运营位不依赖登录，与个人中心并行拉取
     const publicPromise = Promise.all([this.loadSiteInfo(), this.loadCarousel()]);
 
-    const Token = wx.getStorageSync('access_token');
     if (Token) {
-      try {
-        const personalInfo = await this.getPersonalInfo();
-        this.setData({
-          isLoad: true,
-          personalInfo,
-        });
-      } catch (e) {
-        const cached = app.getUserInfo() || {};
-        this.setData({
-          isLoad: true,
-          personalInfo: cached,
-        });
-        handleApiError(e, {
-          showToast: !cached || !Object.keys(cached).length,
-          fallbackMessage: '加载个人信息失败',
-        });
+      const cached = app.getUserInfo() || {};
+      if (cached && Object.keys(cached).length) {
+        this.setData({ isLoad: true, personalInfo: cached });
       }
+
       await Promise.all([
+        this.getPersonalInfo()
+          .then((personalInfo) => {
+            this.setData({ isLoad: true, personalInfo });
+          })
+          .catch((e) => {
+            if (!cached || !Object.keys(cached).length) {
+              this.setData({ isLoad: true, personalInfo: {} });
+            }
+            handleApiError(e, {
+              showToast: !cached || !Object.keys(cached).length,
+              fallbackMessage: '加载个人信息失败',
+            });
+          }),
         this.loadSocialStats(),
         this.loadCreatorPreview(),
         this.loadNotificationPreview(),
@@ -171,6 +187,9 @@ Page({
       });
       await publicPromise;
     }
+
+    this._lastRefreshAt = Date.now();
+    this._lastRefreshToken = Token;
   },
 
   async loadSiteInfo() {

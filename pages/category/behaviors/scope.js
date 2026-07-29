@@ -23,10 +23,6 @@ const categoryScopeBehavior = Behavior({
   },
 
   methods: {
-    async initCategoryScope(scope) {
-      await this.refreshProfessionScope(true, scope);
-    },
-
     consumePendingCategoryScope(scope) {
       if (scope === 'career' || scope === 'all') {
         return scope;
@@ -42,8 +38,39 @@ const categoryScopeBehavior = Behavior({
       }
     },
 
-    async refreshProfessionScope(isInit = false, scope) {
-      const preferredScope = this.consumePendingCategoryScope(scope);
+    _readCachedUserInfo() {
+      try {
+        return (app.getUserInfo && app.getUserInfo()) || wx.getStorageSync('user_info') || {};
+      } catch (e) {
+        return {};
+      }
+    },
+
+    /**
+     * 根据职业信息计算 scope 补丁（不写网络）
+     * @param {boolean} isInit
+     * @param {string} preferredScope
+     * @param {boolean} hasProfession
+     * @param {boolean} isLoggedIn
+     */
+    buildScopePatch(isInit, preferredScope, hasProfession, isLoggedIn) {
+      const patch = { isLoggedIn, hasProfession };
+      const prevHasProfession = this.data.hasProfession;
+
+      if (!hasProfession) {
+        patch.categoryScope = 'all';
+      } else if (preferredScope === 'career' || preferredScope === 'all') {
+        patch.categoryScope = preferredScope;
+      } else if (isInit || !prevHasProfession) {
+        const defaultScope = getLocalSettings().defaultQuestionScope;
+        patch.categoryScope = defaultScope === 'all' ? 'all' : 'career';
+      }
+
+      return patch;
+    },
+
+    /** 用本地 user_info 立刻定 scope，避免等 profile 才开始拉分类 */
+    applyProfessionScopeFromCache(isInit = false, preferredScope = '') {
       const token = wx.getStorageSync('access_token');
       if (!token) {
         if (this.data.categoryScope !== 'all' || this.data.hasProfession || this.data.isLoggedIn) {
@@ -52,33 +79,66 @@ const categoryScopeBehavior = Behavior({
         return;
       }
 
+      const cached = this._readCachedUserInfo();
+      const hasProfession = hasProfessionSelected(cached.professionCodes);
+      this.setData(this.buildScopePatch(isInit, preferredScope, hasProfession, true));
+    },
+
+    /**
+     * 拉取远端个人信息并校正 scope
+     * @returns {Promise<boolean>} scope 是否相对进入前发生变化
+     */
+    async fetchAndApplyProfessionScope(isInit = false, preferredScope = '') {
+      const token = wx.getStorageSync('access_token');
+      if (!token) {
+        if (this.data.categoryScope !== 'all' || this.data.hasProfession || this.data.isLoggedIn) {
+          this.setData({ categoryScope: 'all', isLoggedIn: false, hasProfession: false });
+        }
+        return false;
+      }
+
+      const scopeBefore = this.data.categoryScope;
       try {
         const info = await fetchPersonalInfo();
         const hasProfession = hasProfessionSelected(info.professionCodes);
-        const prevHasProfession = this.data.hasProfession;
-        const patch = { isLoggedIn: true, hasProfession };
-
-        if (!hasProfession) {
-          patch.categoryScope = 'all';
-        } else if (preferredScope === 'career' || preferredScope === 'all') {
-          patch.categoryScope = preferredScope;
-        } else if (isInit || !prevHasProfession) {
-          const defaultScope = getLocalSettings().defaultQuestionScope;
-          patch.categoryScope = defaultScope === 'all' ? 'all' : 'career';
-        }
-
-        const scopeChanged =
-          patch.categoryScope !== undefined && patch.categoryScope !== this.data.categoryScope;
+        const patch = this.buildScopePatch(isInit, preferredScope, hasProfession, true);
         this.setData(patch);
-        if (scopeChanged && !isInit) {
-          await this.loadPrimaryCategories();
-        }
+        return patch.categoryScope !== undefined && patch.categoryScope !== scopeBefore;
       } catch (error) {
         console.warn('[category] 读取职业信息失败，默认展示全部分类', error);
         handleApiError(error, { showToast: false, fallbackMessage: '读取职业信息失败' });
         if (this.data.categoryScope !== 'all' || this.data.isLoggedIn || this.data.hasProfession) {
           this.setData({ categoryScope: 'all', isLoggedIn: false, hasProfession: false });
         }
+        return this.data.categoryScope !== scopeBefore;
+      }
+    },
+
+    /**
+     * 首屏：本地定 scope → 分类与远端 profile 并行；远端校正后必要时重拉分类
+     */
+    async bootstrapCategoryHome(scopeHint) {
+      const preferredScope = this.consumePendingCategoryScope(scopeHint);
+      this.applyProfessionScopeFromCache(true, preferredScope);
+      const scopeUsed = this.data.categoryScope;
+
+      const catsPromise = this.loadPrimaryCategories({ scope: scopeUsed });
+      const scopeChangedPromise = this.fetchAndApplyProfessionScope(true, preferredScope);
+
+      const [, scopeChanged] = await Promise.all([catsPromise, scopeChangedPromise]);
+      if (scopeChanged && this.data.categoryScope !== scopeUsed) {
+        await this.loadPrimaryCategories({ scope: this.data.categoryScope });
+      }
+    },
+
+    /**
+     * Tab 回切 / 下拉刷新：拉远端并在 scope 变化时重刷分类
+     */
+    async refreshProfessionScope(isInit = false, scope) {
+      const preferredScope = this.consumePendingCategoryScope(scope);
+      const scopeChanged = await this.fetchAndApplyProfessionScope(isInit, preferredScope);
+      if (scopeChanged && !isInit) {
+        await this.loadPrimaryCategories();
       }
     },
 

@@ -1,11 +1,15 @@
 import { bannerApi } from '~/api/index';
 import { navigateToLogin, openPage } from '~/utils/router';
+import { getPersistedTtlCache, setPersistedTtlCache } from '~/utils/ttlCache';
 
 export const POSITION_MY_CAROUSEL = 'MY_CAROUSEL';
 export const POSITION_QUESTION_FEED = 'QUESTION_FEED';
 export const POSITION_QUESTION_TOP = 'QUESTION_TOP';
 export const POSITION_CATEGORY_TOP = 'CATEGORY_TOP';
 export const POSITION_CATEGORY_FEED = 'CATEGORY_FEED';
+
+const BANNER_TTL_MS = 10 * 60 * 1000;
+const BANNER_STORAGE_PREFIX = 'banner_cache_';
 
 /** 与后端种子 / 离线兜底一致 */
 const DEFAULT_MY_CAROUSEL = [
@@ -14,22 +18,22 @@ const DEFAULT_MY_CAROUSEL = [
     title: '创作过审得积分',
     image: '/static/home/card0.png',
     linkType: 'PAGE',
-    linkUrl: '/pages/ucenter/points/index'
+    linkUrl: '/pages/ucenter/points/index',
   },
   {
     id: 'local-1',
     title: '刷题排行挑战',
     image: '/static/home/card1.png',
     linkType: 'PAGE',
-    linkUrl: '/pages/ucenter/ranking/index'
+    linkUrl: '/pages/ucenter/ranking/index',
   },
   {
     id: 'local-2',
     title: '商务合作咨询',
     image: '/static/home/card2.png',
     linkType: 'PAGE',
-    linkUrl: '/pages/ucenter/business/index'
-  }
+    linkUrl: '/pages/ucenter/business/index',
+  },
 ];
 
 function pickPayload(res) {
@@ -58,7 +62,7 @@ export function normalizeBannerItem(raw, index = 0) {
     title: source.title || '',
     image,
     linkType: source.linkType || 'NONE',
-    linkUrl: source.linkUrl || ''
+    linkUrl: source.linkUrl || '',
   };
 }
 
@@ -81,16 +85,25 @@ export function normalizeBannerList(list, opts = {}) {
   return normalized;
 }
 
-/** 拉取运营位；仅我的页轮播在失败/空时回落本地默认 */
+/** 拉取运营位；仅我的页轮播在失败/空时回落本地默认（带 TTL 缓存） */
 export async function fetchBannersByPosition(position = POSITION_MY_CAROUSEL) {
   const isMyCarousel = position === POSITION_MY_CAROUSEL;
+  const cacheKey = `banner:${position}`;
+  const storageKey = `${BANNER_STORAGE_PREFIX}${position}`;
+  const cached = getPersistedTtlCache(cacheKey, storageKey);
+  if (Array.isArray(cached)) {
+    return cached.map((item) => ({ ...item }));
+  }
+
   try {
     const res = await bannerApi.listByPosition(position);
     const list = pickPayload(res);
-    return normalizeBannerList(list || [], {
+    const normalized = normalizeBannerList(list || [], {
       requireImage: true,
-      fallbackMyCarousel: isMyCarousel
+      fallbackMyCarousel: isMyCarousel,
     });
+    setPersistedTtlCache(cacheKey, normalized, BANNER_TTL_MS, storageKey);
+    return normalized.map((item) => ({ ...item }));
   } catch (e) {
     console.warn('[banners] fetch failed', position, e);
     return isMyCarousel ? getDefaultMyCarousel() : [];
@@ -189,7 +202,7 @@ export function interleaveFeedItems(items, ads, options = {}) {
       ...item,
       rowType: 'item',
       displayIndex: index + 1,
-      _rowKey: `item-${item.id != null ? item.id : index}`
+      _rowKey: `item-${item.id != null ? item.id : index}`,
     }));
   }
 
@@ -205,7 +218,7 @@ export function interleaveFeedItems(items, ads, options = {}) {
       ...item,
       rowType: 'item',
       displayIndex: contentCount,
-      _rowKey: `item-${item.id != null ? item.id : i}`
+      _rowKey: `item-${item.id != null ? item.id : i}`,
     });
 
     const reachFirst = contentCount === minBeforeFirst;
@@ -219,7 +232,7 @@ export function interleaveFeedItems(items, ads, options = {}) {
         ...ad,
         rowType: 'ad',
         displayIndex: null,
-        _rowKey: `${idPrefix}-${ad.id}-${adsInserted}`
+        _rowKey: `${idPrefix}-${ad.id}-${adsInserted}`,
       });
     }
   }

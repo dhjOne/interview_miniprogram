@@ -1,4 +1,5 @@
 {
+  "lazyCodeLoading": "requiredComponents",
   "pages": [
     "pages/category/index",
     "pages/interviewMemo/index",
@@ -92,11 +93,23 @@
   "preloadRule": {
     "pages/category/index": {
       "network": "all",
-      "packages": ["towxml"]
+      "packages": ["question"]
     },
     "pages/mknow/index": {
       "network": "all",
       "packages": ["towxml"]
+    },
+    "pages/question/index": {
+      "network": "all",
+      "packages": ["towxml"]
+    },
+    "pages/search/index": {
+      "network": "all",
+      "packages": ["question"]
+    },
+    "pages/search/result/index": {
+      "network": "all",
+      "packages": ["question"]
     }
   },
   "window": {

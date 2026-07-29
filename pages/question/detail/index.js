@@ -19,8 +19,10 @@ import {
 import { processContentBlocks } from '~/utils/questionContentBlocks';
 import { safeDecodeURIComponent } from '~/utils/questionList';
 import { backPage, openPage } from '~/utils/router';
+import { AppEvents } from '~/utils/eventBus';
 
 const { renderMarkdown } = require('../../../utils/towxmlLoader');
+const app = getApp();
 
 /**
  * 题目详情
@@ -204,7 +206,10 @@ Page({
           title: questionDetail.title,
         }).catch(() => {});
 
-        this.loadCommentCount();
+        // 详情已带 commentCount 时跳过额外统计请求
+        if (questionDetail.commentCount == null) {
+          this.loadCommentCount();
+        }
 
         if (isMarkdownContent) {
           this.renderMarkdownWithTowxml(questionDetail);
@@ -522,6 +527,22 @@ Page({
     }
   },
 
+  /** 通知列表页增量更新，避免返回时整表重拉 */
+  emitQuestionUpdated(patch = {}) {
+    const id = this.data.questionId;
+    if (id == null || !app.eventBus) return;
+    const detail = this.data.questionDetail || {};
+    app.eventBus.emit(AppEvents.QUESTION_UPDATED, {
+      id,
+      liked: detail.liked,
+      likeCount: detail.likeCount,
+      isCollected: !!(detail.collected ?? detail.isCollected),
+      collectCount: detail.collectCount,
+      commentCount: this.data.commentCount ?? detail.commentCount,
+      ...patch,
+    });
+  },
+
   async onLike() {
     if (this.data.error || this.data.isEmpty) return;
 
@@ -531,12 +552,14 @@ Page({
     try {
       const likeQuestion = new QuestionLikeOrCollectParams(this.data.questionId, !liked, null);
       await questionApi.toggleLike(likeQuestion);
+      const likeCount = liked
+        ? Math.max(0, (questionDetail.likeCount || 0) - 1)
+        : (questionDetail.likeCount || 0) + 1;
       this.setData({
         'questionDetail.liked': !liked,
-        'questionDetail.likeCount': liked
-          ? Math.max(0, (questionDetail.likeCount || 0) - 1)
-          : (questionDetail.likeCount || 0) + 1,
+        'questionDetail.likeCount': likeCount,
       });
+      this.emitQuestionUpdated({ liked: !liked, likeCount });
       Message.success({
         content: liked ? '已取消点赞' : '点赞成功',
         duration: 2000,
@@ -623,6 +646,7 @@ Page({
         'questionDetail.collectFolderId': folderId,
         'questionDetail.collectFolderName': folderName || '',
       });
+      this.emitQuestionUpdated({ isCollected: true });
       Message.success({
         content: e.detail?.created
           ? '已新建并收藏到「' + (folderName || '分类') + '」'
@@ -645,6 +669,7 @@ Page({
         'questionDetail.collectFolderId': null,
         'questionDetail.collectFolderName': '',
       });
+      this.emitQuestionUpdated({ isCollected: false });
       Message.success({
         content: '已取消收藏',
         duration: 2000,

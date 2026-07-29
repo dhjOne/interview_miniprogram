@@ -7,6 +7,7 @@ import http from '../api_request';
 export const siteApi = {
   getSiteInfo: () =>
     http.get('/repository/site/info', null, {
-      showLoading: false
-    })
+      showLoading: false,
+      skipEnsureSession: true,
+    }),
 };

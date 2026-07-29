@@ -1,10 +1,7 @@
 // pages/question/index.js
 import Message from 'tdesign-miniprogram/message/index';
 import { questionApi, unwrapData, handleApiError } from '~/api/index';
-import {
-  QuestionLikeOrCollectParams,
-  QuestionParams
-} from '~/api/param/param_question';
+import { QuestionLikeOrCollectParams, QuestionParams } from '~/api/param/param_question';
 import {
   dismissBannerItemToday,
   dismissBannerToday,
@@ -14,10 +11,10 @@ import {
   isBannerDismissedToday,
   openBannerLink,
   POSITION_QUESTION_FEED,
-  POSITION_QUESTION_TOP
+  POSITION_QUESTION_TOP,
 } from '~/utils/banners';
 import { normalizeQuestionRow, safeDecodeURIComponent } from '~/utils/questionList';
-
+import { AppEvents } from '~/utils/eventBus';
 
 const app = getApp();
 
@@ -28,7 +25,7 @@ Page({
     sortChips: [
       { label: '综合', value: 'default' },
       { label: '最新', value: 'latest' },
-      { label: '最热', value: 'hot' }
+      { label: '最热', value: 'hot' },
     ],
     displayList: [],
     questionCount: 0,
@@ -46,15 +43,23 @@ Page({
     listHeaderReady: false,
     sortThumbWidth: 33.333,
     sortThumbOffset: 0,
-    sortSwipePulse: false
+    sortSwipePulse: false,
   },
 
   _sortSwipeTouch: null,
   _questions: [],
   _feedAds: [],
+  _pendingQuestionPatch: null,
 
   onLoad(options) {
-    const { categoryId, categoryName, secondaryCategoryId, secondaryCategoryName, keyword, search } = options;
+    const {
+      categoryId,
+      categoryName,
+      secondaryCategoryId,
+      secondaryCategoryName,
+      keyword,
+      search,
+    } = options;
     const finalCategoryId = categoryId || secondaryCategoryId;
     const finalCategoryName = safeDecodeURIComponent(categoryName || secondaryCategoryName);
     const initialKeyword = safeDecodeURIComponent(keyword || search || '');
@@ -62,19 +67,44 @@ Page({
     this._skipShowRefresh = true;
     this._questions = [];
     this._feedAds = [];
+    this._pendingQuestionPatch = null;
+    this._onQuestionUpdated = (payload) => {
+      if (!payload || payload.id == null) return;
+      this._pendingQuestionPatch = payload;
+    };
+    if (app.eventBus && typeof app.eventBus.on === 'function') {
+      app.eventBus.on(AppEvents.QUESTION_UPDATED, this._onQuestionUpdated);
+    }
+
     this.setData({
       categoryId: finalCategoryId,
       categoryName: finalCategoryName,
-      searchValue: initialKeyword
+      searchValue: initialKeyword,
     });
 
     wx.setNavigationBarTitle({
-      title: finalCategoryName || '题库列表'
+      title: finalCategoryName || '题库列表',
     });
 
     this._updateSortThumb(this.data.sortType);
-    this.loadOpsSlots();
-    this.loadQuestions(true);
+
+    // 等当前页 routeDone 后再发请求，避免分包首开时 webview 未就绪
+    const boot = () => {
+      this.loadOpsSlots();
+      this.loadQuestions(true);
+    };
+    if (typeof wx.nextTick === 'function') {
+      wx.nextTick(boot);
+    } else {
+      setTimeout(boot, 0);
+    }
+  },
+
+  onUnload() {
+    if (this._onQuestionUpdated && app.eventBus && typeof app.eventBus.off === 'function') {
+      app.eventBus.off(AppEvents.QUESTION_UPDATED, this._onQuestionUpdated);
+    }
+    this._onQuestionUpdated = null;
   },
 
   onShow() {
@@ -82,14 +112,35 @@ Page({
       this._skipShowRefresh = false;
       return;
     }
-    // 从题目详情返回时刷新列表（点赞/收藏等状态）
-    this.loadQuestions(true);
+    // 详情里点赞/收藏过则只 patch 对应行，避免整表重拉
+    if (this._pendingQuestionPatch) {
+      this.applyQuestionPatch(this._pendingQuestionPatch);
+      this._pendingQuestionPatch = null;
+    }
+  },
+
+  applyQuestionPatch(payload) {
+    const id = payload && payload.id;
+    if (id == null || !Array.isArray(this._questions) || !this._questions.length) return;
+    let changed = false;
+    this._questions = this._questions.map((item) => {
+      if (item.id != id && String(item.id) !== String(id)) return item;
+      changed = true;
+      const next = { ...item };
+      if (payload.liked != null) next.liked = !!payload.liked;
+      if (payload.likeCount != null) next.likeCount = Number(payload.likeCount) || 0;
+      if (payload.isCollected != null) next.isCollected = !!payload.isCollected;
+      if (payload.collectCount != null) next.collectCount = Number(payload.collectCount) || 0;
+      if (payload.commentCount != null) next.commentCount = Number(payload.commentCount) || 0;
+      return next;
+    });
+    if (changed) this._rebuildDisplayList();
   },
 
   onReady() {
     if (this.data.categoryName) {
       wx.setNavigationBarTitle({
-        title: this.data.categoryName
+        title: this.data.categoryName,
       });
     }
   },
@@ -106,14 +157,14 @@ Page({
   onPageScroll(e) {
     const top = (e.detail && e.detail.scrollTop) || 0;
     this.setData({
-      showBackTop: top > 400
+      showBackTop: top > 400,
     });
   },
 
   async loadOpsSlots() {
     const [feedAds, topList] = await Promise.all([
       fetchBannersByPosition(POSITION_QUESTION_FEED),
-      fetchBannersByPosition(POSITION_QUESTION_TOP)
+      fetchBannersByPosition(POSITION_QUESTION_TOP),
     ]);
     this._feedAds = filterDismissedBanners(feedAds || []);
     const topBanner =
@@ -129,11 +180,11 @@ Page({
     const displayList = interleaveFeedItems(this._questions, this._feedAds, {
       every: searching ? 12 : 10,
       minBeforeFirst: 4,
-      idPrefix: 'q-ad'
+      idPrefix: 'q-ad',
     });
     this.setData({
       displayList,
-      questionCount: this._questions.length
+      questionCount: this._questions.length,
     });
   },
 
@@ -141,7 +192,7 @@ Page({
     const map = {
       default: ['sort_order', 'asc'],
       latest: ['created_at', 'desc'],
-      hot: ['view_count', 'desc']
+      hot: ['view_count', 'desc'],
     };
     return map[this.data.sortType] || map.default;
   },
@@ -154,9 +205,8 @@ Page({
     this.setData({ loading: true });
 
     try {
-      const title = this.data.searchValue && this.data.searchValue.trim()
-        ? this.data.searchValue.trim()
-        : null;
+      const title =
+        this.data.searchValue && this.data.searchValue.trim() ? this.data.searchValue.trim() : null;
       const questionParams = new QuestionParams(title, this.data.categoryId, null);
       const [sortField, order] = this._sortParams();
       questionParams.sortField = sortField;
@@ -175,14 +225,14 @@ Page({
         this.setData({
           totalCount: total,
           page: 1,
-          hasMore: newList.length < total
+          hasMore: newList.length < total,
         });
       } else {
         this._questions = [...this._questions, ...newList];
         this.setData({
           totalCount: total,
           page: requestPage,
-          hasMore: this._questions.length < total
+          hasMore: this._questions.length < total,
         });
       }
       this._rebuildDisplayList();
@@ -214,7 +264,7 @@ Page({
 
   onSearchChange(e) {
     this.setData({
-      searchValue: e.detail.value || ''
+      searchValue: e.detail.value || '',
     });
   },
 
@@ -260,7 +310,7 @@ Page({
     this.setData({
       sortThumbWidth: 100 / count,
       /* translateX 百分比相对滑块自身宽度，每档移动 100% */
-      sortThumbOffset: idx * 100
+      sortThumbOffset: idx * 100,
     });
   },
 
@@ -296,7 +346,7 @@ Page({
     if (!touch) return;
     this._sortSwipeTouch = {
       x: touch.clientX,
-      y: touch.clientY
+      y: touch.clientY,
     };
   },
 
@@ -317,9 +367,7 @@ Page({
     const order = this._sortValues();
     const cur = this._sortIndex(this.data.sortType);
     const next =
-      dx < 0
-        ? order[(cur + 1) % order.length]
-        : order[(cur - 1 + order.length) % order.length];
+      dx < 0 ? order[(cur + 1) % order.length] : order[(cur - 1 + order.length) % order.length];
     this.applySort(next, true);
   },
 
@@ -329,7 +377,11 @@ Page({
     if (!question) return;
 
     try {
-      const collectQuestion = new QuestionLikeOrCollectParams(questionId, null, !question.isCollected)
+      const collectQuestion = new QuestionLikeOrCollectParams(
+        questionId,
+        null,
+        !question.isCollected,
+      );
       await questionApi.toggleCollect(collectQuestion);
       this._questions = this._questions.map((item) => {
         if (item.id === questionId) {
@@ -342,7 +394,7 @@ Page({
         context: this,
         offset: [20, 32],
         duration: 2000,
-        content: question.isCollected ? '已取消收藏' : '收藏成功'
+        content: question.isCollected ? '已取消收藏' : '收藏成功',
       });
     } catch (error) {
       console.error('收藏操作失败:', error);
@@ -367,7 +419,7 @@ Page({
     const id = this.data.categoryId;
     const q = id !== null && id !== undefined && id !== '' ? `?categoryId=${id}` : '';
     app.navigateToLogin({
-      url: `/pages/publish/index${q}`
+      url: `/pages/publish/index${q}`,
     });
   },
 
@@ -379,10 +431,12 @@ Page({
     const questionId = e.currentTarget.dataset.id;
     const questionTitle = e.currentTarget.dataset.title || '';
     const { categoryId, categoryName } = this.data;
-    let url = `/pages/question/detail/index?id=${questionId}&title=${encodeURIComponent(questionTitle)}`;
+    let url = `/pages/question/detail/index?id=${questionId}&title=${encodeURIComponent(
+      questionTitle,
+    )}`;
     if (categoryId) {
       url += `&categoryId=${categoryId}&categoryName=${encodeURIComponent(categoryName || '')}`;
     }
     app.navigateToLogin({ url });
-  }
+  },
 });

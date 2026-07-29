@@ -5,6 +5,7 @@ export const questionApi = {
   getQuestionList: (questionParams) =>
     http.get('/repository/questions', questionParams, {
       showLoading: false,
+      skipEnsureSession: true,
     }),
 
   // 收藏/取消收藏
@@ -25,12 +26,14 @@ export const questionApi = {
   getQuestionDetail: (params) =>
     http.get(`/repository/questions/detail`, params, {
       showLoading: false,
+      skipEnsureSession: true,
     }),
 
   // 获取相关题目
   getRelatedQuestions: (params) =>
     http.get('/repository/questions/related', params, {
       showLoading: false,
+      skipEnsureSession: true,
     }),
 
   // 获取题目评论（支持 page / limit 分页）

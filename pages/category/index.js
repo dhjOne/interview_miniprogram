@@ -55,8 +55,20 @@ Page({
     this.calculateNavBarHeight();
     this.restoreRailCollapsed();
     this.restoreTocHandleTop();
+    this.preloadQuestionPackage();
     this.loadOpsSlots();
-    this.initCategoryScope(options.scope).finally(() => this.loadPrimaryCategories());
+    // 本地定 scope 后，分类与 profile 并行，避免串行瀑布
+    this.bootstrapCategoryHome(options.scope);
+  },
+
+  /** 预下载问题列表分包，减少首次 navigateTo 时 routeDone 抢态 */
+  preloadQuestionPackage() {
+    if (typeof wx.preloadSubpackage !== 'function') return;
+    try {
+      wx.preloadSubpackage({ name: 'question' });
+    } catch (e) {
+      // ignore
+    }
   },
 
   async onScrollRefresh() {
@@ -70,13 +82,14 @@ Page({
   },
 
   async onShow() {
-    const prevScope = this.data.categoryScope;
-    await this.refreshProfessionScope(false);
-
+    // 首屏：onLoad 已 bootstrap，跳过 profile 双刷
     if (this._skipShowRefresh) {
       this._skipShowRefresh = false;
       return;
     }
+
+    const prevScope = this.data.categoryScope;
+    await this.refreshProfessionScope(false);
 
     if (this.data.categoryScope !== prevScope) {
       return;
@@ -439,7 +452,9 @@ Page({
     const minY = bounds.layoutTop + halfH;
     const maxY = bounds.layoutTop + bounds.layoutH - halfH;
     nextCenterY = Math.min(maxY, Math.max(minY, nextCenterY));
-    const nextTop = this.clampTocHandleTop(((nextCenterY - bounds.layoutTop) / bounds.layoutH) * 100);
+    const nextTop = this.clampTocHandleTop(
+      ((nextCenterY - bounds.layoutTop) / bounds.layoutH) * 100,
+    );
 
     if (nextTop !== this.data.tocHandleTop) {
       this.setData({ tocHandleTop: nextTop });
@@ -538,7 +553,7 @@ Page({
     }
   },
 
-  async switchSecondaryCategory(e) {
+  switchSecondaryCategory(e) {
     const raw = e.currentTarget.dataset.id;
     const name = e.currentTarget.dataset.name || '';
     const categoryId = typeof raw === 'number' ? raw : parseInt(String(raw), 10);

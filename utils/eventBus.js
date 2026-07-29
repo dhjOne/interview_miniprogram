@@ -2,6 +2,8 @@
 export const AppEvents = {
   POINTS_CHANGED: 'points-changed',
   FLOAT_BUTTON_CHANGE: 'float-button-change',
+  /** 题目交互变更（点赞/收藏等），列表页可增量 patch 而不整表重拉 */
+  QUESTION_UPDATED: 'question-updated',
 };
 
 export default function createBus() {

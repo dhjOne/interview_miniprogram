@@ -5,7 +5,7 @@ const { gcm } = require('../lib/noble-ciphers/aes.js');
 const { hexToBytes, bytesToUtf8 } = require('../lib/noble-ciphers/utils.js');
 const storage = require('./storage.js');
 const configModule = require('../config/index.js');
-const config = (configModule && configModule.default) ? configModule.default : configModule;
+const config = configModule && configModule.default ? configModule.default : configModule;
 const EC = require('../lib/elliptic.min.js');
 
 /** 在会话过期前提前续期，略小于 storage 的 TTL，与后端 30min 窗口对齐 */
@@ -63,7 +63,7 @@ function randomBytes(size) {
           fail: function (err) {
             warnLog('[ECDH] getRandomValues 失败，使用降级随机源', err);
             resolve(randomBytesFallback(size));
-          }
+          },
         });
         return;
       }
@@ -75,7 +75,7 @@ function randomBytes(size) {
 }
 
 function bytesToHex(bytes) {
-  return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
 async function generatePrivateKeyHex() {
@@ -88,7 +88,6 @@ async function generatePrivateKeyHex() {
   }
   throw new Error('生成私钥随机数失败');
 }
-
 
 class ECDHManager {
   constructor() {
@@ -107,38 +106,42 @@ class ECDHManager {
   }
 
   _isEncryptionDisabled() {
-    return !!(config && config.encryption && config.encryption.disabled === true)
+    return !!(config && config.encryption && config.encryption.disabled === true);
   }
 
   /**
-   * 应用启动时调用：未禁用加密链路时预建立 ECDH（与后端库表是否对该路径加密无关）
+   * 应用启动时调用：未禁用加密链路时预建立 ECDH
+   * 延后一拍，避免与题库首屏公开接口抢第一个 RTT
    */
   startLifecycle() {
-    if (this._isEncryptionDisabled()) return
-    this.ensureSession({ silent: true }).catch((e) => {
-      warnLog('[ECDH] 预加载失败，首包业务请求将重试密钥交换', e)
-    })
+    if (this._isEncryptionDisabled()) return;
+    const kick = () => {
+      this.ensureSession({ silent: true }).catch((e) => {
+        warnLog('[ECDH] 预加载失败，首包业务请求将重试密钥交换', e);
+      });
+    };
+    setTimeout(kick, 50);
   }
 
   /**
    * 从后台回前台时续期/补会话
    */
   onAppShow() {
-    if (this._isEncryptionDisabled()) return
-    this.ensureSession({ silent: true }).catch(() => {})
+    if (this._isEncryptionDisabled()) return;
+    this.ensureSession({ silent: true }).catch(() => {});
   }
 
   _shouldRenewSession() {
-    const s = storage.loadSession()
-    if (!s) return false
-    const lastActive = s.lastActiveTime || s.createTime
-    return Date.now() - lastActive >= storage.SESSION_TTL_MS - RENEW_BEFORE_EXPIRY_MS
+    const s = storage.loadSession();
+    if (!s) return false;
+    const lastActive = s.lastActiveTime || s.createTime;
+    return Date.now() - lastActive >= storage.SESSION_TTL_MS - RENEW_BEFORE_EXPIRY_MS;
   }
 
   _clearRenewTimer() {
     if (this._renewTimer != null) {
-      clearTimeout(this._renewTimer)
-      this._renewTimer = null
+      clearTimeout(this._renewTimer);
+      this._renewTimer = null;
     }
   }
 
@@ -146,18 +149,18 @@ class ECDHManager {
    * 按当前 createTime 计算「下次续期」时刻（到期前 RENEW_BEFORE_EXPIRY_MS）
    */
   _scheduleNextRenewal() {
-    this._clearRenewTimer()
-    if (this._isEncryptionDisabled()) return
-    const s = storage.loadSession()
-    if (!s) return
-    const lastActive = s.lastActiveTime || s.createTime
-    const renewAt = lastActive + storage.SESSION_TTL_MS - RENEW_BEFORE_EXPIRY_MS
-    const delay = Math.max(renewAt - Date.now(), 10 * 1000)
+    this._clearRenewTimer();
+    if (this._isEncryptionDisabled()) return;
+    const s = storage.loadSession();
+    if (!s) return;
+    const lastActive = s.lastActiveTime || s.createTime;
+    const renewAt = lastActive + storage.SESSION_TTL_MS - RENEW_BEFORE_EXPIRY_MS;
+    const delay = Math.max(renewAt - Date.now(), 10 * 1000);
     this._renewTimer = setTimeout(() => {
       this.ensureSession({ silent: true }).catch((e) => {
-        warnLog('[ECDH] 定时续期失败，将在后续请求时重试', e)
-      })
-    }, delay)
+        warnLog('[ECDH] 定时续期失败，将在后续请求时重试', e);
+      });
+    }, delay);
   }
 
   /**
@@ -165,29 +168,37 @@ class ECDHManager {
    * @param {{ silent?: boolean, force?: boolean }} [options] silent 默认 true，不弹 Loading/Toast
    */
   ensureSession(options) {
-    const opts = options || {}
-    const silent = opts.silent !== false
-    const force = !!opts.force
+    const opts = options || {};
+    const silent = opts.silent !== false;
+    const force = !!opts.force;
     if (this._isEncryptionDisabled()) {
-      return Promise.resolve()
+      return Promise.resolve();
     }
     if (this._exchangePromise && !force) {
-      return this._exchangePromise
+      return this._exchangePromise;
     }
     if (this.isSessionValid() && !force && !this._shouldRenewSession()) {
-      this._scheduleNextRenewal()
-      return Promise.resolve()
+      this._scheduleNextRenewal();
+      return Promise.resolve();
     }
     const startExchange = () => {
       this._exchangePromise = this._performKeyExchange({ silent })
-        .then(() => { this._scheduleNextRenewal() })
-        .finally(() => { this._exchangePromise = null })
-      return this._exchangePromise
-    }
+        .then(() => {
+          this._scheduleNextRenewal();
+        })
+        .finally(() => {
+          this._exchangePromise = null;
+        });
+      return this._exchangePromise;
+    };
     if (this._exchangePromise && force) {
-      return this._exchangePromise.catch(function () {}).then(function () { return startExchange() })
+      return this._exchangePromise
+        .catch(function () {})
+        .then(function () {
+          return startExchange();
+        });
     }
-    return startExchange()
+    return startExchange();
   }
 
   /**
@@ -244,26 +255,26 @@ class ECDHManager {
     // OID: 1.2.840.10045.3.1.7
     // DER 编码：06 08 2a 86 48 ce 3d 03 01 07
     const curveOID = '06082a8648ce3d030107';
-    
+
     // EC 公钥算法 OID
     // OID: 1.2.840.10045.2.1
     // DER 编码：06 07 2a 86 48 ce 3d 02 01
     const ecAlgorithmOID = '06072a8648ce3d0201';
-    
+
     // 构建 AlgorithmIdentifier SEQUENCE
     // 30 13 表示 SEQUENCE，长度 19 字节
     const algorithmIdentifier = '3013' + ecAlgorithmOID + curveOID;
-    
+
     // 构建 BIT STRING
     // 03 42 表示 BIT STRING，长度 66 字节（1 字节填充 + 65 字节公钥）
     // 00 表示无填充位
     const bitStringHeader = '034200';
     const bitString = bitStringHeader + pubKeyHex;
-    
+
     // 构建完整的 X.509 SubjectPublicKeyInfo
     // 30 59 表示 SEQUENCE，长度 89 字节
     const x509Header = '3059';
-    
+
     return x509Header + algorithmIdentifier + bitString;
   }
 
@@ -272,70 +283,71 @@ class ECDHManager {
    * @param {{ silent?: boolean }} [opts]
    */
   async exchangeKeys(opts) {
-    const silent = opts && opts.silent === true
-    return this._performKeyExchange({ silent })
+    const silent = opts && opts.silent === true;
+    return this._performKeyExchange({ silent });
   }
 
   /**
    * 实际发起 ECDH 交换（内部使用）
    */
   async _performKeyExchange(options) {
-    const silent = !!(options && options.silent)
-    let showedLoading = false
+    const silent = !!(options && options.silent);
+    let showedLoading = false;
     try {
       if (!silent) {
-        wx.showLoading({ title: '初始化加密...', mask: true })
-        showedLoading = true
+        wx.showLoading({ title: '初始化加密...', mask: true });
+        showedLoading = true;
       }
 
-      const clientPublicKeyHex = await this.generateClientKeyPair()
-      const clientPublicKeyBase64 = this.hexToBase64(clientPublicKeyHex)
-      const exchangeUrl = (config.encryption && config.encryption.exchange)
-        ? config.encryption.exchange
-        : '/api/encryption/exchange'
+      const clientPublicKeyHex = await this.generateClientKeyPair();
+      const clientPublicKeyBase64 = this.hexToBase64(clientPublicKeyHex);
+      const exchangeUrl =
+        config.encryption && config.encryption.exchange
+          ? config.encryption.exchange
+          : '/api/encryption/exchange';
 
       const res = await this.wxRequest({
         url: exchangeUrl,
         method: 'POST',
         data: {
-          clientPublicKey: clientPublicKeyBase64
-        }
-      })
+          clientPublicKey: clientPublicKeyBase64,
+        },
+      });
 
       if (res.code === '0000') {
-        this.sessionId = res.data.sessionId
-        const serverPublicKeyBase64 = res.data.serverPublicKey
-        await this.deriveSharedKey(serverPublicKeyBase64)
+        this.sessionId = res.data.sessionId;
+        const serverPublicKeyBase64 = res.data.serverPublicKey;
+        await this.deriveSharedKey(serverPublicKeyBase64);
         storage.saveSession({
           sessionId: this.sessionId,
-          sharedKeyHex: this.sharedKeyHex
-        })
+          sharedKeyHex: this.sharedKeyHex,
+        });
         if (showedLoading) {
-          wx.hideLoading()
+          wx.hideLoading();
         }
         if (!silent) {
           wx.showToast({
             title: '加密连接已建立',
             icon: 'success',
-            duration: 1500
-          })
+            duration: 1500,
+          });
         }
-        debugLog('[ECDH] 密钥交换成功, sessionId:', this.sessionId)
-        return true
+        debugLog('[ECDH] 密钥交换成功, sessionId:', this.sessionId);
+        return true;
       }
-      throw new Error('密钥交换失败: ' + (res.message || res.code))
+      throw new Error('密钥交换失败: ' + (res.message || res.code));
     } catch (error) {
       if (showedLoading) {
-        wx.hideLoading()
+        wx.hideLoading();
       }
-      console.error('[ECDH] 密钥交换失败:', error)
+      console.error('[ECDH] 密钥交换失败:', error);
       if (!silent) {
         wx.showToast({
           title: '加密初始化失败',
-          icon: 'none'
-        })
+          icon: 'none',
+        });
       }
-      throw error
+      throw error;
     }
   }
 
@@ -430,16 +442,16 @@ class ECDHManager {
 
       // Step 2: 从 hex 创建服务器公钥对象
       const serverPublicKey = this.ec.keyFromPublic(serverPublicKeyHex, 'hex');
-      
+
       // Step 3: 使用客户端私钥和服务器公钥计算共享秘密
       const sharedSecret = this.clientKeyPair.derive(serverPublicKey.pub);
-      
+
       // Step 4: 使用 SHA-256 派生 AES-256 密钥
       const sharedSecretHex = sharedSecret.toString(16).padStart(64, '0');
       const sha256Hash = CryptoJS.SHA256(CryptoJS.enc.Hex.parse(sharedSecretHex)).toString();
-      
+
       this.sharedKeyHex = sha256Hash;
-      
+
       debugLog('[ECDH] 共享密钥计算完成');
     } catch (error) {
       console.error('[ECDH] 共享密钥计算失败:', error);
@@ -471,7 +483,8 @@ class ECDHManager {
 
       // Step 1: 验证时间戳（防重放）
       const now = Date.now();
-      if (now - timestamp > 300000) { // 5分钟
+      if (now - timestamp > 300000) {
+        // 5分钟
         throw new Error('响应已过期');
       }
 
@@ -497,18 +510,17 @@ class ECDHManager {
       }
 
       const jsonData = JSON.parse(decryptedText);
-      
+
       debugLog('[ECDH] 响应解密成功');
       return jsonData;
-
     } catch (error) {
       console.error('[ECDH] 响应解密失败:', error);
-      
+
       // 如果是解密失败，可能是密钥过期，清除会话
       if (error.message.includes('密钥') || error.message.includes('解密')) {
         this.clearSession();
       }
-      
+
       throw error;
     }
   }
@@ -521,13 +533,13 @@ class ECDHManager {
 
     // Step 1: 确保会话有效
     if (needDecrypt) {
-      await this.ensureSession({ silent: true })
+      await this.ensureSession({ silent: true });
     }
 
     // Step 2: 构建请求头
     const header = {
       'Content-Type': 'application/json',
-      ...options.header
+      ...options.header,
     };
 
     // 添加会话 ID
@@ -540,7 +552,7 @@ class ECDHManager {
       url,
       method,
       header,
-      data
+      data,
     });
 
     // Step 4: 解密响应；wxRequest 的返回值即 HTTP body（常见为 ApiResult 包一层 data）
@@ -572,44 +584,47 @@ class ECDHManager {
           }
         },
         fail: (err) => {
-          reject(new Error((err && err.errMsg) || '网络请求失败'))
-        }
+          reject(new Error((err && err.errMsg) || '网络请求失败'));
+        },
       });
     });
   }
 
   /** C111 时强制重建加密会话（与登录 Token 无关） */
   async renewSession() {
-    this.clearSession()
-    return this.ensureSession({ silent: true, force: true })
+    this.clearSession();
+    return this.ensureSession({ silent: true, force: true });
   }
 
   syncSessionFromStorage() {
-    const session = storage.loadSession()
+    const session = storage.loadSession();
     if (!session) {
       if (this.sessionId || this.sharedKeyHex) {
-        this.sessionId = null
-        this.sharedKeyHex = null
-        this.clientKeyPair = null
+        this.sessionId = null;
+        this.sharedKeyHex = null;
+        this.clientKeyPair = null;
       }
-      return false
+      return false;
     }
-    this.sessionId = session.sessionId
-    this.sharedKeyHex = session.sharedKeyHex
-    return true
+    this.sessionId = session.sessionId;
+    this.sharedKeyHex = session.sharedKeyHex;
+    return true;
   }
 
   touchSession() {
-    if (this.sessionId) {
-      storage.touchSession()
-    }
+    if (!this.sessionId) return;
+    const now = Date.now();
+    // 高频列表翻页时节流写 Storage，减轻主线程抖动
+    if (this._lastTouchAt && now - this._lastTouchAt < 30000) return;
+    this._lastTouchAt = now;
+    storage.touchSession();
   }
 
   /**
    * 清除会话
    */
   clearSession() {
-    this._clearRenewTimer()
+    this._clearRenewTimer();
     this.sessionId = null;
     this.sharedKeyHex = null;
     this.clientKeyPair = null;
@@ -621,15 +636,15 @@ class ECDHManager {
    * 检查会话是否有效（与本地 TTL 一致，过期会清空内存态）
    */
   isSessionValid() {
-    const session = storage.loadSession()
+    const session = storage.loadSession();
     if (!session || !session.sessionId || !session.sharedKeyHex) {
-      this.sessionId = null
-      this.sharedKeyHex = null
-      return false
+      this.sessionId = null;
+      this.sharedKeyHex = null;
+      return false;
     }
-    this.sessionId = session.sessionId
-    this.sharedKeyHex = session.sharedKeyHex
-    return true
+    this.sessionId = session.sessionId;
+    this.sharedKeyHex = session.sharedKeyHex;
+    return true;
   }
 
   /**
@@ -660,7 +675,7 @@ class ECDHManager {
    * hex 转 Base64
    */
   hexToBase64(hex) {
-    const typedArray = new Uint8Array(hex.match(/[\da-f]{2}/gi).map(h => parseInt(h, 16)));
+    const typedArray = new Uint8Array(hex.match(/[\da-f]{2}/gi).map((h) => parseInt(h, 16)));
     return wx.arrayBufferToBase64(typedArray.buffer);
   }
 
@@ -669,7 +684,9 @@ class ECDHManager {
    */
   base64ToHex(base64) {
     const buffer = wx.base64ToArrayBuffer(base64);
-    return Array.from(new Uint8Array(buffer), byte => byte.toString(16).padStart(2, '0')).join('');
+    return Array.from(new Uint8Array(buffer), (byte) => byte.toString(16).padStart(2, '0')).join(
+      '',
+    );
   }
 
   /**
@@ -677,7 +694,7 @@ class ECDHManager {
    */
   arrayBufferToHex(buffer) {
     const byteArray = new Uint8Array(buffer);
-    return Array.from(byteArray, byte => byte.toString(16).padStart(2, '0')).join('');
+    return Array.from(byteArray, (byte) => byte.toString(16).padStart(2, '0')).join('');
   }
 }
 

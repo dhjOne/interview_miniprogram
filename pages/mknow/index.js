@@ -58,7 +58,7 @@ Page({
 
   onShow() {
     this._bindPointsChanged();
-    this.initModelSelector();
+    // 模型列表只在 onLoad / 下拉刷新拉；onShow 只刷新配额，避免首进双刷
     this.loadAiQuota();
   },
 

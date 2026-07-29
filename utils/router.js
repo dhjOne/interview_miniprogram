@@ -61,24 +61,39 @@ export function buildLoginUrl(extraQuery = '') {
 
 /**
  * 打开页面：Tab 自动 switchTab（丢弃 query），否则 navigateTo
+ * 短锁防止连点触发两次 navigateTo（易导致 routeDone webviewId not found）
  * @returns {Promise|undefined}
  */
+let _openPageBusyUntil = 0;
+
 export function openPage(options = {}) {
   const { url, fail } = options;
   const targetUrl = ensureLeadingSlash(url);
   if (!targetUrl) return Promise.resolve();
 
+  const now = Date.now();
+  if (now < _openPageBusyUntil) {
+    return Promise.resolve();
+  }
+  _openPageBusyUntil = now + 450;
+
+  const releaseOnFail = (err) => {
+    _openPageBusyUntil = 0;
+    if (typeof fail === 'function') fail(err);
+  };
+
   if (isTabPage(targetUrl)) {
     return wx.switchTab({
       ...options,
       url: getRouteBase(targetUrl),
-      fail,
+      fail: releaseOnFail,
     });
   }
 
   return wx.navigateTo({
     ...options,
     url: targetUrl,
+    fail: releaseOnFail,
   });
 }
 

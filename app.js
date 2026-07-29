@@ -7,7 +7,6 @@ import {
   navigateToLogin,
   navigateToWithAuth,
 } from './utils/router';
-const { warmupTowxml } = require('./utils/towxmlLoader');
 
 const nativePage = Page;
 Page = function withPullDownRefreshGuard(options = {}) {
@@ -47,10 +46,9 @@ App({
 
     // 初始化时检查登录状态
     this.checkLoginStatus();
-    // ECDH：启动后静默预加载会话并挂续期定时器，减少业务首包再暴露交换接口
+    // ECDH：启动后静默预加载会话并挂续期定时器（错开首页首包，见 encryption.startLifecycle）
     encryption.startLifecycle();
-    // 预下载 towxml 分包，供 mknow 等页异步渲染 Markdown
-    warmupTowxml();
+    // towxml 按需加载：进入详情 / m知道时再拉取，避免与题库首屏抢带宽
   },
 
   onShow() {

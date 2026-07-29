@@ -2,7 +2,7 @@
 export default {
   env: 'development',
   // baseUrl: 'http://localhost:9991',
-  baseUrl: 'https://favorite-swim-chambers-role.trycloudflare.com',
+  baseUrl: 'https://nelson-perceived-poker-stones.trycloudflare.com',
   apiPrefix: '/api',
   successCode: '0000',
   timeout: 10000,

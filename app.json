@@ -5,7 +5,6 @@
     "pages/interviewMemo/index",
     "pages/mknow/index",
     "pages/my/index",
-    "pages/mobileAdmin/index",
     "pages/agreement/agreement",
     "pages/interviewMemo/edit/index"
   ],
@@ -15,6 +14,11 @@
     "t-search": "/miniprogram_npm/tdesign-miniprogram/search/search"
   },
   "subpackages": [
+    {
+      "root": "subpackages/mobileAdmin",
+      "name": "mobileAdmin",
+      "pages": ["index"]
+    },
     {
       "root": "pages/question",
       "name": "question",
@@ -92,6 +96,10 @@
     }
   ],
   "preloadRule": {
+    "pages/my/index": {
+      "network": "all",
+      "packages": ["mobileAdmin"]
+    },
     "pages/category/index": {
       "network": "all",
       "packages": ["question"]

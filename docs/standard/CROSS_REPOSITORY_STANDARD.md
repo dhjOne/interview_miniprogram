@@ -2,11 +2,11 @@
 
 ## 1. 三个仓库职责
 
-| 仓库 | 路径 | 职责 |
-| --- | --- | --- |
-| 小程序 | `/Users/dinghaojie/WeChatProjects/interview_miniprogram` | C 端用户体验、刷题、创作、个人中心、移动管理入口 |
-| 后台管理 | `/Users/dinghaojie/前端/sz-admin` | 管理员 Web 控制台、RBAC、审批、运营、系统配置 |
-| 后端 | `/Users/dinghaojie/IdeaProjects/interview_handbook` | API、认证鉴权、业务规则、数据持久化、微信/AI/积分集成 |
+| 仓库     | 路径                                                     | 职责                                                  |
+| -------- | -------------------------------------------------------- | ----------------------------------------------------- |
+| 小程序   | `/Users/dinghaojie/WeChatProjects/interview_miniprogram` | C 端用户体验、刷题、创作、个人中心、移动管理入口      |
+| 后台管理 | `/Users/dinghaojie/WeChatProjects/admin_manage`          | 管理员 Web 控制台、RBAC、审批、运营、系统配置         |
+| 后端     | `/Users/dinghaojie/IdeaProjects/interview_handbook`      | API、认证鉴权、业务规则、数据持久化、微信/AI/积分集成 |
 
 ## 2. 总体架构原则
 
@@ -138,6 +138,9 @@
 3. 后端手动判断角色/权限，不使用 `@SaCheckPermission`。
 4. 小程序新增 overview 权限探测。
 5. 小程序根据权限展示入口、模块、按钮。
+6. 变更后同步更新 `docs/mobile-admin-approval-plan.md`（长期约定）。
+
+当前移动管理台覆盖：内容审核、资料审核、分类建议、举报处理、评论隐藏、商务线索、积分申诉、内容下架。
 
 ## 7. AI 知识库使用建议
 

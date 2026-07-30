@@ -69,25 +69,24 @@
 
 ### 移动管理台
 
-当前小程序新增移动管理台页面：
+页面（分包）：
 
 ```text
-pages/mobileAdmin/index
+subpackages/mobileAdmin/index
 ```
 
-相关 API：
+API：
 
 ```text
 api/request/api_mobile_admin.js
 ```
 
-后端接口前缀：
+后端前缀：`/mobile/admin/**`
 
-```text
-/mobile/admin/**
-```
+一期：内容审核、资料审核、分类建议。  
+二期：举报处理、评论隐藏、商务线索、积分申诉、内容下架。
 
-权限来自后端 RBAC，不在小程序硬编码手机号。
+权限来自后端 RBAC，不在小程序硬编码手机号。相关方案见 `docs/mobile-admin-approval-plan.md`（改动时需同步更新）。
 
 ## 6. AI 修改代码时的注意事项
 

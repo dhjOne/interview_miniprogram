@@ -1,0 +1,347 @@
+<view class="mobile-admin">
+  <image class="mobile-admin__bg" src="/static/bg_navbar.png" mode="aspectFill" />
+  <t-navbar left-arrow title="移动管理台" fixed safe-area-inset-top />
+
+  <scroll-view
+    class="mobile-admin__scroll"
+    scroll-y
+    enhanced
+    show-scrollbar="{{false}}"
+    bindscrolltolower="onListLower"
+  >
+    <view class="mobile-admin__body">
+      <block wx:if="{{loading}}">
+        <view class="admin-loading">
+          <t-loading theme="spinner" size="48rpx" text="加载管理权限..." />
+        </view>
+      </block>
+
+      <block wx:elif="{{!overview.hasAccess}}">
+        <view class="admin-empty-card">
+          <t-empty description="当前账号暂无移动管理权限" />
+        </view>
+      </block>
+
+      <block wx:else>
+        <!-- 顶部摘要：钉钉/企微式待办总量 -->
+        <view class="admin-summary">
+          <view class="admin-summary__left">
+            <text class="admin-summary__label">待办合计</text>
+            <view class="admin-summary__row">
+              <text class="admin-summary__num">{{totalPending}}</text>
+              <text class="admin-summary__unit">项</text>
+            </view>
+            <text class="admin-summary__hint">仅展示你有权限的模块</text>
+          </view>
+          <view class="admin-summary__right">
+            <view class="admin-summary__chip">
+              <text class="admin-summary__chip-label">本队列</text>
+              <text class="admin-summary__chip-value">{{total}}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 模块切换：胶囊 Chip，横向滑动 -->
+        <scroll-view class="admin-chips" scroll-x enhanced show-scrollbar="{{false}}" enable-flex>
+          <view class="admin-chips__track">
+            <view
+              wx:for="{{modules}}"
+              wx:key="key"
+              class="admin-chip admin-chip--{{item.tone}} {{activeModule === item.key ? 'admin-chip--active' : ''}} {{item.hasPending ? 'admin-chip--hot' : ''}}"
+              data-key="{{item.key}}"
+              bindtap="onModuleTap"
+            >
+              <t-icon name="{{item.icon}}" size="28rpx" />
+              <text class="admin-chip__text">{{item.shortTitle}}</text>
+              <view wx:if="{{item.badgeText}}" class="admin-chip__badge">{{item.badgeText}}</view>
+            </view>
+          </view>
+        </scroll-view>
+
+        <!-- 当前队列说明 -->
+        <view class="admin-queue">
+          <view class="admin-queue__main">
+            <text class="admin-queue__title">{{activeTitle}}</text>
+            <text class="admin-queue__desc">{{activeDesc}}</text>
+          </view>
+          <text class="admin-queue__count">{{total}} 条</text>
+        </view>
+
+        <view wx:if="{{rows.length === 0 && !listLoading}}" class="admin-empty-card">
+          <t-empty description="{{emptyText}}" />
+        </view>
+
+        <!-- 收件箱任务卡片 -->
+        <block wx:if="{{activeModule === 'questions'}}">
+          <view wx:for="{{rows}}" wx:key="id" class="task-card">
+            <view class="task-card__top">
+              <view class="task-card__dot task-card__dot--warning" />
+              <text class="task-card__type">内容审核</text>
+              <t-tag theme="warning" variant="light" size="small">{{item.statusText}}</t-tag>
+            </view>
+            <text class="task-card__title">{{item.title}}</text>
+            <text class="task-card__meta">{{item.metaText}}</text>
+            <text class="task-card__body">{{item.contentPreview}}</text>
+            <view class="task-card__metrics">
+              <text class="task-card__metric">浏览 {{item.viewCount || 0}}</text>
+              <text class="task-card__metric">点赞 {{item.likeCount || 0}}</text>
+              <text class="task-card__metric">评论 {{item.commentCount || 0}}</text>
+            </view>
+            <view wx:if="{{activeModuleInfo.canApprove || activeModuleInfo.canReject}}" class="task-card__actions">
+              <view
+                wx:if="{{activeModuleInfo.canReject}}"
+                class="task-btn task-btn--ghost"
+                data-row="{{item}}"
+                bindtap="onRejectQuestion"
+              >驳回</view>
+              <view
+                wx:if="{{activeModuleInfo.canApprove}}"
+                class="task-btn task-btn--success"
+                data-row="{{item}}"
+                bindtap="onApproveQuestion"
+              >通过</view>
+            </view>
+          </view>
+        </block>
+
+        <block wx:elif="{{activeModule === 'published'}}">
+          <view wx:for="{{rows}}" wx:key="id" class="task-card">
+            <view class="task-card__top">
+              <view class="task-card__dot task-card__dot--danger" />
+              <text class="task-card__type">已发布内容</text>
+              <t-tag theme="success" variant="light" size="small">已发布</t-tag>
+            </view>
+            <text class="task-card__title">{{item.title}}</text>
+            <text class="task-card__meta">{{item.metaText}}</text>
+            <text class="task-card__body">{{item.contentPreview}}</text>
+            <view wx:if="{{activeModuleInfo.canHandle}}" class="task-card__actions">
+              <view class="task-btn task-btn--danger task-btn--full" data-row="{{item}}" bindtap="onOfflineQuestion">强制下架</view>
+            </view>
+          </view>
+        </block>
+
+        <block wx:elif="{{activeModule === 'profiles'}}">
+          <view wx:for="{{rows}}" wx:key="userId" class="task-card">
+            <view class="task-card__top">
+              <view class="task-card__dot task-card__dot--brand" />
+              <text class="task-card__type">主页资料</text>
+              <t-tag theme="warning" variant="light" size="small">待审核</t-tag>
+            </view>
+            <view class="task-card__profile">
+              <t-avatar image="{{item.avatar || '/static/avatar1.png'}}" size="88rpx" />
+              <view class="task-card__profile-body">
+                <text class="task-card__title">{{item.nameText}}</text>
+                <text class="task-card__meta">ID {{item.userId}}</text>
+              </view>
+            </view>
+            <text class="task-card__body">{{item.bioText}}</text>
+            <view class="task-card__metrics">
+              <text class="task-card__metric">{{item.statsText}}</text>
+            </view>
+            <view
+              wx:if="{{activeModuleInfo.canApprove || activeModuleInfo.canReject || activeModuleInfo.canReset}}"
+              class="task-card__actions {{activeModuleInfo.canReset && activeModuleInfo.canReject && activeModuleInfo.canApprove ? 'task-card__actions--three' : ''}}"
+            >
+              <view
+                wx:if="{{activeModuleInfo.canReset}}"
+                class="task-btn task-btn--ghost"
+                data-row="{{item}}"
+                bindtap="onResetProfile"
+              >重置</view>
+              <view
+                wx:if="{{activeModuleInfo.canReject}}"
+                class="task-btn task-btn--ghost"
+                data-row="{{item}}"
+                bindtap="onRejectProfile"
+              >驳回</view>
+              <view
+                wx:if="{{activeModuleInfo.canApprove}}"
+                class="task-btn task-btn--success"
+                data-row="{{item}}"
+                bindtap="onApproveProfile"
+              >通过</view>
+            </view>
+          </view>
+        </block>
+
+        <block wx:elif="{{activeModule === 'categories'}}">
+          <view wx:for="{{rows}}" wx:key="id" class="task-card cat-card">
+            <view class="task-card__top">
+              <view class="task-card__dot task-card__dot--brand" />
+              <text class="task-card__type">命名提案</text>
+              <t-tag theme="primary" variant="light" size="small">待处理</t-tag>
+            </view>
+
+            <view class="cat-card__propose">
+              <view class="cat-card__propose-icon">
+                <t-icon name="folder" size="36rpx" />
+              </view>
+              <view class="cat-card__propose-body">
+                <text class="cat-card__propose-label">建议新建</text>
+                <text class="cat-card__propose-name">{{item.suggestedName}}</text>
+              </view>
+            </view>
+
+            <view class="cat-card__path">
+              <view class="cat-card__path-node">
+                <text class="cat-card__path-k">挂靠</text>
+                <text class="cat-card__path-v">{{item.parentText}}</text>
+              </view>
+              <text class="cat-card__path-arrow">→</text>
+              <view class="cat-card__path-node cat-card__path-node--new">
+                <text class="cat-card__path-k">新建</text>
+                <text class="cat-card__path-v">{{item.suggestedName}}</text>
+              </view>
+            </view>
+
+            <view wx:if="{{item.hasContext}}" class="cat-card__facts">
+              <view wx:if="{{item.fallbackText}}" class="cat-card__fact">
+                <t-icon name="info-circle" size="24rpx" />
+                <text>{{item.fallbackText}}</text>
+              </view>
+              <view wx:if="{{item.questionText}}" class="cat-card__fact">
+                <t-icon name="file" size="24rpx" />
+                <text>{{item.questionText}}</text>
+              </view>
+            </view>
+
+            <view wx:if="{{item.hasReason}}" class="cat-card__reason">
+              <text class="cat-card__reason-label">用户说明</text>
+              <text class="cat-card__reason-text">{{item.reasonText}}</text>
+            </view>
+            <view wx:else class="cat-card__reason cat-card__reason--empty">
+              <text class="cat-card__reason-text">未填写补充说明</text>
+            </view>
+
+            <text class="cat-card__submit">{{item.submitText}}</text>
+
+            <view wx:if="{{activeModuleInfo.canApprove || activeModuleInfo.canReject}}" class="task-card__actions">
+              <view
+                wx:if="{{activeModuleInfo.canReject}}"
+                class="task-btn task-btn--ghost"
+                data-row="{{item}}"
+                bindtap="onRejectCategory"
+              >驳回</view>
+              <view
+                wx:if="{{activeModuleInfo.canApprove}}"
+                class="task-btn task-btn--success"
+                data-row="{{item}}"
+                bindtap="onAcceptCategory"
+              >采纳并创建</view>
+            </view>
+          </view>
+        </block>
+
+        <block wx:elif="{{activeModule === 'reports'}}">
+          <view wx:for="{{rows}}" wx:key="id" class="task-card task-card--alert">
+            <view class="task-card__top">
+              <view class="task-card__dot task-card__dot--danger" />
+              <text class="task-card__type">用户举报</text>
+              <t-tag theme="danger" variant="light" size="small">待处理</t-tag>
+            </view>
+            <text class="task-card__title">{{item.titleText}}</text>
+            <text class="task-card__meta">{{item.metaText}}</text>
+            <text class="task-card__body">{{item.reasonText}}</text>
+            <view class="task-card__metrics">
+              <text class="task-card__metric">对象 {{item.targetUserText}}</text>
+            </view>
+            <view wx:if="{{activeModuleInfo.canHandle || activeModuleInfo.canReject}}" class="task-card__actions">
+              <view
+                wx:if="{{activeModuleInfo.canReject}}"
+                class="task-btn task-btn--ghost"
+                data-row="{{item}}"
+                bindtap="onRejectReport"
+              >驳回</view>
+              <view
+                wx:if="{{activeModuleInfo.canHandle}}"
+                class="task-btn task-btn--danger"
+                data-row="{{item}}"
+                bindtap="onHandleReport"
+              >处理</view>
+            </view>
+          </view>
+        </block>
+
+        <block wx:elif="{{activeModule === 'comments'}}">
+          <view wx:for="{{rows}}" wx:key="id" class="task-card">
+            <view class="task-card__top">
+              <view class="task-card__dot task-card__dot--neutral" />
+              <text class="task-card__type">评论治理</text>
+              <t-tag theme="primary" variant="light" size="small">可见</t-tag>
+            </view>
+            <text class="task-card__title">{{item.titleText}}</text>
+            <text class="task-card__meta">{{item.metaText}}</text>
+            <text class="task-card__body">{{item.contentPreview}}</text>
+            <view wx:if="{{activeModuleInfo.canHandle}}" class="task-card__actions">
+              <view class="task-btn task-btn--danger task-btn--full" data-row="{{item}}" bindtap="onHideComment">隐藏评论</view>
+            </view>
+          </view>
+        </block>
+
+        <block wx:elif="{{activeModule === 'leads'}}">
+          <view wx:for="{{rows}}" wx:key="id" class="task-card">
+            <view class="task-card__top">
+              <view class="task-card__dot task-card__dot--brand" />
+              <text class="task-card__type">商务线索</text>
+              <t-tag theme="warning" variant="light" size="small">{{item.typeText}}</t-tag>
+            </view>
+            <text class="task-card__title">{{item.titleText}}</text>
+            <text class="task-card__meta">{{item.metaText}}</text>
+            <text class="task-card__body">{{item.reasonText}}</text>
+            <view class="task-card__contact" data-phone="{{item.phone}}" catchtap="onCopyLeadPhone">
+              <t-icon name="file-copy" size="28rpx" />
+              <text>{{item.phone || '无手机号'}}</text>
+              <text class="task-card__contact-tip">点按复制</text>
+            </view>
+            <view wx:if="{{activeModuleInfo.canApprove || activeModuleInfo.canReject}}" class="task-card__actions">
+              <view
+                wx:if="{{activeModuleInfo.canReject}}"
+                class="task-btn task-btn--ghost"
+                data-row="{{item}}"
+                bindtap="onCloseLead"
+              >关闭</view>
+              <view
+                wx:if="{{activeModuleInfo.canApprove}}"
+                class="task-btn task-btn--primary"
+                data-row="{{item}}"
+                bindtap="onFollowLead"
+              >跟进</view>
+            </view>
+          </view>
+        </block>
+
+        <block wx:elif="{{activeModule === 'appeals'}}">
+          <view wx:for="{{rows}}" wx:key="id" class="task-card">
+            <view class="task-card__top">
+              <view class="task-card__dot task-card__dot--warning" />
+              <text class="task-card__type">积分申诉</text>
+              <t-tag theme="warning" variant="light" size="small">待处理</t-tag>
+            </view>
+            <text class="task-card__title">{{item.titleText}}</text>
+            <text class="task-card__meta">{{item.metaText}}</text>
+            <text class="task-card__body">{{item.reasonText}}</text>
+            <view wx:if="{{activeModuleInfo.canApprove || activeModuleInfo.canReject}}" class="task-card__actions">
+              <view
+                wx:if="{{activeModuleInfo.canReject}}"
+                class="task-btn task-btn--ghost"
+                data-row="{{item}}"
+                bindtap="onRejectAppeal"
+              >驳回</view>
+              <view
+                wx:if="{{activeModuleInfo.canApprove}}"
+                class="task-btn task-btn--success"
+                data-row="{{item}}"
+                bindtap="onApproveAppeal"
+              >通过并返还</view>
+            </view>
+          </view>
+        </block>
+
+        <view wx:if="{{listLoading}}" class="admin-loading admin-loading--list">
+          <t-loading theme="spinner" size="40rpx" text="加载中..." />
+        </view>
+        <view wx:if="{{!hasMore && rows.length}}" class="admin-list-end">没有更多了</view>
+      </block>
+    </view>
+  </scroll-view>
+</view>

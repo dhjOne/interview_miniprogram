@@ -142,7 +142,7 @@ export const demoApi = {
 - 搜索：`pages/search`
 - 个人中心：`pages/my`、`pages/ucenter`
 - 设置：`pages/setting`
-- 移动管理台：`pages/mobileAdmin`
+- 移动管理台：`subpackages/mobileAdmin`
 
 ## 10. 开发检查清单
 

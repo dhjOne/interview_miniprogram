@@ -121,7 +121,7 @@ Page({
 
   onTabChange(e) {
     const raw = e.detail?.value ?? e.detail?.index ?? 'all';
-    const typeMap = ['all', 'progress', 'published', 'draft', 'offline'];
+    const typeMap = ['all', 'progress', 'published', 'rejected', 'draft', 'offline'];
     const docType =
       typeof raw === 'string' && typeMap.includes(raw)
         ? raw

@@ -1,4 +1,4 @@
-@import "../question/question-list.shared.less";
+@import '../question/question-list.shared.less';
 
 /* 与题库页统一的品牌色与顶部卡片布局 */
 @doc-brand: #0052d9;
@@ -13,7 +13,6 @@
   --td-tab-item-color: @doc-muted;
   --td-tab-item-active-color: @doc-brand;
   --td-tab-track-color: @doc-brand;
-
 }
 
 /* 顶部：与题库同款白卡片 */
@@ -74,7 +73,9 @@
   color: @doc-muted;
   border-radius: 14rpx;
   white-space: nowrap;
-  transition: color 0.2s ease, background 0.2s ease;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease;
 }
 
 .ql-sort-segment__item--active {
@@ -177,7 +178,7 @@
 .question-item.doc-card--offline::before,
 .question-item.doc-card--rejected::before,
 .question-item.doc-card--default::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: 0;
@@ -247,6 +248,16 @@
 
 .question-item.doc-card--rejected .index-number {
   color: #c9362e;
+}
+
+.question-reject-reason {
+  margin-top: 12rpx;
+  padding: 12rpx 16rpx;
+  border-radius: 12rpx;
+  font-size: 24rpx;
+  line-height: 1.5;
+  color: #b42318;
+  background: rgba(213, 73, 65, 0.08);
 }
 
 /* ---------- 筛选弹窗（品牌蓝） ---------- */

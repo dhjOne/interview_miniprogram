@@ -253,16 +253,24 @@ Page({
         this.setData({ mobileAdminVisible: false, mobileAdminPendingCount: 0 });
         return;
       }
-      const modules = ['questions', 'profiles', 'categories']
-        .map((key) => ({ key, ...(overview[key] || {}) }))
-        .filter((item) => item.visible);
-      const pendingCount = modules.reduce((sum, item) => sum + (Number(item.pendingCount) || 0), 0);
       const moduleNameMap = {
         questions: '内容审核',
         profiles: '资料审核',
         categories: '分类建议',
+        reports: '举报处理',
+        comments: '评论治理',
+        leads: '商务线索',
+        appeals: '积分申诉',
+        published: '内容下架',
       };
-      const moduleText = modules.map((item) => moduleNameMap[item.key]).filter(Boolean).join(' · ');
+      const modules = Object.keys(moduleNameMap)
+        .map((key) => ({ key, ...(overview[key] || {}) }))
+        .filter((item) => item.visible);
+      const pendingCount = modules.reduce((sum, item) => sum + (Number(item.pendingCount) || 0), 0);
+      const moduleText = modules
+        .map((item) => moduleNameMap[item.key])
+        .filter(Boolean)
+        .join(' · ');
       this.setData({
         mobileAdminVisible: true,
         mobileAdminPendingCount: pendingCount,
@@ -385,7 +393,7 @@ Page({
   },
 
   onMobileAdminTap() {
-    app.navigateToLogin({ url: '/pages/mobileAdmin/index' });
+    app.navigateToLogin({ url: '/subpackages/mobileAdmin/index' });
   },
 
   /** 常用服务：浏览历史免登录；其他个人数据需登录 */

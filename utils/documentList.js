@@ -19,8 +19,8 @@ export function formatDateYMD(value) {
 }
 
 /**
- * 文档状态统一为：draft | progress | published | offline
- * - 数字 0~3：0 草稿、1 待审、2 已发、3 下架
+ * 文档状态统一为：draft | progress | published | offline | rejected
+ * - 数字 0~4：0 草稿、1 待审、2 已发、3 下架、4 驳回
  */
 export function normalizeDocStatus(raw) {
   if (raw === undefined || raw === null || raw === '') return null;
@@ -30,6 +30,7 @@ export function normalizeDocStatus(raw) {
     if (n === 1) return 'progress';
     if (n === 2) return 'published';
     if (n === 3) return 'offline';
+    if (n === 4) return 'rejected';
     return null;
   }
   const s = String(raw).trim().toLowerCase();
@@ -39,7 +40,7 @@ export function normalizeDocStatus(raw) {
   }
   if (s === '2' || s === 'published') return 'published';
   if (s === '3' || s === 'offline' || s === 'removed' || s === 'shelved') return 'offline';
-  if (s === 'rejected') return 'rejected';
+  if (s === '4' || s === 'rejected' || s === 'reject') return 'rejected';
   return null;
 }
 
@@ -85,6 +86,7 @@ export function normalizeDocRow(row) {
       ? { text: '未知', theme: 'default' }
       : null;
   const docCardTone = (docStatus && DOC_CARD_TONE[docStatus]) || 'doc-card--default';
+  const rejectReason = row.rejectReason ?? row.reject_reason ?? '';
   return {
     ...row,
     status: docStatus != null ? docStatus : row.status,
@@ -94,6 +96,7 @@ export function normalizeDocRow(row) {
     likeCount,
     statusTag,
     docCardTone,
+    rejectReason: rejectReason ? String(rejectReason) : '',
   };
 }
 

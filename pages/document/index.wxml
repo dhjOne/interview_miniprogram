@@ -6,6 +6,7 @@
         <t-tab-panel label="全部" value="all" />
         <t-tab-panel label="审核中" value="progress" />
         <t-tab-panel label="已发布" value="published" />
+        <t-tab-panel label="已驳回" value="rejected" />
         <t-tab-panel label="草稿箱" value="draft" />
         <t-tab-panel label="已下架" value="offline" />
       </t-tabs>
@@ -105,6 +106,9 @@
                     {{item.likeCount}} 点赞
                   </text>
                 </view>
+                <view class="question-reject-reason" wx:if="{{item.status === 'rejected' && item.rejectReason}}">
+                  驳回原因：{{item.rejectReason}}
+                </view>
               </view>
               <view class="question-actions" catchtap="onOpenActions" data-id="{{item.id}}">
                 <t-icon name="more" size="40rpx" color="#c0c4cc" class="collect-icon" />
@@ -126,6 +130,7 @@
         <text class="empty-text" wx:if="{{docType === 'all'}}">暂无文档</text>
         <text class="empty-text" wx:elif="{{docType === 'progress'}}">暂无审核中的文档</text>
         <text class="empty-text" wx:elif="{{docType === 'published'}}">暂无已发布的文档</text>
+        <text class="empty-text" wx:elif="{{docType === 'rejected'}}">暂无已驳回文档</text>
         <text class="empty-text" wx:elif="{{docType === 'draft'}}">暂无草稿</text>
         <text class="empty-text" wx:elif="{{docType === 'offline'}}">暂无已下架文档</text>
         <text class="empty-text" wx:else>暂无文档</text>
@@ -220,7 +225,7 @@
           hover-class="action-item--hover"
           data-action="edit"
           bindtap="onDocAction"
-          wx:if="{{currentDocStatus === 'draft' || currentDocStatus === 'published' || currentDocStatus === 'offline'}}"
+          wx:if="{{currentDocStatus === 'draft' || currentDocStatus === 'published' || currentDocStatus === 'offline' || currentDocStatus === 'rejected'}}"
         >
           <view class="action-item__icon action-item__icon--edit">
             <t-icon name="edit" size="40rpx" color="#0052d9" />
@@ -248,7 +253,7 @@
           hover-class="action-item--hover-danger"
           data-action="delete"
           bindtap="onDocAction"
-          wx:if="{{currentDocStatus === 'progress' || currentDocStatus === 'draft' || currentDocStatus === 'published'}}"
+          wx:if="{{currentDocStatus === 'progress' || currentDocStatus === 'draft' || currentDocStatus === 'published' || currentDocStatus === 'rejected' || currentDocStatus === 'offline'}}"
         >
           <view class="action-item__icon action-item__icon--delete">
             <t-icon name="delete" size="40rpx" color="#d54941" />

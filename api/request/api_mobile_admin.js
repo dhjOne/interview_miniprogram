@@ -17,10 +17,16 @@ export const mobileAdminApi = {
       loadingText: '通过中...',
     }),
 
-  rejectQuestion: (questionId) =>
-    http.post(`/mobile/admin/questions/${questionId}/reject`, null, {
+  rejectQuestion: (questionId, params) =>
+    http.post(`/mobile/admin/questions/${questionId}/reject`, params || {}, {
       showLoading: true,
       loadingText: '驳回中...',
+    }),
+
+  offlineQuestion: (questionId) =>
+    http.post(`/mobile/admin/questions/${questionId}/offline`, null, {
+      showLoading: true,
+      loadingText: '下架中...',
     }),
 
   getProfiles: (params) =>
@@ -53,6 +59,50 @@ export const mobileAdminApi = {
 
   handleCategorySuggestion: (params) =>
     http.post(`/mobile/admin/category-suggestions/${params.suggestionId}/handle`, params, {
+      showLoading: true,
+      loadingText: '处理中...',
+    }),
+
+  getReports: (params) =>
+    http.get('/mobile/admin/reports', params, {
+      showLoading: false,
+    }),
+
+  handleReport: (reportId, params) =>
+    http.post(`/mobile/admin/reports/${reportId}/handle`, params, {
+      showLoading: true,
+      loadingText: '处理中...',
+    }),
+
+  getComments: (params) =>
+    http.get('/mobile/admin/comments', params, {
+      showLoading: false,
+    }),
+
+  hideComment: (commentId) =>
+    http.post(`/mobile/admin/comments/${commentId}/hide`, null, {
+      showLoading: true,
+      loadingText: '隐藏中...',
+    }),
+
+  getBusinessLeads: (params) =>
+    http.get('/mobile/admin/business-leads', params, {
+      showLoading: false,
+    }),
+
+  handleBusinessLead: (leadId, params) =>
+    http.post(`/mobile/admin/business-leads/${leadId}/handle`, params, {
+      showLoading: true,
+      loadingText: '处理中...',
+    }),
+
+  getAppeals: (params) =>
+    http.get('/mobile/admin/appeals', params, {
+      showLoading: false,
+    }),
+
+  resolveAppeal: (params) =>
+    http.post('/mobile/admin/appeals/resolve', params, {
       showLoading: true,
       loadingText: '处理中...',
     }),

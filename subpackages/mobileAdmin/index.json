@@ -2,7 +2,7 @@
   "navigationStyle": "custom",
   "enablePullDownRefresh": true,
   "usingComponents": {
-    "nav": "/components/nav",
+    "t-navbar": "/miniprogram_npm/tdesign-miniprogram/navbar/navbar",
     "t-avatar": "/miniprogram_npm/tdesign-miniprogram/avatar/avatar",
     "t-button": "/miniprogram_npm/tdesign-miniprogram/button/button",
     "t-empty": "/miniprogram_npm/tdesign-miniprogram/empty/empty",

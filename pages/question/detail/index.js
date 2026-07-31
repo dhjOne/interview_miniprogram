@@ -18,14 +18,20 @@ import {
 } from '~/utils/questionDetail';
 import { processContentBlocks } from '~/utils/questionContentBlocks';
 import { safeDecodeURIComponent } from '~/utils/questionList';
-import { backPage, openPage } from '~/utils/router';
+import { backPage, openPage, ensureLoginForAction, getCurrentPagePath } from '~/utils/router';
 import { AppEvents } from '~/utils/eventBus';
+import {
+  ACTION_LOGIN_HINTS,
+  ACTION_RESUME_TOASTS,
+  consumePendingLoginAction,
+} from '~/utils/pendingAction';
 import {
   SHARE_ACTION,
   SHARE_CHANNEL,
   buildQuestionShareMessage,
   buildQuestionShareTimeline,
   parseShareEntry,
+  resolveShareImageUrl,
   trackQuestionShare,
 } from '~/utils/questionShare';
 
@@ -98,6 +104,9 @@ Page({
     collectPickerVisible: false,
     collectPickerMode: 'collect',
     collectPickerFolderId: null,
+
+    /** 访客态底栏提示 */
+    isLoggedIn: false,
   },
 
   onLoad(options) {
@@ -120,6 +129,7 @@ Page({
       categoryId: categoryId || null,
       categoryName: decodedCategoryName,
       catalogTitle: decodedCategoryName || '题目目录',
+      isLoggedIn: this.resolveLoginStatus(),
     });
     this._shareEntry = shareEntry;
 
@@ -153,6 +163,7 @@ Page({
       title: detail.title,
       questionId: this.data.questionId || detail.id,
       channel: SHARE_CHANNEL.FRIEND,
+      imageUrl: resolveShareImageUrl(detail),
     });
     // 右上角转发 / 系统分享菜单触发时上报（无法确认是否真正发出）
     if (typeof this.reportShareInitiate === 'function') {
@@ -172,6 +183,7 @@ Page({
     const payload = buildQuestionShareTimeline({
       title: detail.title,
       questionId: this.data.questionId || detail.id,
+      imageUrl: resolveShareImageUrl(detail),
     });
     if (typeof this.reportShareInitiate === 'function') {
       this.reportShareInitiate(SHARE_CHANNEL.TIMELINE);
@@ -185,7 +197,54 @@ Page({
     return payload;
   },
 
+  resolveLoginStatus() {
+    if (app && typeof app.checkLoginStatus === 'function' && app.checkLoginStatus()) {
+      return true;
+    }
+    try {
+      return !!(wx.getStorageSync('access_token') && wx.getStorageSync('user_info'));
+    } catch (e) {
+      return false;
+    }
+  },
+
+  syncLoginState() {
+    const isLoggedIn = this.resolveLoginStatus();
+    if (isLoggedIn !== this.data.isLoggedIn) {
+      this.setData({ isLoggedIn });
+    }
+    return isLoggedIn;
+  },
+
+  /** 访客底栏「去登录」 */
+  onGuestLoginTap() {
+    ensureLoginForAction({
+      app,
+      returnUrl: getCurrentPagePath(),
+      content: '登录后即可点赞、收藏与评论',
+    });
+  },
+
+  /**
+   * 登录回跳续做成功时的 Toast（无续做标记则返回 fallback）
+   * @param {string} type
+   * @param {string} [fallback]
+   */
+  consumeResumeToast(type, fallback = '') {
+    if (this._resumeActionType !== type) return fallback;
+    this._resumeActionType = null;
+    return ACTION_RESUME_TOASTS[type] || fallback;
+  },
+
+  /** 仅打开面板类续做：直接提示 */
+  flushResumeToast(type) {
+    const content = this.consumeResumeToast(type);
+    if (!content) return;
+    Message.success({ content, duration: 2000 });
+  },
+
   onShow() {
+    this.syncLoginState();
     // 登录回跳等场景：页面已挂载但详情未成功展示时自动重试
     if (
       this.data.questionId &&
@@ -198,6 +257,7 @@ Page({
     ) {
       this.loadQuestionDetail();
     }
+    this.resumePendingLoginAction();
   },
 
   onPullDownRefresh() {
@@ -277,6 +337,8 @@ Page({
         } else {
           this.renderWithContentBlocks(questionDetail);
         }
+
+        this.flushPendingActionAfterDetailReady();
       } else {
         this.setData({
           loading: false,
@@ -557,17 +619,165 @@ Page({
     });
   },
 
+  /**
+   * 未登录轻提示；确认后去登录，回跳后续做。
+   * @param {string} actionType
+   * @param {Object} [payload]
+   */
+  requireLoginForAction(actionType, payload = {}) {
+    return ensureLoginForAction({
+      app,
+      returnUrl: getCurrentPagePath(),
+      content: ACTION_LOGIN_HINTS[actionType] || '登录后即可继续操作',
+      action: {
+        type: actionType,
+        page: 'question_detail',
+        questionId: String(this.data.questionId || ''),
+        payload,
+      },
+    });
+  },
+
+  resumePendingLoginAction() {
+    if (!app.checkLoginStatus || !app.checkLoginStatus()) return;
+    if (this._resumingPendingAction) return;
+    const questionId = String(this.data.questionId || '');
+    if (!questionId) return;
+
+    const action = consumePendingLoginAction(
+      (item) => item.page === 'question_detail' && String(item.questionId || '') === questionId,
+    );
+    if (!action) return;
+
+    if (this.data.loading || this._detailLoading || !this.data.questionDetail?.id) {
+      this._pendingActionAfterLoad = action;
+      return;
+    }
+
+    this._resumingPendingAction = true;
+    setTimeout(() => {
+      this._resumingPendingAction = false;
+      this.runPendingLoginAction(action);
+    }, 320);
+  },
+
+  flushPendingActionAfterDetailReady() {
+    const action = this._pendingActionAfterLoad;
+    if (!action) return;
+    this._pendingActionAfterLoad = null;
+    if (!app.checkLoginStatus || !app.checkLoginStatus()) return;
+    setTimeout(() => this.runPendingLoginAction(action), 200);
+  },
+
+  runPendingLoginAction(action) {
+    if (!action || !action.type) return;
+    this._resumeActionType = action.type;
+    const payload = action.payload || {};
+    switch (action.type) {
+      case 'like':
+        this.onLike();
+        break;
+      case 'collect':
+        this.onCollect();
+        break;
+      case 'follow':
+        this.onToggleFollow();
+        break;
+      case 'comment_submit': {
+        const patch = {
+          commentText: payload.content || '',
+          showCommentPanel: true,
+        };
+        if (payload.replyParentId) {
+          patch.replyParentId = payload.replyParentId;
+          patch.replyRootId = payload.replyRootId || payload.replyParentId;
+          patch.replyTargetName = payload.replyTargetName || '';
+          patch.commentPlaceholder = payload.replyTargetName
+            ? `回复 @${payload.replyTargetName}`
+            : '说点什么...';
+        }
+        this.setData(patch, () => {
+          if (typeof this.onSubmitComment === 'function') {
+            this.onSubmitComment();
+          }
+        });
+        break;
+      }
+      case 'comment_like':
+        if (payload.commentId && typeof this.onLikeComment === 'function') {
+          this.onLikeComment({
+            currentTarget: { dataset: { id: payload.commentId } },
+          });
+        }
+        break;
+      case 'comment_reply':
+        if (payload.id && typeof this.onReplyComment === 'function') {
+          if (typeof this.onOpenComments === 'function') {
+            this.onOpenComments();
+          }
+          this.onReplyComment({
+            currentTarget: {
+              dataset: {
+                id: payload.id,
+                name: payload.name,
+                rootId: payload.rootId,
+                content: payload.content,
+              },
+            },
+          });
+          this.flushResumeToast('comment_reply');
+        }
+        break;
+      case 'comment_report':
+        if (payload.id && typeof this.onReportComment === 'function') {
+          this.onReportComment({
+            currentTarget: {
+              dataset: {
+                id: payload.id,
+                userId: payload.userId,
+                content: payload.content,
+              },
+            },
+          });
+          this.flushResumeToast('comment_report');
+        }
+        break;
+      case 'report_question':
+        if (typeof this.reportQuestion === 'function') this.reportQuestion();
+        break;
+      case 'report_author':
+        if (typeof this.reportAuthor === 'function') this.reportAuthor();
+        break;
+      case 'block_author':
+        if (typeof this.blockAuthor === 'function') this.blockAuthor();
+        this.flushResumeToast('block_author');
+        break;
+      case 'memo':
+        if (typeof this.createInterviewMemo === 'function') this.createInterviewMemo();
+        this.flushResumeToast('memo');
+        break;
+      default:
+        this._resumeActionType = null;
+        break;
+    }
+  },
+
   async onToggleFollow() {
     if (this.data.isSelfAuthor) {
       return;
     }
+    if (!this.requireLoginForAction('follow')) return;
 
     const nextFollowing = !this.data.authorFollowing;
 
     if (!this.data.authorId) {
       this.setData({ authorFollowing: nextFollowing });
+      const toastTitle = this.consumeResumeToast(
+        'follow',
+        nextFollowing ? '已关注（待后端同步）' : '已取消关注',
+      );
       wx.showToast({
-        title: nextFollowing ? '已关注（待后端同步）' : '已取消关注',
+        title: toastTitle,
         icon: 'none',
       });
       return;
@@ -579,11 +789,12 @@ Page({
       });
       this.setData({ authorFollowing: nextFollowing });
       Message.success({
-        content: nextFollowing ? '已关注作者' : '已取消关注',
+        content: this.consumeResumeToast('follow', nextFollowing ? '已关注作者' : '已取消关注'),
         duration: 2000,
       });
     } catch (e) {
       console.warn('关注作者失败', e);
+      this._resumeActionType = null;
       handleApiError(e, { fallbackMessage: '操作失败' });
     }
   },
@@ -606,6 +817,7 @@ Page({
 
   async onLike() {
     if (this.data.error || this.data.isEmpty) return;
+    if (!this.requireLoginForAction('like')) return;
 
     const { questionDetail } = this.data;
     const liked = !!questionDetail.liked;
@@ -622,17 +834,21 @@ Page({
       });
       this.emitQuestionUpdated({ liked: !liked, likeCount });
       Message.success({
-        content: liked ? '已取消点赞' : '点赞成功',
+        content: this.consumeResumeToast('like', liked ? '已取消点赞' : '点赞成功'),
         duration: 2000,
       });
     } catch (error) {
       console.error('点赞操作失败:', error);
+      this._resumeActionType = null;
       handleApiError(error, { fallbackMessage: '操作失败，请重试' });
     }
   },
 
   async onCollect() {
     if (this.data.error || this.data.isEmpty) return;
+    if (!this.requireLoginForAction('collect')) return;
+
+    this.flushResumeToast('collect');
 
     const { questionDetail } = this.data;
     const collected = !!(questionDetail.collected ?? questionDetail.isCollected);

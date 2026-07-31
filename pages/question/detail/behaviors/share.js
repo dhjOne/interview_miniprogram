@@ -2,6 +2,8 @@ import Message from 'tdesign-miniprogram/message/index';
 import { socialApi, questionApi, handleApiError, unwrapData } from '~/api/index';
 import { buildSharePanels } from '~/utils/questionDetail';
 import { SHARE_ACTION, SHARE_CHANNEL, trackQuestionShare } from '~/utils/questionShare';
+import { ensureLoginForAction, getCurrentPagePath } from '~/utils/router';
+import { ACTION_LOGIN_HINTS } from '~/utils/pendingAction';
 
 /**
  * 题目详情：分享面板、复制链接、举报/拉黑作者
@@ -18,6 +20,20 @@ const questionShareBehavior = Behavior({
   },
 
   methods: {
+    requireLoginForAction(actionType, payload = {}) {
+      return ensureLoginForAction({
+        app: getApp(),
+        returnUrl: getCurrentPagePath(),
+        content: ACTION_LOGIN_HINTS[actionType] || '登录后即可继续操作',
+        action: {
+          type: actionType,
+          page: 'question_detail',
+          questionId: String(this.data.questionId || ''),
+          payload,
+        },
+      });
+    },
+
     onShare() {
       this.setData({ showShareActionSheet: true });
     },
@@ -71,6 +87,7 @@ const questionShareBehavior = Behavior({
     },
 
     createInterviewMemo() {
+      if (!this.requireLoginForAction('memo')) return;
       const detail = this.data.questionDetail || {};
       const params = [
         `questionId=${encodeURIComponent(this.data.questionId || detail.id || '')}`,
@@ -79,11 +96,6 @@ const questionShareBehavior = Behavior({
         `categoryName=${encodeURIComponent(detail.categoryName || this.data.categoryName || '')}`,
       ].join('&');
       const url = `/pages/interviewMemo/edit/index?${params}`;
-      const app = getApp();
-      if (app && typeof app.navigateToLogin === 'function') {
-        app.navigateToLogin({ url });
-        return;
-      }
       wx.navigateTo({ url });
     },
 
@@ -99,6 +111,7 @@ const questionShareBehavior = Behavior({
     },
 
     async reportQuestion() {
+      if (!this.requireLoginForAction('report_question')) return;
       try {
         await socialApi.submitReport({
           targetType: 'QUESTION',
@@ -108,13 +121,21 @@ const questionShareBehavior = Behavior({
           reasonType: 'OTHER',
           reason: '题目内容举报',
         });
-        wx.showToast({ title: '举报已提交', icon: 'none' });
+        const reportToast =
+          typeof this.consumeResumeToast === 'function'
+            ? this.consumeResumeToast('report_question', '举报已提交')
+            : '举报已提交';
+        wx.showToast({ title: reportToast, icon: 'none' });
       } catch (e) {
+        if (this._resumeActionType === 'report_question') {
+          this._resumeActionType = null;
+        }
         handleApiError(e, { fallbackMessage: '提交失败' });
       }
     },
 
     async reportAuthor() {
+      if (!this.requireLoginForAction('report_author')) return;
       if (!this.data.authorId) {
         wx.showToast({ title: '暂无作者信息', icon: 'none' });
         return;
@@ -128,13 +149,21 @@ const questionShareBehavior = Behavior({
           reasonType: 'OTHER',
           reason: '作者举报',
         });
-        wx.showToast({ title: '举报已提交', icon: 'none' });
+        const reportToast =
+          typeof this.consumeResumeToast === 'function'
+            ? this.consumeResumeToast('report_author', '举报已提交')
+            : '举报已提交';
+        wx.showToast({ title: reportToast, icon: 'none' });
       } catch (e) {
+        if (this._resumeActionType === 'report_author') {
+          this._resumeActionType = null;
+        }
         handleApiError(e, { fallbackMessage: '提交失败' });
       }
     },
 
     blockAuthor() {
+      if (!this.requireLoginForAction('block_author')) return;
       if (!this.data.authorId) {
         wx.showToast({ title: '暂无作者信息', icon: 'none' });
         return;

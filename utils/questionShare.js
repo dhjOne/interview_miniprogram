@@ -55,25 +55,66 @@ export function buildQuestionShareMessage({
   title,
   questionId,
   channel = SHARE_CHANNEL.FRIEND,
+  imageUrl,
 } = {}) {
   const shareTitle = (title && String(title).trim()) || '面试题分享';
-  return {
+  const payload = {
     title: shareTitle,
     path: buildQuestionSharePath({ questionId, channel }),
   };
+  const cover = resolveShareImageUrl(imageUrl);
+  if (cover) payload.imageUrl = cover;
+  return payload;
 }
 
-export function buildQuestionShareTimeline({ title, questionId } = {}) {
+export function buildQuestionShareTimeline({ title, questionId, imageUrl } = {}) {
   const shareTitle = (title && String(title).trim()) || '面试题分享';
   const query =
     buildQuestionSharePath({
       questionId,
       channel: SHARE_CHANNEL.TIMELINE,
     }).split('?')[1] || '';
-  return {
+  const payload = {
     title: shareTitle,
     query,
   };
+  const cover = resolveShareImageUrl(imageUrl);
+  if (cover) payload.imageUrl = cover;
+  return payload;
+}
+
+/** 默认分享封面（建议约 5:4）；题目无封面时使用 */
+export const DEFAULT_SHARE_IMAGE = '/static/home/card0.png';
+
+/**
+ * 解析分享封面：优先题目封面 / 头图，否则默认图
+ */
+export function resolveShareImageUrl(detailOrUrl) {
+  if (typeof detailOrUrl === 'string' && detailOrUrl.trim()) {
+    return detailOrUrl.trim();
+  }
+  const detail = detailOrUrl && typeof detailOrUrl === 'object' ? detailOrUrl : null;
+  if (detail) {
+    const candidates = [
+      detail.coverUrl,
+      detail.cover_url,
+      detail.cover,
+      detail.shareImage,
+      detail.share_image,
+      detail.imageUrl,
+      detail.image_url,
+      detail.thumbUrl,
+      detail.thumb_url,
+      detail.previewImage,
+    ];
+    for (let i = 0; i < candidates.length; i += 1) {
+      const value = candidates[i];
+      if (value != null && String(value).trim()) {
+        return String(value).trim();
+      }
+    }
+  }
+  return DEFAULT_SHARE_IMAGE;
 }
 
 /**

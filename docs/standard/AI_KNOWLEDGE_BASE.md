@@ -6,12 +6,14 @@
 
 ## 2. AI 处理任务时优先阅读
 
+- `docs/README.md`：文档中心与技术方案管理规范（新功能方案写入 `docs/tech/`）。
 - `app.json`：页面注册、分包、TabBar。
 - `api/api_request.js`：请求、token、业务错误、ECDH 加密。
 - `api/index.js`：API 统一出口。
-- `utils/router.js`：页面跳转和登录回跳。
+- `utils/router.js`：页面跳转、登录回跳、`ensureLogin`（互动鉴权）。
 - `app.js`：全局登录态、用户信息缓存、事件总线。
 - 目标页面的 `index.js/wxml/less/json`。
+- 相关功能方案：`docs/tech/*.md`（若已有）。
 
 ## 3. 关键约束
 
@@ -95,3 +97,4 @@ api/request/api_mobile_admin.js
 - 修改请求层时要谨慎，因为全项目共享。
 - 修改 `app.json` 时注意页面路径、分包路径和 TabBar 路径。
 - 新增 UI 优先参考 `pages/my`、`pages/document`、`pages/ucenter` 的卡片风格。
+- 完成或变更功能技术方案后，写入 `docs/tech/` 并更新 `docs/README.md` / `docs/tech/README.md` 索引（见 `.cursor/rules/docs-tech-solutions.mdc`）。

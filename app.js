@@ -4,6 +4,7 @@ import encryption from './utils/encryption';
 import {
   buildLoginUrl,
   getCurrentPagePath,
+  ensureLogin,
   navigateToLogin,
   navigateToWithAuth,
 } from './utils/router';
@@ -101,6 +102,11 @@ App({
 
   navigateToLogin(options) {
     navigateToLogin(options, this);
+  },
+
+  /** 互动前登录校验；未登录会跳登录并 return 当前页 */
+  ensureLogin(returnUrl) {
+    return ensureLogin(this, returnUrl);
   },
 
   showGlobalFloatButton() {

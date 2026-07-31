@@ -5,7 +5,7 @@ import {
   fetchUserQuestions,
   normalizeProfileRow,
 } from '~/utils/userProfile';
-import { backPage } from '~/utils/router';
+import { backPage, openPage } from '~/utils/router';
 
 const app = getApp();
 
@@ -277,7 +277,7 @@ Page({
     const { id, title } = e.currentTarget.dataset;
     if (!id) return;
     const titleQ = title ? `&title=${encodeURIComponent(title)}` : '';
-    app.navigateToLogin({
+    openPage({
       url: `/pages/question/detail/index?id=${id}${titleQ}`,
     });
   },

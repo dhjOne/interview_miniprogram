@@ -2,13 +2,13 @@ import Message from 'tdesign-miniprogram/message/index';
 import { handleApiError } from '~/api/index';
 import {
   clearQuestionBrowseHistory,
-  removeQuestionBrowseById
+  removeQuestionBrowseById,
 } from '~/utils/questionBrowseHistory';
 import {
   clearServerBrowseHistory,
   fetchMergedBrowseHistory,
   hasLoginToken,
-  removeServerBrowseHistory
+  removeServerBrowseHistory,
 } from '~/utils/practiceBrowse';
 import { openPage } from '~/utils/router';
 
@@ -46,7 +46,7 @@ function resolveGroupMeta(ts) {
   }
   return {
     groupKey: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
-    groupLabel: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    groupLabel: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
   };
 }
 
@@ -80,7 +80,7 @@ function normalizeHistoryRow(row, index) {
     timeText: formatRelativeTime(ts),
     clockText: formatClock(ts),
     groupKey: group.groupKey,
-    groupLabel: group.groupLabel
+    groupLabel: group.groupLabel,
   };
 }
 
@@ -94,7 +94,7 @@ function buildGroupedList(rows) {
       group = {
         key: row.groupKey,
         label: row.groupLabel,
-        items: []
+        items: [],
       };
       indexMap.set(row.groupKey, group);
       groups.push(group);
@@ -104,7 +104,7 @@ function buildGroupedList(rows) {
 
   return groups.map((group) => ({
     ...group,
-    count: group.items.length
+    count: group.items.length,
   }));
 }
 
@@ -116,7 +116,7 @@ Page({
     loading: true,
     useServer: false,
     syncLabel: '本机记录',
-    tipText: '浏览过的题目会出现在这里'
+    tipText: '浏览过的题目会出现在这里',
   },
 
   onShow() {
@@ -151,7 +151,7 @@ Page({
         tipText,
         list,
         groups,
-        totalCount: list.length
+        totalCount: list.length,
       });
     } catch (e) {
       console.warn('[history] load failed', e);
@@ -161,7 +161,7 @@ Page({
         totalCount: 0,
         tipText: '加载失败，请下拉重试',
         syncLabel: '加载失败',
-        useServer: hasLoginToken()
+        useServer: hasLoginToken(),
       });
     } finally {
       this.setData({ loading: false });
@@ -171,8 +171,8 @@ Page({
   onQuestionTap(e) {
     const { id, title } = e.currentTarget.dataset;
     if (!id) return;
-    app.navigateToLogin({
-      url: `/pages/question/detail/index?id=${id}&title=${encodeURIComponent(title || '')}`
+    openPage({
+      url: `/pages/question/detail/index?id=${id}&title=${encodeURIComponent(title || '')}`,
     });
   },
 
@@ -189,7 +189,7 @@ Page({
         context: this,
         offset: [20, 32],
         duration: 1500,
-        content: '已移除'
+        content: '已移除',
       });
     } catch (err) {
       handleApiError(err, { fallbackMessage: '移除失败' });
@@ -201,9 +201,10 @@ Page({
     if (!list.length) return;
     wx.showModal({
       title: '清空浏览历史',
-      content: this.data.useServer && hasLoginToken()
-        ? '将删除云端与本机的全部浏览记录，且不可恢复。'
-        : '将删除本机保存的全部浏览记录，且不可恢复。',
+      content:
+        this.data.useServer && hasLoginToken()
+          ? '将删除云端与本机的全部浏览记录，且不可恢复。'
+          : '将删除本机保存的全部浏览记录，且不可恢复。',
       confirmColor: '#0052d9',
       success: async (res) => {
         if (!res.confirm) return;
@@ -217,16 +218,16 @@ Page({
             context: this,
             offset: [20, 32],
             duration: 2000,
-            content: '已清空'
+            content: '已清空',
           });
         } catch (err) {
           handleApiError(err, { fallbackMessage: '清空失败' });
         }
-      }
+      },
     });
   },
 
   goPractice() {
     openPage({ url: '/pages/category/index' });
-  }
+  },
 });

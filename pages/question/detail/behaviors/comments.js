@@ -7,6 +7,8 @@ import {
   patchCommentLike,
   truncateText,
 } from '~/utils/questionDetail';
+import { ensureLoginForAction, getCurrentPagePath } from '~/utils/router';
+import { ACTION_LOGIN_HINTS } from '~/utils/pendingAction';
 
 /**
  * 题目详情：评论列表、回复、点赞、举报
@@ -36,6 +38,20 @@ const questionCommentsBehavior = Behavior({
   },
 
   methods: {
+    requireLoginForAction(actionType, payload = {}) {
+      return ensureLoginForAction({
+        app: getApp(),
+        returnUrl: getCurrentPagePath(),
+        content: ACTION_LOGIN_HINTS[actionType] || '登录后即可继续操作',
+        action: {
+          type: actionType,
+          page: 'question_detail',
+          questionId: String(this.data.questionId || ''),
+          payload,
+        },
+      });
+    },
+
     onCommentChange(event) {
       this.setData({
         commentText: event.detail.value,
@@ -230,6 +246,16 @@ const questionCommentsBehavior = Behavior({
         Message.info({ content: '请输入评论内容', duration: 2000 });
         return;
       }
+      if (
+        !this.requireLoginForAction('comment_submit', {
+          content,
+          replyParentId: this.data.replyParentId,
+          replyRootId: this.data.replyRootId,
+          replyTargetName: this.data.replyTargetName,
+        })
+      ) {
+        return;
+      }
 
       const payload = {
         questionId: Number(this.data.questionId),
@@ -247,7 +273,11 @@ const questionCommentsBehavior = Behavior({
 
       try {
         const response = await questionApi.submitComment(payload);
-        Message.success({ content: '评论发布成功', duration: 2000 });
+        const toast =
+          typeof this.consumeResumeToast === 'function'
+            ? this.consumeResumeToast('comment_submit', '评论发布成功')
+            : '评论发布成功';
+        Message.success({ content: toast, duration: 2000 });
         const newCommentId = response.data;
         this.setData({
           commentText: '',
@@ -260,6 +290,9 @@ const questionCommentsBehavior = Behavior({
         }
       } catch (e) {
         console.warn('提交评论失败', e);
+        if (this._resumeActionType === 'comment_submit') {
+          this._resumeActionType = null;
+        }
         handleApiError(e, { fallbackMessage: '评论发布失败' });
       }
     },
@@ -267,6 +300,7 @@ const questionCommentsBehavior = Behavior({
     async onLikeComment(event) {
       const commentId = event.currentTarget.dataset.id;
       if (!commentId) return;
+      if (!this.requireLoginForAction('comment_like', { commentId })) return;
 
       const likedCommentIds = { ...(this.data.likedCommentIds || {}) };
       const currentLiked = !!likedCommentIds[commentId];
@@ -286,8 +320,17 @@ const questionCommentsBehavior = Behavior({
           commentId: Number(commentId),
           like: nextLiked,
         });
+        if (typeof this.consumeResumeToast === 'function') {
+          const toast = this.consumeResumeToast('comment_like');
+          if (toast) {
+            Message.success({ content: toast, duration: 2000 });
+          }
+        }
       } catch (e) {
         console.warn('点赞评论失败', e);
+        if (this._resumeActionType === 'comment_like') {
+          this._resumeActionType = null;
+        }
         const revertLikedIds = { ...(this.data.likedCommentIds || {}) };
         if (currentLiked) {
           revertLikedIds[commentId] = true;
@@ -305,6 +348,15 @@ const questionCommentsBehavior = Behavior({
     async onReportComment(event) {
       const { id, userId, content } = event.currentTarget.dataset;
       if (!id) return;
+      if (
+        !this.requireLoginForAction('comment_report', {
+          id,
+          userId,
+          content,
+        })
+      ) {
+        return;
+      }
       try {
         await socialApi.submitReport({
           targetType: 'COMMENT',
@@ -323,6 +375,16 @@ const questionCommentsBehavior = Behavior({
     onReplyComment(event) {
       const { id, name, rootId, content } = event.currentTarget.dataset;
       if (!id) return;
+      if (
+        !this.requireLoginForAction('comment_reply', {
+          id,
+          name,
+          rootId,
+          content,
+        })
+      ) {
+        return;
+      }
 
       const targetName = name || '匿名用户';
       const threadRootId = rootId || id;

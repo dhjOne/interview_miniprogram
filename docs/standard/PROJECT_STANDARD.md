@@ -37,7 +37,8 @@ pages/                        # 主包页面和业务分包
 custom-tab-bar/               # 自定义 TabBar
 subpackages/towxml/           # Markdown 渲染分包
 config/                       # 环境配置
-Standard/                     # 项目标准文档
+docs/                         # 文档中心：standard 标准 + tech 技术方案
+.cursor/rules/                # Cursor / AI 持久规则
 ```
 
 ## 4. 页面开发规范

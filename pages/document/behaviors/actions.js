@@ -127,7 +127,7 @@ const documentActionsBehavior = Behavior({
 
     onDocClick(e) {
       const { id } = e.currentTarget.dataset;
-      app.navigateToLogin({
+      openPage({
         url: `/pages/question/detail/index?id=${id}`,
       });
     },

@@ -10,6 +10,7 @@ import {
   resumeAfterLogin,
   switchTabPage,
 } from '~/utils/router';
+import { clearPendingLoginAction } from '~/utils/pendingAction';
 
 Page({
   data: {
@@ -234,7 +235,10 @@ Page({
       });
 
       setTimeout(() => {
-        if (returnUrl && (from === 'token_expired' || from === 'unauthorized')) {
+        if (
+          returnUrl &&
+          (from === 'token_expired' || from === 'unauthorized' || from === 'action')
+        ) {
           let decodedUrl = returnUrl;
           if (decodedUrl.includes('%')) {
             try {
@@ -247,6 +251,19 @@ Page({
           if (!openUrl.startsWith('/')) {
             openUrl = `/${openUrl}`;
           }
+          resumeAfterLogin(openUrl);
+        } else if (returnUrl) {
+          // 其它带来源 return 的场景也回业务页，避免丢 pending
+          let decodedUrl = returnUrl;
+          if (decodedUrl.includes('%')) {
+            try {
+              decodedUrl = decodeURIComponent(decodedUrl);
+            } catch (e) {
+              // keep
+            }
+          }
+          let openUrl = decodedUrl.trim();
+          if (!openUrl.startsWith('/')) openUrl = `/${openUrl}`;
           resumeAfterLogin(openUrl);
         } else {
           switchTabPage({ url: '/pages/my/index' });
@@ -421,6 +438,11 @@ Page({
       }
     }
 
+    // 未完成登录则丢弃待续动作，避免下次误触发
+    if (from === 'action') {
+      clearPendingLoginAction();
+    }
+
     const openPath = (path) => {
       if (!path || !String(path).trim()) return false;
       openUrlCascade(String(path).trim(), {
@@ -438,7 +460,10 @@ Page({
     backPage({
       delta: 1,
       fail: () => {
-        if (returnUrl && (from === 'token_expired' || from === 'unauthorized')) {
+        if (
+          returnUrl &&
+          (from === 'token_expired' || from === 'unauthorized' || from === 'action')
+        ) {
           openPath(returnUrl);
         } else {
           this._loginGoBackLastResort();

@@ -198,11 +198,20 @@
         </view>
       </view>
 
-      <view class="bottom-placeholder"></view>
+      <view class="bottom-placeholder {{!isLoggedIn ? 'bottom-placeholder--guest' : ''}}"></view>
     </scroll-view>
 
     <!-- 底部导航栏 -->
     <view class="detail-bottom-bar">
+      <view
+        wx:if="{{!isLoggedIn}}"
+        class="bottom-bar__guest"
+        hover-class="bottom-bar__guest--pressed"
+        bindtap="onGuestLoginTap"
+      >
+        <text class="bottom-bar__guest-text">登录后可点赞、收藏与评论</text>
+        <text class="bottom-bar__guest-action">去登录</text>
+      </view>
       <view class="bottom-bar__dock">
         <view class="bottom-tool" hover-class="bottom-tool--pressed" bindtap="onOpenCatalog">
           <view class="bottom-tool__icon">

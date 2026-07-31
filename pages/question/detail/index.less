@@ -870,6 +870,36 @@
   box-sizing: border-box;
 }
 
+.bottom-bar__guest {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-bottom: 12rpx;
+  padding: 16rpx 22rpx;
+  background: rgba(0, 82, 217, 0.06);
+  border: 1rpx solid rgba(0, 82, 217, 0.12);
+  border-radius: 20rpx;
+}
+
+.bottom-bar__guest--pressed {
+  opacity: 0.82;
+}
+
+.bottom-bar__guest-text {
+  flex: 1;
+  font-size: 24rpx;
+  line-height: 1.4;
+  color: #334155;
+}
+
+.bottom-bar__guest-action {
+  flex-shrink: 0;
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #0052d9;
+}
+
 .bottom-bar__dock {
   display: flex;
   align-items: center;
@@ -973,6 +1003,10 @@
 .bottom-placeholder {
   height: 140rpx;
   width: 100%;
+}
+
+.bottom-placeholder--guest {
+  height: 220rpx;
 }
 
 /* 目录侧栏 */

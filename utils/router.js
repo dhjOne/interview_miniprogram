@@ -1,3 +1,5 @@
+import { setPendingLoginAction } from './pendingAction';
+
 /** 与 app.json tabBar.list 保持一致 */
 export const TAB_ROOTS = [
   '/pages/category/index',
@@ -296,6 +298,94 @@ export function navigateToLogin(options = {}, app) {
     return;
   }
   openPage(options);
+}
+
+/**
+ * 互动前登录校验：已登录返回 true；未登录跳转登录并带 return，返回 false。
+ * 与 navigateToLogin 不同：已登录时不会再次 openPage。
+ */
+export function ensureLogin(app, returnUrl) {
+  const a = app || (typeof getApp === 'function' ? getApp() : null);
+  if (a && typeof a.checkLoginStatus === 'function' && a.checkLoginStatus()) {
+    return true;
+  }
+  try {
+    if (wx.getStorageSync('access_token') && wx.getStorageSync('user_info')) {
+      return true;
+    }
+  } catch (e) {
+    // ignore
+  }
+  const targetUrl = returnUrl || getCurrentPagePath();
+  const returnQuery = targetUrl ? `&return=${encodeURIComponent(targetUrl)}` : '';
+  goLogin(buildLoginUrl(returnQuery));
+  return false;
+}
+
+/**
+ * 未登录时弹轻提示，确认后再去登录；可附带 pending action 供回跳后续做。
+ * @param {Object} options
+ * @param {*} [options.app]
+ * @param {string} [options.returnUrl]
+ * @param {string} [options.title]
+ * @param {string} [options.content]
+ * @param {string} [options.confirmText]
+ * @param {string} [options.cancelText]
+ * @param {import('./pendingAction').PendingLoginAction} [options.action]
+ * @returns {boolean} 已登录 true；未登录（已弹窗）false
+ */
+export function ensureLoginForAction(options = {}) {
+  const {
+    app,
+    returnUrl,
+    title = '需要登录',
+    content = '登录后即可继续操作',
+    confirmText = '去登录',
+    cancelText = '先看看',
+    action,
+  } = options;
+
+  const a = app || (typeof getApp === 'function' ? getApp() : null);
+  if (a && typeof a.checkLoginStatus === 'function' && a.checkLoginStatus()) {
+    return true;
+  }
+  try {
+    if (wx.getStorageSync('access_token') && wx.getStorageSync('user_info')) {
+      return true;
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  const targetUrl = returnUrl || getCurrentPagePath();
+  wx.showModal({
+    title,
+    content,
+    confirmText,
+    cancelText,
+    success: (res) => {
+      if (!res.confirm) return;
+      try {
+        if (action && action.type) {
+          setPendingLoginAction(action);
+        }
+      } catch (e) {
+        console.warn('[ensureLoginForAction] save pending failed', e);
+      }
+      const returnQuery = targetUrl ? `&return=${encodeURIComponent(targetUrl)}` : '';
+      const referrer = getCurrentPagePath();
+      if (referrer) {
+        try {
+          wx.setStorageSync('login_referrer', referrer);
+        } catch (e) {
+          // ignore
+        }
+      }
+      const referrerQuery = referrer ? `&referrer=${encodeURIComponent(referrer)}` : '';
+      goLogin(`/pages/login/login?from=action${referrerQuery}${returnQuery}`);
+    },
+  });
+  return false;
 }
 
 export function navigateToWithAuth(options = {}, app) {

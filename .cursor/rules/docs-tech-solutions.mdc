@@ -1,0 +1,28 @@
+---
+description: 小程序技术方案与文档必须统一写入 docs/，并维护索引
+alwaysApply: true
+---
+
+# 文档与技术方案管理
+
+## 强制约定
+
+- 本仓库（`interview_miniprogram`）的**技术方案、功能设计结论、联调说明**统一放在 `docs/` 下管理。
+- **不要**把完整技术方案只留在聊天里；落地或评审后写入文档并更新索引。
+- 新功能技术方案路径：`docs/tech/YYYY-MM-<topic-kebab-case>.md`。
+- 长期规范（编码、目录、跨仓）放在 `docs/standard/`，不要塞进单个功能方案。
+
+## 每次新增/重大变更技术方案时
+
+1. 在 `docs/tech/` 创建或更新对应 Markdown（状态：草稿 / 已落地 / 已废弃）。
+2. 更新 `docs/tech/README.md` 清单。
+3. 更新 `docs/README.md`「文档索引」。
+4. 文档需包含：目标、结论、接口约定、关键文件落点、边界、验证清单。
+
+## 管理规范原文
+
+详见：`docs/README.md`。
+
+## 示例
+
+- 题目分享：`docs/tech/2026-07-question-share.md`

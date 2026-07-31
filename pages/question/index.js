@@ -15,6 +15,7 @@ import {
 } from '~/utils/banners';
 import { normalizeQuestionRow, safeDecodeURIComponent } from '~/utils/questionList';
 import { AppEvents } from '~/utils/eventBus';
+import { openPage } from '~/utils/router';
 
 const app = getApp();
 
@@ -437,6 +438,7 @@ Page({
     if (categoryId) {
       url += `&categoryId=${categoryId}&categoryName=${encodeURIComponent(categoryName || '')}`;
     }
-    app.navigateToLogin({ url });
+    // 方案 A：内容可读免登，互动在详情内再校验登录
+    openPage({ url });
   },
 });

@@ -543,7 +543,7 @@ Page({
   onQuestionClick(e) {
     const questionId = e.currentTarget.dataset.id;
     const questionTitle = e.currentTarget.dataset.title || '';
-    app.navigateToLogin({
+    openPage({
       url: `/pages/question/detail/index?id=${questionId}&title=${encodeURIComponent(
         questionTitle,
       )}`,

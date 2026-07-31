@@ -1,6 +1,7 @@
 import Message from 'tdesign-miniprogram/message/index';
-import { socialApi, handleApiError } from '~/api/index';
+import { socialApi, questionApi, handleApiError, unwrapData } from '~/api/index';
 import { buildSharePanels } from '~/utils/questionDetail';
+import { SHARE_ACTION, SHARE_CHANNEL, trackQuestionShare } from '~/utils/questionShare';
 
 /**
  * 题目详情：分享面板、复制链接、举报/拉黑作者
@@ -10,6 +11,9 @@ const questionShareBehavior = Behavior({
   data: {
     showShareActionSheet: false,
     showCustomGuide: false,
+    shareGuideChannel: SHARE_CHANNEL.FRIEND,
+    shareGuideTitle: '分享给微信好友',
+    shareGuideStep2: '选择「转发」发送给好友',
     sharePanels: buildSharePanels(false),
   },
 
@@ -40,7 +44,7 @@ const questionShareBehavior = Behavior({
           break;
         case 'wechat':
           setTimeout(() => {
-            this.showCustomGuide();
+            this.showCustomGuide(SHARE_CHANNEL.FRIEND);
           }, 280);
           break;
         case 'moment':
@@ -158,8 +162,14 @@ const questionShareBehavior = Behavior({
       this.setData({ showShareActionSheet: false });
     },
 
-    showCustomGuide() {
-      this.setData({ showCustomGuide: true });
+    showCustomGuide(channel = SHARE_CHANNEL.FRIEND) {
+      const isTimeline = channel === SHARE_CHANNEL.TIMELINE;
+      this.setData({
+        showCustomGuide: true,
+        shareGuideChannel: channel,
+        shareGuideTitle: isTimeline ? '分享到朋友圈' : '分享给微信好友',
+        shareGuideStep2: isTimeline ? '选择「分享到朋友圈」' : '选择「转发」发送给好友',
+      });
     },
 
     onCloseCustomGuide(e) {
@@ -170,21 +180,80 @@ const questionShareBehavior = Behavior({
       this.setData({ showCustomGuide: false });
     },
 
-    copyLink() {
-      const link = `pages/question/detail/index?id=${this.data.questionId}`;
-      wx.setClipboardData({
-        data: link,
-        success: () => {
-          Message.success({
-            content: '链接已复制到剪贴板',
-            duration: 2000,
-          });
-        },
+    applyShareCount(shareCount) {
+      if (shareCount == null || Number.isNaN(Number(shareCount))) {
+        const current = Number(this.data.questionDetail?.shareCount) || 0;
+        this.setData({ 'questionDetail.shareCount': current + 1 });
+        return;
+      }
+      this.setData({
+        'questionDetail.shareCount': Math.max(0, Number(shareCount) || 0),
       });
     },
 
+    async reportShareInitiate(channel) {
+      const { ok, shareCount } = await trackQuestionShare({
+        questionId: this.data.questionId,
+        channel,
+        action: SHARE_ACTION.INITIATE,
+      });
+      if (ok) {
+        this.applyShareCount(shareCount);
+      }
+      return ok;
+    },
+
+    copyLink() {
+      const questionId = this.data.questionId;
+      if (!questionId) {
+        wx.showToast({ title: '题目信息缺失', icon: 'none' });
+        return;
+      }
+
+      let envVersion = 'release';
+      try {
+        if (typeof __wxConfig !== 'undefined' && __wxConfig && __wxConfig.envVersion) {
+          envVersion = __wxConfig.envVersion;
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      wx.showLoading({ title: '生成链接…', mask: true });
+      questionApi
+        .getShareLink(questionId, {
+          channel: SHARE_CHANNEL.COPY,
+          envVersion,
+          expireDays: 30,
+        })
+        .then((res) => {
+          const data = unwrapData(res) || {};
+          const link = data.urlLink || data.url_link;
+          if (!link) {
+            wx.showToast({ title: '生成链接失败，请稍后重试', icon: 'none' });
+            return;
+          }
+          wx.setClipboardData({
+            data: link,
+            success: () => {
+              Message.success({
+                content: '链接已复制，微信中打开即可阅读',
+                duration: 2500,
+              });
+              this.reportShareInitiate(SHARE_CHANNEL.COPY);
+            },
+          });
+        })
+        .catch((e) => {
+          handleApiError(e, { fallbackMessage: '生成链接失败，请稍后重试' });
+        })
+        .finally(() => {
+          wx.hideLoading();
+        });
+    },
+
     shareToMoment() {
-      this.setData({ showCustomGuide: true });
+      this.showCustomGuide(SHARE_CHANNEL.TIMELINE);
     },
   },
 });

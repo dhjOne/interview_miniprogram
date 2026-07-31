@@ -255,7 +255,7 @@
           <view class="bottom-tool__icon">
             <t-icon name="share" size="40rpx" color="#64748b" />
           </view>
-          <text class="bottom-tool__label">分享</text>
+          <text class="bottom-tool__label">{{questionDetail.shareCount > 0 ? questionDetail.shareCount : '分享'}}</text>
         </view>
       </view>
     </view>
@@ -540,7 +540,7 @@
     <view class="share-guide__icon-wrap">
       <t-icon name="logo-wechat-stroke" size="56rpx" color="#07c160" />
     </view>
-    <text class="share-guide__title">分享给微信好友</text>
+    <text class="share-guide__title">{{shareGuideTitle}}</text>
     <view class="share-guide__steps">
       <view class="share-guide__step">
         <text class="share-guide__step-num">1</text>
@@ -548,7 +548,7 @@
       </view>
       <view class="share-guide__step">
         <text class="share-guide__step-num">2</text>
-        <text class="share-guide__step-text">选择「转发」发送给好友</text>
+        <text class="share-guide__step-text">{{shareGuideStep2}}</text>
       </view>
     </view>
     <view class="share-guide__btn" bindtap="onCloseCustomGuide" hover-class="share-guide__btn--pressed">

@@ -86,6 +86,27 @@ export const questionApi = {
       showLoading: false,
     }),
 
+  /**
+   * 分享上报（发起分享 / 分享回流打开）
+   * body: { channel: 'friend'|'timeline'|'copy'|'unknown', action?: 'initiate'|'open', sharerId?: number }
+   * 成功返回 data.shareCount
+   */
+  reportShare: (questionId, params) =>
+    http.post(`/repository/questions/${questionId}/share`, params, {
+      showLoading: false,
+      skipEnsureSession: true,
+    }),
+
+  /**
+   * 生成题目分享 URL Link（https 短链，微信内打开直达详情）
+   * body: { channel?: 'copy'|'friend'|..., envVersion?: 'release'|'trial'|'develop', expireDays?: number }
+   */
+  getShareLink: (questionId, params) =>
+    http.post(`/repository/questions/${questionId}/share-link`, params, {
+      showLoading: false,
+      skipEnsureSession: true,
+    }),
+
   // 发布问题
   publishQuestion: (publish) =>
     http.post(`/repository/questions/publish`, publish, {

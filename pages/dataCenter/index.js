@@ -14,6 +14,7 @@ Page({
       displayLikes: '0',
       displayCollects: '0',
       displayComments: '0',
+      displayShares: '0',
       displayPublish: '0',
       displayFeatured: '0',
       displayFollowers: '0',
@@ -22,7 +23,7 @@ Page({
       draftCount: 0,
       progressCount: 0,
       publishCount: 0,
-      offlineCount: 0
+      offlineCount: 0,
     },
     coreMetrics: [],
     growthMetrics: [],
@@ -30,7 +31,7 @@ Page({
     topList: [],
     trendList: [],
     trendMax: 1,
-    updatedText: ''
+    updatedText: '',
   },
 
   onLoad() {
@@ -56,7 +57,7 @@ Page({
       const { overview, topList, trendList, trendMax } = await fetchCreatorInsights({
         topSort: this.data.topSort,
         trendMetric: this.data.trendMetric,
-        trendRange: this.data.trendRange
+        trendRange: this.data.trendRange,
       });
 
       this.setData({
@@ -66,70 +67,71 @@ Page({
           { key: 'views', label: '总阅读', value: overview.displayViews },
           { key: 'likes', label: '总获赞', value: overview.displayLikes },
           { key: 'collects', label: '总收藏', value: overview.displayCollects },
-          { key: 'comments', label: '总评论', value: overview.displayComments }
+          { key: 'shares', label: '总分享', value: overview.displayShares },
+          { key: 'comments', label: '总评论', value: overview.displayComments },
         ],
         growthMetrics: [
           {
             key: 'publish',
             label: '已发布',
             value: overview.displayPublish,
-            url: '/pages/document/index?type=published'
+            url: '/pages/document/index?type=published',
           },
           {
             key: 'featured',
             label: '精选',
             value: overview.displayFeatured,
-            url: ''
+            url: '',
           },
           {
             key: 'followers',
             label: '粉丝',
             value: overview.displayFollowers,
-            url: '/pages/ucenter/followers/index'
+            url: '/pages/ucenter/followers/index',
           },
           {
             key: 'visits',
             label: '主页访问',
             value: overview.displayVisits,
-            url: '/pages/ucenter/visits/index'
+            url: '/pages/ucenter/visits/index',
           },
           {
             key: 'rank',
             label: '创作排名',
             value: overview.displayRank,
-            url: ''
-          }
+            url: '',
+          },
         ],
         statusItems: [
           {
             type: 'draft',
             name: '草稿',
             count: overview.draftCount,
-            url: '/pages/document/index?type=drafts'
+            url: '/pages/document/index?type=drafts',
           },
           {
             type: 'progress',
             name: '审核中',
             count: overview.progressCount,
-            url: '/pages/document/index?type=review'
+            url: '/pages/document/index?type=review',
           },
           {
             type: 'published',
             name: '已发布',
             count: overview.publishCount,
-            url: '/pages/document/index?type=published'
+            url: '/pages/document/index?type=published',
           },
           {
             type: 'offline',
             name: '已下架',
             count: overview.offlineCount,
-            url: '/pages/document/index?type=offline'
-          }
+            url: '/pages/document/index?type=offline',
+          },
         ],
         topList,
         trendList,
         trendMax,
-        updatedText: this._formatNow()
+        updatedText: this._formatNow(),
       });
     } catch (e) {
       console.error('[dataCenter] refresh failed', e);
@@ -141,7 +143,9 @@ Page({
   _formatNow() {
     const d = new Date();
     const pad = (n) => `${n}`.padStart(2, '0');
-    return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(
+      d.getMinutes(),
+    )}`;
   },
 
   onTopSortChange(e) {
@@ -182,5 +186,5 @@ Page({
 
   onRetry() {
     this.refresh();
-  }
+  },
 });

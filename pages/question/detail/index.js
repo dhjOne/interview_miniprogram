@@ -20,6 +20,14 @@ import { processContentBlocks } from '~/utils/questionContentBlocks';
 import { safeDecodeURIComponent } from '~/utils/questionList';
 import { backPage, openPage } from '~/utils/router';
 import { AppEvents } from '~/utils/eventBus';
+import {
+  SHARE_ACTION,
+  SHARE_CHANNEL,
+  buildQuestionShareMessage,
+  buildQuestionShareTimeline,
+  parseShareEntry,
+  trackQuestionShare,
+} from '~/utils/questionShare';
 
 const { renderMarkdown } = require('../../../utils/towxmlLoader');
 const app = getApp();
@@ -105,6 +113,7 @@ Page({
 
     const decodedCategoryName = safeDecodeURIComponent(categoryName);
     const decodedTitle = safeDecodeURIComponent(title);
+    const shareEntry = parseShareEntry(options);
 
     this.setData({
       questionId: id,
@@ -112,16 +121,68 @@ Page({
       categoryName: decodedCategoryName,
       catalogTitle: decodedCategoryName || '题目目录',
     });
+    this._shareEntry = shareEntry;
 
     if (decodedTitle) {
       wx.setNavigationBarTitle({ title: decodedTitle });
     }
 
     this.loadQuestionDetail();
+    this.reportShareOpenIfNeeded();
     wx.showShareMenu({
       withShareTicket: true,
       menus: ['shareAppMessage', 'shareTimeline'],
     });
+  },
+
+  /** 从分享卡片/链接进入时上报回流打开 */
+  reportShareOpenIfNeeded() {
+    const entry = this._shareEntry;
+    if (!entry || !this.data.questionId) return;
+    trackQuestionShare({
+      questionId: this.data.questionId,
+      channel: entry.channel,
+      action: SHARE_ACTION.OPEN,
+      sharerId: entry.sharerId,
+    });
+  },
+
+  onShareAppMessage() {
+    const detail = this.data.questionDetail || {};
+    const payload = buildQuestionShareMessage({
+      title: detail.title,
+      questionId: this.data.questionId || detail.id,
+      channel: SHARE_CHANNEL.FRIEND,
+    });
+    // 右上角转发 / 系统分享菜单触发时上报（无法确认是否真正发出）
+    if (typeof this.reportShareInitiate === 'function') {
+      this.reportShareInitiate(SHARE_CHANNEL.FRIEND);
+    } else {
+      trackQuestionShare({
+        questionId: this.data.questionId,
+        channel: SHARE_CHANNEL.FRIEND,
+        action: SHARE_ACTION.INITIATE,
+      });
+    }
+    return payload;
+  },
+
+  onShareTimeline() {
+    const detail = this.data.questionDetail || {};
+    const payload = buildQuestionShareTimeline({
+      title: detail.title,
+      questionId: this.data.questionId || detail.id,
+    });
+    if (typeof this.reportShareInitiate === 'function') {
+      this.reportShareInitiate(SHARE_CHANNEL.TIMELINE);
+    } else {
+      trackQuestionShare({
+        questionId: this.data.questionId,
+        channel: SHARE_CHANNEL.TIMELINE,
+        action: SHARE_ACTION.INITIATE,
+      });
+    }
+    return payload;
   },
 
   onShow() {

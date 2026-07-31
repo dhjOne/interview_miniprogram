@@ -19,12 +19,12 @@ function num(v) {
 export async function fetchCreatorInsights({
   topSort = 'view',
   trendMetric = 'like',
-  trendRange = '7d'
+  trendRange = '7d',
 } = {}) {
   const [overviewRes, topRes, trendRes] = await Promise.all([
     creatorInsightsApi.getOverview(),
     creatorInsightsApi.getTop({ sort: topSort, limit: 5 }),
-    creatorInsightsApi.getTrend({ metric: trendMetric, range: trendRange })
+    creatorInsightsApi.getTrend({ metric: trendMetric, range: trendRange }),
   ]);
 
   const overview = normalizeOverview(pickPayload(overviewRes) || {});
@@ -35,7 +35,7 @@ export async function fetchCreatorInsights({
     overview,
     topList,
     trendList,
-    trendMax: Math.max(1, ...trendList.map((p) => p.value))
+    trendMax: Math.max(1, ...trendList.map((p) => p.value)),
   };
 }
 
@@ -81,7 +81,7 @@ export function normalizeOverview(raw = {}) {
     displayFeatured: formatStatCount(featuredCount),
     displayFollowers: formatStatCount(followerCount),
     displayVisits: formatStatCount(visitCount),
-    displayRank: myRank > 0 ? `${myRank}` : '—'
+    displayRank: myRank > 0 ? `${myRank}` : '—',
   };
 }
 
@@ -96,16 +96,16 @@ function normalizeTopList(payload) {
     likeCount: num(row.likeCount ?? row.like_count),
     collectCount: num(row.collectCount ?? row.collect_count),
     commentCount: num(row.commentCount ?? row.comment_count),
+    shareCount: num(row.shareCount ?? row.share_count),
     rank: index + 1,
     displayViews: formatStatCount(num(row.viewCount ?? row.view_count)),
-    displayLikes: formatStatCount(num(row.likeCount ?? row.like_count))
+    displayLikes: formatStatCount(num(row.likeCount ?? row.like_count)),
+    displayShares: formatStatCount(num(row.shareCount ?? row.share_count)),
   }));
 }
 
 function normalizeTrendList(payload) {
-  const rows = Array.isArray(payload)
-    ? payload
-    : payload?.list || payload?.rows || [];
+  const rows = Array.isArray(payload) ? payload : payload?.list || payload?.rows || [];
   return rows.map((row) => {
     const date = String(row.date || '');
     const value = num(row.value);
@@ -114,7 +114,7 @@ function normalizeTrendList(payload) {
       date,
       label: md,
       value,
-      displayValue: formatStatCount(value)
+      displayValue: formatStatCount(value),
     };
   });
 }

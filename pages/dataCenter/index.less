@@ -32,8 +32,11 @@
   margin-bottom: 24rpx;
   padding: 32rpx 28rpx;
   border-radius: var(--td-radius-large, 24rpx);
-  background:
-    radial-gradient(circle at 90% 0%, rgba(0, 82, 217, 0.16) 0, rgba(0, 82, 217, 0) 180rpx),
+  background: radial-gradient(
+      circle at 90% 0%,
+      rgba(0, 82, 217, 0.16) 0,
+      rgba(0, 82, 217, 0) 180rpx
+    ),
     linear-gradient(135deg, #fff 0%, #eef3ff 100%);
   box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.06);
   box-sizing: border-box;
@@ -60,8 +63,8 @@
 
   &__grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12rpx;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20rpx 12rpx;
   }
 
   &__item {

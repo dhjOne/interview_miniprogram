@@ -53,6 +53,7 @@ export function normalizeQuestionDetail(detail) {
     likeCount: detail.likeCount ?? detail.like_count ?? 0,
     collectCount: detail.collectCount ?? detail.collect_count ?? 0,
     viewCount: detail.viewCount ?? detail.view_count ?? 0,
+    shareCount: detail.shareCount ?? detail.share_count ?? 0,
     commentCount: detail.commentCount ?? detail.comment_count ?? 0,
     createdAt: formatDisplayDate(
       detail.createdAt ?? detail.created_at ?? detail.createTime ?? detail.create_time,

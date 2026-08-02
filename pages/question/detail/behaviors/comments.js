@@ -58,6 +58,19 @@ const questionCommentsBehavior = Behavior({
       });
     },
 
+    /** 未登录聚焦输入即轻提示登录（不必写完点发送才拦） */
+    onCommentInputFocus() {
+      if (this.data.isTimelineSinglePage) {
+        wx.showToast({ title: '请前往小程序使用完整服务', icon: 'none' });
+        return;
+      }
+      const loggedIn =
+        (typeof this.resolveLoginStatus === 'function' && this.resolveLoginStatus()) ||
+        this.data.isLoggedIn;
+      if (loggedIn) return;
+      this.requireLoginForAction('comment_focus');
+    },
+
     async loadCommentCount() {
       try {
         const response = await questionApi.getQuestionCommentCount(this.data.questionId);
@@ -210,6 +223,10 @@ const questionCommentsBehavior = Behavior({
     },
 
     onOpenComments() {
+      if (this.data.isTimelineSinglePage) {
+        wx.showToast({ title: '请前往小程序使用完整服务', icon: 'none' });
+        return;
+      }
       this.setData({ showCommentPanel: true });
       if (!this.data.comments.length && !this.data.commentLoading) {
         this.loadComments(true);

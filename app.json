@@ -85,6 +85,11 @@
       ]
     },
     {
+      "root": "pages/interview",
+      "name": "interview",
+      "pages": ["index"]
+    },
+    {
       "root": "pages/publish",
       "name": "publish",
       "pages": ["index"]

@@ -64,10 +64,17 @@ Page({
 
   onHide() {
     this._unbindPointsChanged();
+    // 离开页面时取消进行中的流式请求，避免后台继续生成/扣次
+    if (typeof this.abortActiveStream === 'function') {
+      this.abortActiveStream();
+    }
   },
 
   onUnload() {
     this._unbindPointsChanged();
+    if (typeof this.abortActiveStream === 'function') {
+      this.abortActiveStream();
+    }
   },
 
   async onScrollRefresh() {
@@ -249,5 +256,9 @@ Page({
       selectedModelName: selected.label,
     });
     this.onShowToast('#t-toast', `已切换为 ${selected.label}`);
+  },
+
+  onGoInterview() {
+    openPage({ url: '/pages/interview/index' });
   },
 });

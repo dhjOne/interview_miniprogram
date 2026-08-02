@@ -1,7 +1,8 @@
 # 小程序移动管理台方案整理
 
+> 状态：**已落地**（一期 + 二期）  
 > 记录时间：2026-07-29  
-> 修订时间：2026-07-30（一期 RBAC + 二期扩展 + 管理台交互优化）  
+> 修订时间：2026-07-30（一期 RBAC + 二期扩展 + 管理台交互优化）；2026-07-31 迁入 `docs/tech/`  
 > 涉及项目：
 >
 > - 小程序：`/Users/dinghaojie/WeChatProjects/interview_miniprogram`
@@ -147,5 +148,5 @@ api/request/api_mobile_admin.js
 subpackages/mobileAdmin/index.js|wxml|json|less
 pages/my/index.js
 app.json（分包）
-docs/mobile-admin-approval-plan.md
+docs/tech/2026-07-mobile-admin.md
 ```

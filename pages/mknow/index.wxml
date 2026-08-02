@@ -96,6 +96,15 @@
         <t-icon name="info-circle" size="28rpx" />
         <text>当前模型：{{selectedModelName}} · 登录后同步历史，可整理为 Markdown 发布到文档</text>
       </view>
+      <view
+        class="mknow-welcome__interview"
+        hover-class="mknow-welcome__interview--active"
+        bindtap="onGoInterview"
+      >
+        <t-icon name="user-talk" size="32rpx" />
+        <text>想要实时追问？去 AI 面试陪练</text>
+        <t-icon name="chevron-right" size="28rpx" />
+      </view>
     </scroll-view>
 
     <scroll-view

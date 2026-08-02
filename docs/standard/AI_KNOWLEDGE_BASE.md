@@ -88,7 +88,7 @@ api/request/api_mobile_admin.js
 一期：内容审核、资料审核、分类建议。  
 二期：举报处理、评论隐藏、商务线索、积分申诉、内容下架。
 
-权限来自后端 RBAC，不在小程序硬编码手机号。相关方案见 `docs/mobile-admin-approval-plan.md`（改动时需同步更新）。
+权限来自后端 RBAC，不在小程序硬编码手机号。相关方案见 `docs/tech/2026-07-mobile-admin.md`（改动时需同步更新）。
 
 ## 6. AI 修改代码时的注意事项
 

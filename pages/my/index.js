@@ -417,6 +417,10 @@ Page({
     }
   },
 
+  onInterviewTap() {
+    app.navigateToLogin({ url: '/pages/interview/index' });
+  },
+
   onCallPhone() {
     const phone = (this.data.siteInfo && this.data.siteInfo.phone) || '';
     if (!isCallablePhone(phone)) {

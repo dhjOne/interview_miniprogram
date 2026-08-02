@@ -194,9 +194,11 @@ export const aiApi = {
 
   chatStream: (params, handlers = {}) => {
     let buffer = '';
+    let aborted = false;
     const streamDecoder = createStreamDecoder();
 
     const flushSseBuffer = (tail = '') => {
+      if (aborted) return;
       buffer += tail;
       const frames = buffer.split(/\r?\n\r?\n/);
       buffer = frames.pop() || '';
@@ -222,21 +224,47 @@ export const aiApi = {
         Authorization: getTokenHeader(),
       },
       success: (res) => {
+        if (aborted) return;
         flushSseBuffer(streamDecoder.flush());
+        if (res.statusCode === 401 || res.statusCode === 403) {
+          if (handlers.onError) {
+            handlers.onError({
+              errorType: 'UNAUTHORIZED',
+              errorMessage: '登录已过期，请重新登录',
+              message: '登录已过期，请重新登录',
+            });
+          }
+          return;
+        }
         if (res.statusCode !== 200) {
-          if (handlers.onError) handlers.onError({ message: `请求失败：${res.statusCode}` });
+          if (handlers.onError) {
+            handlers.onError({
+              errorType: 'AI_UNAVAILABLE',
+              errorMessage: `请求失败：${res.statusCode}`,
+              message: `请求失败：${res.statusCode}`,
+            });
+          }
         }
       },
       fail: (err) => {
-        if (handlers.onError) handlers.onError(err);
+        if (aborted) return;
+        if (handlers.onError) handlers.onError(err || { errorType: 'AI_UNAVAILABLE', errorMessage: '网络异常' });
       },
     });
 
     if (task && task.onChunkReceived) {
       task.onChunkReceived((res) => {
+        if (aborted) return;
         flushSseBuffer(streamDecoder.decode(res.data));
       });
     }
+
+    // 统一 abort 包装，页面卸载/切会话时可取消流式请求
+    const originalAbort = task && typeof task.abort === 'function' ? task.abort.bind(task) : null;
+    task.abort = () => {
+      aborted = true;
+      if (originalAbort) originalAbort();
+    };
     return task;
   },
 };

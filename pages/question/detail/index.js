@@ -107,6 +107,10 @@ Page({
 
     /** 访客态底栏提示 */
     isLoggedIn: false,
+    /** 朋友圈单页模式（scene=1154）：隐藏重交互，仅阅读 */
+    isTimelineSinglePage: false,
+    /** 下拉刷新中 */
+    detailRefreshing: false,
   },
 
   onLoad(options) {
@@ -123,6 +127,7 @@ Page({
     const decodedCategoryName = safeDecodeURIComponent(categoryName);
     const decodedTitle = safeDecodeURIComponent(title);
     const shareEntry = parseShareEntry(options);
+    const isTimelineSinglePage = this.resolveTimelineSinglePage();
 
     this.setData({
       questionId: id,
@@ -130,6 +135,7 @@ Page({
       categoryName: decodedCategoryName,
       catalogTitle: decodedCategoryName || '题目目录',
       isLoggedIn: this.resolveLoginStatus(),
+      isTimelineSinglePage,
     });
     this._shareEntry = shareEntry;
 
@@ -139,10 +145,27 @@ Page({
 
     this.loadQuestionDetail();
     this.reportShareOpenIfNeeded();
-    wx.showShareMenu({
-      withShareTicket: true,
-      menus: ['shareAppMessage', 'shareTimeline'],
-    });
+    if (!isTimelineSinglePage) {
+      wx.showShareMenu({
+        withShareTicket: true,
+        menus: ['shareAppMessage', 'shareTimeline'],
+      });
+    }
+  },
+
+  /** 朋友圈内打开为单页模式（scene 1154） */
+  resolveTimelineSinglePage() {
+    try {
+      const enterOptions =
+        typeof wx.getEnterOptionsSync === 'function'
+          ? wx.getEnterOptionsSync()
+          : typeof wx.getLaunchOptionsSync === 'function'
+            ? wx.getLaunchOptionsSync()
+            : null;
+      return Number(enterOptions?.scene) === 1154;
+    } catch (e) {
+      return false;
+    }
   },
 
   /** 从分享卡片/链接进入时上报回流打开 */
@@ -218,6 +241,7 @@ Page({
 
   /** 访客底栏「去登录」 */
   onGuestLoginTap() {
+    if (this.guardTimelineSinglePage()) return;
     ensureLoginForAction({
       app,
       returnUrl: getCurrentPagePath(),
@@ -261,20 +285,40 @@ Page({
   },
 
   onPullDownRefresh() {
-    return this.refreshPage();
+    Promise.resolve(this.refreshPage({ silent: true })).finally(() => {
+      wx.stopPullDownRefresh();
+    });
   },
 
-  async loadQuestionDetail() {
+  /** scroll-view 下拉刷新 */
+  onDetailRefresherRefresh() {
+    if (this.data.isTimelineSinglePage || this.data.detailRefreshing || this._detailLoading) {
+      this.setData({ detailRefreshing: false });
+      return;
+    }
+    this.setData({ detailRefreshing: true });
+    Promise.resolve(this.refreshPage({ silent: true })).finally(() => {
+      this.setData({ detailRefreshing: false });
+    });
+  },
+
+  async loadQuestionDetail(options = {}) {
     if (this._detailLoading) return;
     this._detailLoading = true;
+    const silent = !!options.silent;
+    const keepContent =
+      silent &&
+      !!this.data.questionDetail?.id &&
+      !this.data.error &&
+      !this.data.isEmpty;
     try {
       this.setData({
-        loading: true,
+        loading: keepContent ? false : true,
         contentRendering: false,
         error: false,
         isEmpty: false,
-        isMarkdown: false,
-        towxmlData: null,
+        isMarkdown: keepContent ? this.data.isMarkdown : false,
+        towxmlData: keepContent ? this.data.towxmlData : null,
       });
 
       const questionParams = new QuestionParams(null, null, this.data.questionId);
@@ -352,9 +396,12 @@ Page({
       this.setData({
         loading: false,
         contentRendering: false,
-        error: true,
+        error: keepContent ? false : true,
         errorMessage: '网络错误，请重试',
       });
+      if (keepContent) {
+        wx.showToast({ title: '刷新失败，请稍后重试', icon: 'none' });
+      }
     } finally {
       this._detailLoading = false;
       wx.stopPullDownRefresh();
@@ -411,16 +458,21 @@ Page({
       });
   },
 
-  _resetDetailTransientState() {
+  _resetDetailTransientState({ silent = false } = {}) {
+    const keepContent =
+      silent &&
+      !!this.data.questionDetail?.id &&
+      !this.data.error &&
+      !this.data.isEmpty;
     return {
-      loading: true,
+      loading: keepContent ? false : true,
       contentRendering: false,
       error: false,
       errorMessage: '',
       isEmpty: false,
-      isMarkdown: false,
-      towxmlData: null,
-      contentBlocks: [],
+      isMarkdown: keepContent ? this.data.isMarkdown : false,
+      towxmlData: keepContent ? this.data.towxmlData : null,
+      contentBlocks: keepContent ? this.data.contentBlocks : [],
       catalogLoaded: false,
       catalogList: [],
       catalogPage: 1,
@@ -440,9 +492,9 @@ Page({
     };
   },
 
-  refreshPage() {
-    this.setData(this._resetDetailTransientState());
-    return this.loadQuestionDetail();
+  refreshPage({ silent = false } = {}) {
+    this.setData(this._resetDetailTransientState({ silent }));
+    return this.loadQuestionDetail({ silent });
   },
 
   retryLoad() {
@@ -565,7 +617,15 @@ Page({
     }
   },
 
+  /** 朋友圈单页模式拦截重交互 */
+  guardTimelineSinglePage() {
+    if (!this.data.isTimelineSinglePage) return false;
+    wx.showToast({ title: '请前往小程序使用完整服务', icon: 'none' });
+    return true;
+  },
+
   onOpenCatalog() {
+    if (this.guardTimelineSinglePage()) return;
     this.setData({ showCatalog: true });
     if (!this.data.catalogLoaded) {
       this.loadCatalog();
@@ -599,6 +659,7 @@ Page({
   },
 
   onAuthorTap() {
+    if (this.guardTimelineSinglePage()) return;
     const { questionDetail, authorId, authorDisplayName } = this.data;
     const avatar = resolveAuthorAvatar(questionDetail);
 
@@ -703,6 +764,14 @@ Page({
         });
         break;
       }
+      case 'comment_focus':
+        if (typeof this.onOpenComments === 'function') {
+          this.onOpenComments();
+        } else {
+          this.setData({ showCommentPanel: true });
+        }
+        this.flushResumeToast('comment_focus');
+        break;
       case 'comment_like':
         if (payload.commentId && typeof this.onLikeComment === 'function') {
           this.onLikeComment({
@@ -763,6 +832,7 @@ Page({
   },
 
   async onToggleFollow() {
+    if (this.guardTimelineSinglePage()) return;
     if (this.data.isSelfAuthor) {
       return;
     }
@@ -816,6 +886,7 @@ Page({
   },
 
   async onLike() {
+    if (this.guardTimelineSinglePage()) return;
     if (this.data.error || this.data.isEmpty) return;
     if (!this.requireLoginForAction('like')) return;
 
@@ -845,6 +916,7 @@ Page({
   },
 
   async onCollect() {
+    if (this.guardTimelineSinglePage()) return;
     if (this.data.error || this.data.isEmpty) return;
     if (!this.requireLoginForAction('collect')) return;
 

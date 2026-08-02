@@ -352,6 +352,24 @@
     line-height: 1.5;
     color: var(--td-text-color-placeholder, rgba(0, 0, 0, 0.4));
   }
+
+  &__interview {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+    margin-top: 20rpx;
+    padding: 22rpx 24rpx;
+    border-radius: 16rpx;
+    background: #fff;
+    font-size: 26rpx;
+    color: @mknow-brand-start;
+    font-weight: 600;
+    box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.04);
+
+    &--active {
+      opacity: 0.88;
+    }
+  }
 }
 
 .mknow-brand {

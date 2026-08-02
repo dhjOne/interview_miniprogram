@@ -1009,6 +1009,24 @@
   height: 220rpx;
 }
 
+.bottom-placeholder--single {
+  height: calc(24rpx + env(safe-area-inset-bottom));
+}
+
+.share-panel__item--btn {
+  margin: 0;
+  padding: 8rpx 0;
+  background: transparent;
+  border: none;
+  line-height: 1;
+  font-size: inherit;
+  color: inherit;
+}
+
+.share-panel__item--btn::after {
+  border: none;
+}
+
 /* 目录侧栏 */
 .catalog-drawer {
   width: 560rpx;

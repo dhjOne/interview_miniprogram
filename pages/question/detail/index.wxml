@@ -32,7 +32,15 @@
 
   <!-- 正常内容 -->
   <view wx:else class="detail-main">
-    <scroll-view class="content-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <scroll-view
+      class="content-scroll"
+      scroll-y
+      enhanced
+      show-scrollbar="{{false}}"
+      refresher-enabled="{{!isTimelineSinglePage}}"
+      refresher-triggered="{{detailRefreshing}}"
+      bindrefresherrefresh="onDetailRefresherRefresh"
+    >
       <view class="question-card">
         <view class="detail-hero">
           <text wx:if="{{questionDetail.categoryName}}" class="detail-hero__category">{{questionDetail.categoryName}}</text>
@@ -59,11 +67,11 @@
             </view>
             <view class="detail-author__copy">
               <text class="detail-author__name">{{authorDisplayName}}</text>
-              <text class="detail-author__hint">{{isSelfAuthor ? '我的主页' : '点击查看作者主页'}}</text>
+              <text class="detail-author__hint">{{isTimelineSinglePage ? '题目作者' : (isSelfAuthor ? '我的主页' : '点击查看作者主页')}}</text>
             </view>
           </view>
           <view
-            wx:if="{{!isSelfAuthor}}"
+            wx:if="{{!isSelfAuthor && !isTimelineSinglePage}}"
             class="detail-author__follow {{authorFollowing ? 'detail-author__follow--followed' : ''}}"
             hover-class="detail-author__follow--pressed"
             bindtap="onToggleFollow"
@@ -198,11 +206,11 @@
         </view>
       </view>
 
-      <view class="bottom-placeholder {{!isLoggedIn ? 'bottom-placeholder--guest' : ''}}"></view>
+      <view class="bottom-placeholder {{!isLoggedIn && !isTimelineSinglePage ? 'bottom-placeholder--guest' : ''}} {{isTimelineSinglePage ? 'bottom-placeholder--single' : ''}}"></view>
     </scroll-view>
 
-    <!-- 底部导航栏 -->
-    <view class="detail-bottom-bar">
+    <!-- 底部导航栏：朋友圈单页模式隐藏重交互 -->
+    <view wx:if="{{!isTimelineSinglePage}}" class="detail-bottom-bar">
       <view
         wx:if="{{!isLoggedIn}}"
         class="bottom-bar__guest"
@@ -489,6 +497,7 @@
           maxlength="200"
           confirm-type="send"
           bindinput="onCommentChange"
+          bindfocus="onCommentInputFocus"
           bindconfirm="onSubmitComment"
         />
         <text class="comment-input-bar__send {{commentText ? 'comment-input-bar__send--active' : ''}}" bindtap="onSubmitComment">发送</text>
@@ -514,20 +523,33 @@
       <view class="share-panel__section">
         <text wx:if="{{panel.title}}" class="share-panel__section-title">{{panel.title}}</text>
         <view class="share-panel__grid">
-          <view
-            wx:for="{{panel.items}}"
-            wx:for-item="item"
-            wx:key="value"
-            class="share-panel__item"
-            data-value="{{item.value}}"
-            bindtap="onShareOptionTap"
-            hover-class="share-panel__item--pressed"
-          >
-            <view class="share-panel__icon share-panel__icon--{{item.tone}}">
-              <t-icon name="{{item.icon}}" size="44rpx" />
+          <block wx:for="{{panel.items}}" wx:for-item="item" wx:key="value">
+            <button
+              wx:if="{{item.openType === 'share'}}"
+              class="share-panel__item share-panel__item--btn"
+              open-type="share"
+              hover-class="share-panel__item--pressed"
+              data-value="{{item.value}}"
+              bindtap="onShareFriendButtonTap"
+            >
+              <view class="share-panel__icon share-panel__icon--{{item.tone}}">
+                <t-icon name="{{item.icon}}" size="44rpx" />
+              </view>
+              <text class="share-panel__label">{{item.label}}</text>
+            </button>
+            <view
+              wx:else
+              class="share-panel__item"
+              data-value="{{item.value}}"
+              bindtap="onShareOptionTap"
+              hover-class="share-panel__item--pressed"
+            >
+              <view class="share-panel__icon share-panel__icon--{{item.tone}}">
+                <t-icon name="{{item.icon}}" size="44rpx" />
+              </view>
+              <text class="share-panel__label">{{item.label}}</text>
             </view>
-            <text class="share-panel__label">{{item.label}}</text>
-          </view>
+          </block>
         </view>
       </view>
     </block>
@@ -541,7 +563,7 @@
 <!-- 分享引导 -->
 <t-popup
   visible="{{showCustomGuide}}"
-  bind:visible-change="onCloseCustomGuide"
+  bind:visible-change="onShareGuideVisibleChange"
   placement="center"
   overlay-props="{{ { background: 'rgba(15, 23, 42, 0.55)' } }}"
 >
@@ -560,7 +582,7 @@
         <text class="share-guide__step-text">{{shareGuideStep2}}</text>
       </view>
     </view>
-    <view class="share-guide__btn" bindtap="onCloseCustomGuide" hover-class="share-guide__btn--pressed">
+    <view class="share-guide__btn" bindtap="onCloseShareGuide" hover-class="share-guide__btn--pressed">
       知道了
     </view>
   </view>

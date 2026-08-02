@@ -56,7 +56,7 @@ const mknowHistoryBehavior = Behavior({
         this._historyFetchId = (this._historyFetchId || 0) + 1;
         const reqId = this._historyFetchId;
         try {
-          const res = await aiApi.listConversations({ page: 1, limit: 30 });
+          const res = await aiApi.listConversations({ page: 1, limit: 30, scene: 'AI_MKNOW' });
           if (reqId !== this._historyFetchId) return;
           const remoteConversations = normalizeRemoteConversations(res);
           conversations = mergeRemoteConversations(remoteConversations);
@@ -121,6 +121,9 @@ const mknowHistoryBehavior = Behavior({
       if (!id || id === this.data.conversationId) {
         this.setData({ showHistory: false });
         return;
+      }
+      if (typeof this.abortActiveStream === 'function') {
+        this.abortActiveStream();
       }
       const remoteConv = (this.data.conversations || []).find((c) => c.id === id && c.remote);
       if (remoteConv && hasLoginToken()) {
@@ -216,8 +219,13 @@ const mknowHistoryBehavior = Behavior({
 
     async onNewChat() {
       if (this.data.sending) {
-        this.onShowToast('#t-toast', '请等待当前回复完成');
-        return;
+        // 允许强制取消当前流并新建
+        if (typeof this.abortActiveStream === 'function') {
+          this.abortActiveStream();
+        } else {
+          this.onShowToast('#t-toast', '请等待当前回复完成');
+          return;
+        }
       }
 
       if (hasLoginToken()) {

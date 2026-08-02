@@ -1,7 +1,12 @@
 import Message from 'tdesign-miniprogram/message/index';
 import { socialApi, questionApi, handleApiError, unwrapData } from '~/api/index';
 import { buildSharePanels } from '~/utils/questionDetail';
-import { SHARE_ACTION, SHARE_CHANNEL, trackQuestionShare } from '~/utils/questionShare';
+import {
+  SHARE_ACTION,
+  SHARE_CHANNEL,
+  buildQuestionSharePath,
+  trackQuestionShare,
+} from '~/utils/questionShare';
 import { ensureLoginForAction, getCurrentPagePath } from '~/utils/router';
 import { ACTION_LOGIN_HINTS } from '~/utils/pendingAction';
 
@@ -13,9 +18,9 @@ const questionShareBehavior = Behavior({
   data: {
     showShareActionSheet: false,
     showCustomGuide: false,
-    shareGuideChannel: SHARE_CHANNEL.FRIEND,
-    shareGuideTitle: '分享给微信好友',
-    shareGuideStep2: '选择「转发」发送给好友',
+    shareGuideChannel: SHARE_CHANNEL.TIMELINE,
+    shareGuideTitle: '分享到朋友圈',
+    shareGuideStep2: '选择「分享到朋友圈」',
     sharePanels: buildSharePanels(false),
   },
 
@@ -35,15 +40,24 @@ const questionShareBehavior = Behavior({
     },
 
     onShare() {
+      if (this.data.isTimelineSinglePage) {
+        wx.showToast({ title: '请前往小程序使用完整服务', icon: 'none' });
+        return;
+      }
       this.setData({ showShareActionSheet: true });
     },
 
     onShareOptionTap(event) {
       const { value } = event.currentTarget.dataset;
-      if (!value) return;
+      if (!value || value === 'wechat') return;
 
       this.setData({ showShareActionSheet: false });
       this.handleShareAction(value);
+    },
+
+    /** open-type=share 直达系统好友分享，关闭面板即可 */
+    onShareFriendButtonTap() {
+      this.setData({ showShareActionSheet: false });
     },
 
     onSharePanelVisibleChange(e) {
@@ -58,16 +72,8 @@ const questionShareBehavior = Behavior({
         case 'copy':
           this.copyLink();
           break;
-        case 'wechat':
-          setTimeout(() => {
-            this.showCustomGuide(SHARE_CHANNEL.FRIEND);
-          }, 280);
-          break;
         case 'moment':
           this.shareToMoment();
-          break;
-        case 'refresh':
-          this.refreshPage();
           break;
         case 'memo':
           this.createInterviewMemo();
@@ -104,7 +110,7 @@ const questionShareBehavior = Behavior({
       const { selected } = event.detail;
       const flatItems = (this.data.sharePanels || []).flatMap((panel) => panel.items || []);
       const option = flatItems[selected.index];
-      if (!option) return;
+      if (!option || option.value === 'wechat') return;
 
       this.setData({ showShareActionSheet: false });
       this.handleShareAction(option.value);
@@ -191,7 +197,7 @@ const questionShareBehavior = Behavior({
       this.setData({ showShareActionSheet: false });
     },
 
-    showCustomGuide(channel = SHARE_CHANNEL.FRIEND) {
+    showCustomGuide(channel = SHARE_CHANNEL.TIMELINE) {
       const isTimeline = channel === SHARE_CHANNEL.TIMELINE;
       this.setData({
         showCustomGuide: true,
@@ -201,11 +207,15 @@ const questionShareBehavior = Behavior({
       });
     },
 
-    onCloseCustomGuide(e) {
-      if (e && e.detail !== undefined) {
-        const visible = e.detail?.visible ?? e.detail;
-        if (visible) return;
-      }
+    /** t-popup 遮罩/关闭：visible-change */
+    onShareGuideVisibleChange(e) {
+      const visible = e?.detail?.visible ?? e?.detail;
+      if (visible === true) return;
+      this.setData({ showCustomGuide: false });
+    },
+
+    /** 「知道了」按钮：直接关闭（勿复用 visible-change，tap.detail 是坐标对象） */
+    onCloseShareGuide() {
       this.setData({ showCustomGuide: false });
     },
 
@@ -230,6 +240,25 @@ const questionShareBehavior = Behavior({
         this.applyShareCount(shareCount);
       }
       return ok;
+    },
+
+    copyPathFallback(questionId) {
+      const path = buildQuestionSharePath({
+        questionId,
+        channel: SHARE_CHANNEL.COPY,
+      });
+      wx.setClipboardData({
+        data: path,
+        success: () => {
+          Message.warning({
+            content: '短链生成失败，已复制小程序路径（仅开发者工具/内部可用）',
+            duration: 3000,
+          });
+        },
+        fail: () => {
+          wx.showToast({ title: '生成链接失败，请稍后重试', icon: 'none' });
+        },
+      });
     },
 
     copyLink() {
@@ -259,7 +288,7 @@ const questionShareBehavior = Behavior({
           const data = unwrapData(res) || {};
           const link = data.urlLink || data.url_link;
           if (!link) {
-            wx.showToast({ title: '生成链接失败，请稍后重试', icon: 'none' });
+            this.copyPathFallback(questionId);
             return;
           }
           wx.setClipboardData({
@@ -273,8 +302,8 @@ const questionShareBehavior = Behavior({
             },
           });
         })
-        .catch((e) => {
-          handleApiError(e, { fallbackMessage: '生成链接失败，请稍后重试' });
+        .catch(() => {
+          this.copyPathFallback(questionId);
         })
         .finally(() => {
           wx.hideLoading();

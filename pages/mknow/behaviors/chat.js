@@ -200,6 +200,14 @@ const mknowChatBehavior = Behavior({
             this.handleQuotaExceeded(pendingId, data.errorMessage || reply);
             return;
           }
+          if (errorType === 'RATE_LIMIT' || errorType === 'SESSION_BUSY') {
+            this.handleBusyOrRateLimit(pendingId, data.errorMessage || reply, errorType);
+            return;
+          }
+          if (errorType === 'SENSITIVE_CONTENT') {
+            this.handleSensitiveContent(pendingId, data.errorMessage || reply);
+            return;
+          }
           if (errorType) {
             this.onShowToast('#t-toast', data.errorMessage || reply);
           }
@@ -256,16 +264,39 @@ const mknowChatBehavior = Behavior({
           onError: (err) => {
             if (settled) return;
             settled = true;
-            if (err && err.errorType === 'QUOTA_EXCEEDED') {
-              this.handleQuotaExceeded(pendingId, err.errorMessage);
+            const errorType = (err && (err.errorType || err.code)) || '';
+            const errorMessage =
+              (err && (err.errorMessage || err.message || err.errMsg)) || 'AI 服务暂时不可用';
+
+            if (errorType === 'QUOTA_EXCEEDED') {
+              this.handleQuotaExceeded(pendingId, errorMessage);
               resolve(err);
               return;
             }
-            if (received && err && err.errorMessage) {
-              this.finishAssistantMessage(pendingId, err.errorMessage, true, {
+            if (errorType === 'RATE_LIMIT' || errorType === 'SESSION_BUSY') {
+              this.handleBusyOrRateLimit(pendingId, errorMessage, errorType);
+              resolve(err);
+              return;
+            }
+            if (errorType === 'SENSITIVE_CONTENT') {
+              this.handleSensitiveContent(pendingId, errorMessage);
+              resolve(err);
+              return;
+            }
+            if (errorType === 'UNAUTHORIZED') {
+              this.setData({ sending: false, streaming: false });
+              this.onShowToast('#t-toast', errorMessage);
+              if (app && typeof app.navigateToLogin === 'function') {
+                app.navigateToLogin({ url: '/pages/mknow/index' });
+              }
+              resolve(err);
+              return;
+            }
+            if (received && errorMessage) {
+              this.finishAssistantMessage(pendingId, errorMessage, true, {
                 sessionId: err.sessionId || meta.sessionId,
                 conversationId: err.conversationId || meta.conversationId,
-                errorType: err.errorType || 'AI_UNAVAILABLE',
+                errorType: errorType || 'AI_UNAVAILABLE',
                 modelName: err.modelName || meta.modelName,
               });
               resolve(err);
@@ -278,6 +309,51 @@ const mknowChatBehavior = Behavior({
           reject(new Error('当前环境不支持流式输出'));
         }
       });
+    },
+
+    handleBusyOrRateLimit(pendingId, message, errorType) {
+      const messages = (this.data.messages || []).filter((m) => m.id !== pendingId);
+      const last = messages[messages.length - 1];
+      const trimmed = last && last.role === 'user' ? messages.slice(0, -1) : messages;
+      this.setData({
+        messages: trimmed,
+        sending: false,
+        streaming: false,
+      });
+      saveMessages(stripRendered(trimmed));
+      this.refreshHistoryList();
+      this.onShowToast(
+        '#t-toast',
+        message || (errorType === 'SESSION_BUSY' ? '当前会话正在生成，请稍后' : '请求太频繁，请稍后再试'),
+      );
+    },
+
+    handleSensitiveContent(pendingId, message) {
+      const messages = (this.data.messages || []).filter((m) => m.id !== pendingId);
+      const last = messages[messages.length - 1];
+      const trimmed = last && last.role === 'user' ? messages.slice(0, -1) : messages;
+      this.setData({
+        messages: trimmed,
+        sending: false,
+        streaming: false,
+      });
+      saveMessages(stripRendered(trimmed));
+      this.refreshHistoryList();
+      this.onShowToast('#t-toast', message || '内容包含敏感信息，请修改后重试');
+    },
+
+    abortActiveStream() {
+      if (this.streamTask && typeof this.streamTask.abort === 'function') {
+        try {
+          this.streamTask.abort();
+        } catch (e) {
+          console.warn('[mknow] abort stream failed', e);
+        }
+      }
+      this.streamTask = null;
+      if (this.data.sending || this.data.streaming) {
+        this.setData({ sending: false, streaming: false });
+      }
     },
 
     updateStreamingAssistant(pendingId, content, meta = {}) {

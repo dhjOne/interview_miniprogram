@@ -353,23 +353,6 @@
     color: var(--td-text-color-placeholder, rgba(0, 0, 0, 0.4));
   }
 
-  &__interview {
-    display: flex;
-    align-items: center;
-    gap: 12rpx;
-    margin-top: 20rpx;
-    padding: 22rpx 24rpx;
-    border-radius: 16rpx;
-    background: #fff;
-    font-size: 26rpx;
-    color: @mknow-brand-start;
-    font-weight: 600;
-    box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.04);
-
-    &--active {
-      opacity: 0.88;
-    }
-  }
 }
 
 .mknow-brand {
@@ -526,18 +509,24 @@
     font-size: 26rpx;
   }
 
-  &__tag {
-    display: block;
-    margin-top: 12rpx;
-    font-size: 22rpx;
-    color: var(--td-warning-color, #e37318);
-  }
-
   &__model {
     display: block;
     margin-top: 14rpx;
     font-size: 22rpx;
     color: rgba(0, 0, 0, 0.38);
+  }
+
+  &__error {
+    display: block;
+    margin-top: 14rpx;
+    font-size: 23rpx;
+    line-height: 1.5;
+    color: var(--td-error-color, #d54941);
+  }
+
+  &__retry {
+    display: flex;
+    margin-top: 14rpx;
   }
 }
 
@@ -606,6 +595,21 @@
   font-size: 22rpx;
   color: rgba(0, 82, 217, 0.75);
   background: rgba(0, 82, 217, 0.06);
+}
+
+.mknow-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 9rpx 16rpx;
+  border-radius: 999rpx;
+  font-size: 23rpx;
+  color: var(--td-brand-color, @mknow-brand-start);
+  background: rgba(0, 82, 217, 0.08);
+
+  &--active {
+    opacity: 0.82;
+  }
 }
 
 .mknow-composer-spacer {
@@ -743,9 +747,9 @@
     box-shadow: 0 8rpx 24rpx rgba(0, 82, 217, 0.32);
   }
 
-  &--loading {
-    background: rgba(0, 82, 217, 0.12);
-    color: var(--td-brand-color, @mknow-brand-start);
+  &--stop {
+    background: rgba(213, 73, 65, 0.12);
+    color: var(--td-error-color, #d54941);
   }
 
   &:active {

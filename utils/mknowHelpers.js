@@ -36,7 +36,10 @@ export function extractReplyText(res) {
     data.content ||
     data.answer ||
     data.message ||
-    (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) ||
+    (data.choices &&
+      data.choices[0] &&
+      data.choices[0].message &&
+      data.choices[0].message.content) ||
     ''
   );
 }
@@ -72,14 +75,7 @@ export function pickRows(res) {
   if (!data || typeof data !== 'object') return [];
   const nested = data.data;
   if (Array.isArray(nested)) return nested;
-  return (
-    data.rows ||
-    data.list ||
-    data.items ||
-    data.records ||
-    data.conversations ||
-    []
-  );
+  return data.rows || data.list || data.items || data.records || data.conversations || [];
 }
 
 export function normalizeRemoteConversations(res) {
@@ -90,16 +86,10 @@ export function normalizeRemoteConversations(res) {
       conv.conversationId ||
       conv.conversation_id ||
       String(conv.id || '');
-    const conversationId =
-      conv.conversationId || conv.conversation_id || sessionId;
+    const conversationId = conv.conversationId || conv.conversation_id || sessionId;
     const messageCount =
       Number(conv.messageCount ?? conv.message_count ?? conv.msgCount ?? conv.msg_count) || 0;
-    const previewText =
-      conv.preview ||
-      conv.lastMessage ||
-      conv.last_message ||
-      conv.summary ||
-      '';
+    const previewText = conv.preview || conv.lastMessage || conv.last_message || conv.summary || '';
     return {
       id: conversationId || sessionId,
       conversationId,
@@ -122,8 +112,7 @@ export async function normalizeRemoteMessages(res) {
       createMessage(m.role === 'assistant' ? 'assistant' : 'user', m.content, {
         id: `remote_${m.id || Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
         time: parseRemoteTime(m.createdAt),
-        renderedContent:
-          m.role === 'assistant' ? await renderMarkdownAsync(m.content) : null,
+        renderedContent: m.role === 'assistant' ? await renderMarkdownAsync(m.content) : null,
       }),
     ),
   );
@@ -177,7 +166,9 @@ export function filterModelOptions(modelOptions = [], keyword = '') {
     const provider = String(item.provider || '').toLowerCase();
     const description = String(item.description || '').toLowerCase();
     const key = String(item.key || '').toLowerCase();
-    return label.includes(kw) || provider.includes(kw) || description.includes(kw) || key.includes(kw);
+    return (
+      label.includes(kw) || provider.includes(kw) || description.includes(kw) || key.includes(kw)
+    );
   });
 }
 
@@ -268,7 +259,10 @@ export function getNavContentHeight() {
 export function normalizeMknowQuota(payload) {
   const data = payload && typeof payload === 'object' ? payload : {};
   const reputationLevel = Number(data.reputationLevel ?? data.reputation_level ?? 1) || 1;
-  const dailyFreeTotal = Math.max(0, Number(data.dailyFreeTotal ?? data.daily_free_total ?? 0) || 0);
+  const dailyFreeTotal = Math.max(
+    0,
+    Number(data.dailyFreeTotal ?? data.daily_free_total ?? 0) || 0,
+  );
   const dailyFreeRemaining = Math.max(
     0,
     Number(data.dailyFreeRemaining ?? data.daily_free_remaining ?? 0) || 0,
@@ -309,18 +303,4 @@ export function formatQuotaResetAt(value) {
     return `${Number(m[2])}月${Number(m[3])}日 ${m[4]}:${m[5]}`;
   }
   return '次日 0 点';
-}
-
-export function buildFallbackReply(question) {
-  return [
-    '我是 m知道，你的面试 AI 助手。',
-    '',
-    '当前后端 AI 接口尚未接入或暂时不可用，以下为体验预览回答：',
-    '',
-    `你的问题：${question}`,
-    '',
-    '建议从「定义 → 核心要点 → 常见追问 → 项目结合」四步组织答案；若涉及算法，可先说明时间/空间复杂度，再给出关键步骤。',
-    '',
-    '接入 /ai/chat 后将返回真实模型回答。',
-  ].join('\n');
 }

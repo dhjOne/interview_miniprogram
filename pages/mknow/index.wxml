@@ -96,15 +96,6 @@
         <t-icon name="info-circle" size="28rpx" />
         <text>当前模型：{{selectedModelName}} · 登录后同步历史，可整理为 Markdown 发布到文档</text>
       </view>
-      <view
-        class="mknow-welcome__interview"
-        hover-class="mknow-welcome__interview--active"
-        bindtap="onGoInterview"
-      >
-        <t-icon name="user-talk" size="32rpx" />
-        <text>想要实时追问？去 AI 面试陪练</text>
-        <t-icon name="chevron-right" size="28rpx" />
-      </view>
     </scroll-view>
 
     <scroll-view
@@ -148,6 +139,24 @@
                   <t-loading theme="dots" size="28rpx" />
                   <text>正在生成</text>
                 </view>
+                <text
+                  wx:if="{{item.errorMessage && item.errorMessage !== item.content}}"
+                  class="mknow-bubble__error"
+                >
+                  {{item.errorMessage}}
+                </text>
+                <view wx:if="{{item.retryQuestion}}" class="mknow-bubble__retry">
+                  <view
+                    class="mknow-retry"
+                    hover-class="mknow-retry--active"
+                    data-id="{{item.id}}"
+                    data-question="{{item.retryQuestion}}"
+                    bindtap="onRetryMessage"
+                  >
+                    <t-icon name="refresh" size="26rpx" />
+                    <text>重新生成</text>
+                  </view>
+                </view>
                 <text wx:if="{{item.modelName}}" class="mknow-bubble__model">由 {{item.modelName}} 生成</text>
                 <view wx:if="{{item.sources && item.sources.length}}" class="mknow-sources">
                   <text class="mknow-sources__title">参考题库</text>
@@ -156,7 +165,6 @@
                     <text class="mknow-source__snippet">{{source.snippet}}</text>
                   </view>
                 </view>
-                <text wx:if="{{item.fallback}}" class="mknow-bubble__tag">预览模式</text>
               </block>
             </view>
           </view>
@@ -218,10 +226,10 @@
           />
         </view>
         <view
-          class="mknow-send {{input && !sending ? 'mknow-send--ready' : ''}} {{sending ? 'mknow-send--loading' : ''}}"
-          bindtap="handleSubmit"
+          class="mknow-send {{input && !sending ? 'mknow-send--ready' : ''}} {{sending ? 'mknow-send--stop' : ''}}"
+          bindtap="handleComposerAction"
         >
-          <t-loading wx:if="{{sending}}" theme="circular" size="36rpx" />
+          <t-icon wx:if="{{sending}}" name="close" size="32rpx" />
           <t-icon wx:else name="chevron-up" size="40rpx" />
         </view>
       </view>

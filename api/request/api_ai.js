@@ -195,21 +195,30 @@ export const aiApi = {
   chatStream: (params, handlers = {}) => {
     let buffer = '';
     let aborted = false;
+    let terminal = false;
     const streamDecoder = createStreamDecoder();
 
-    const flushSseBuffer = (tail = '') => {
-      if (aborted) return;
+    const flushSseBuffer = (tail = '', flushTail = false) => {
+      if (aborted || terminal) return;
       buffer += tail;
+      if (flushTail && buffer.trim()) {
+        buffer += '\n\n';
+      }
       const frames = buffer.split(/\r?\n\r?\n/);
       buffer = frames.pop() || '';
       frames.forEach((frame) => {
-        if (!frame.trim()) return;
+        if (!frame.trim() || terminal) return;
         const parsed = parseSseFrame(frame);
         const data = parseJson(parsed.data);
         if (parsed.event === 'meta' && handlers.onMeta) handlers.onMeta(data);
         else if (parsed.event === 'token' && handlers.onToken) handlers.onToken(data.delta || '');
-        else if (parsed.event === 'done' && handlers.onDone) handlers.onDone(data);
-        else if (parsed.event === 'error' && handlers.onError) handlers.onError(data);
+        else if (parsed.event === 'done') {
+          terminal = true;
+          if (handlers.onDone) handlers.onDone(data);
+        } else if (parsed.event === 'error') {
+          terminal = true;
+          if (handlers.onError) handlers.onError(data);
+        }
       });
     };
 
@@ -224,9 +233,11 @@ export const aiApi = {
         Authorization: getTokenHeader(),
       },
       success: (res) => {
-        if (aborted) return;
-        flushSseBuffer(streamDecoder.flush());
+        if (aborted || terminal) return;
+        flushSseBuffer(streamDecoder.flush(), true);
+        if (terminal) return;
         if (res.statusCode === 401 || res.statusCode === 403) {
+          terminal = true;
           if (handlers.onError) {
             handlers.onError({
               errorType: 'UNAUTHORIZED',
@@ -237,6 +248,7 @@ export const aiApi = {
           return;
         }
         if (res.statusCode !== 200) {
+          terminal = true;
           if (handlers.onError) {
             handlers.onError({
               errorType: 'AI_UNAVAILABLE',
@@ -244,11 +256,22 @@ export const aiApi = {
               message: `请求失败：${res.statusCode}`,
             });
           }
+          return;
+        }
+        terminal = true;
+        if (handlers.onError) {
+          handlers.onError({
+            errorType: 'INCOMPLETE_STREAM',
+            errorMessage: '连接已结束，但回复未完整返回',
+            message: '连接已结束，但回复未完整返回',
+          });
         }
       },
       fail: (err) => {
-        if (aborted) return;
-        if (handlers.onError) handlers.onError(err || { errorType: 'AI_UNAVAILABLE', errorMessage: '网络异常' });
+        if (aborted || terminal) return;
+        terminal = true;
+        if (handlers.onError)
+          handlers.onError(err || { errorType: 'AI_UNAVAILABLE', errorMessage: '网络异常' });
       },
     });
 
@@ -259,12 +282,17 @@ export const aiApi = {
       });
     }
 
-    // 统一 abort 包装，页面卸载/切会话时可取消流式请求
+    // 统一 abort 包装，页面卸载/切会话时可取消流式请求并收敛 Promise。
     const originalAbort = task && typeof task.abort === 'function' ? task.abort.bind(task) : null;
-    task.abort = () => {
-      aborted = true;
-      if (originalAbort) originalAbort();
-    };
+    if (task) {
+      task.abort = () => {
+        if (aborted || terminal) return;
+        aborted = true;
+        terminal = true;
+        if (originalAbort) originalAbort();
+        if (handlers.onAbort) handlers.onAbort();
+      };
+    }
     return task;
   },
 };

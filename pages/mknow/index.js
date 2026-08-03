@@ -257,8 +257,4 @@ Page({
     });
     this.onShowToast('#t-toast', `已切换为 ${selected.label}`);
   },
-
-  onGoInterview() {
-    openPage({ url: '/pages/interview/index' });
-  },
 });

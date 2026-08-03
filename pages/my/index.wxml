@@ -187,22 +187,6 @@
       </view>
     </view>
 
-    <!-- AI 面试陪练入口 -->
-    <view
-      class="my-page__card my-interview-entry"
-      hover-class="my-interview-entry--active"
-      bindtap="onInterviewTap"
-    >
-      <view class="my-interview-entry__icon">
-        <t-icon name="user-talk" size="44rpx" />
-      </view>
-      <view class="my-interview-entry__body">
-        <text class="my-interview-entry__title">AI 面试陪练</text>
-        <text class="my-interview-entry__desc">实时追问 · 题库出题 · 回答评分建议</text>
-      </view>
-      <t-icon name="chevron-right" size="32rpx" class="my-interview-entry__arrow" />
-    </view>
-
     <!-- 更多服务 -->
     <view class="my-page__card my-page__card--more">
       <view class="my-page__section-head my-page__section-head--row">

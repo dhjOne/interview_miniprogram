@@ -1,23 +1,21 @@
 import { aiApi } from '~/api/index';
 import {
-  clearMessages,
   messagesToMarkdown,
   saveMessages,
   saveRemoteConversation,
   setPendingPublish,
 } from '~/utils/aiChatStorage';
-import {
-  buildFallbackReply,
-  createMessage,
-  extractErrorType,
-  extractReplyText,
-  extractSources,
-  stripRendered,
-} from '~/utils/mknowHelpers';
+import { createMessage, stripRendered } from '~/utils/mknowHelpers';
 import { openPage } from '~/utils/router';
 
 const app = getApp();
 const { renderMarkdown: renderMarkdownAsync } = require('../../../utils/towxmlLoader');
+
+const STREAM_RENDER_INTERVAL = 120;
+
+function persistableMessages(messages = []) {
+  return stripRendered(messages.filter((message) => !message.transient));
+}
 
 const SUGGESTIONS = [
   { id: 1, text: '帮我梳理一道二叉树的中序遍历思路', icon: 'chart-bubble' },
@@ -52,7 +50,7 @@ const mknowChatBehavior = Behavior({
         return;
       }
 
-      const valid = (messages || []).filter((m) => m.content && !m.pending);
+      const valid = (messages || []).filter((m) => m.content && !m.pending && !m.transient);
       if (valid.length < 2) {
         this.onShowToast('#t-toast', '至少需要一轮完整问答');
         return;
@@ -101,6 +99,14 @@ const mknowChatBehavior = Behavior({
       this.sendQuestion(input.trim());
     },
 
+    handleComposerAction() {
+      if (this.data.sending) {
+        this.abortActiveStream({ reason: 'user' });
+        return;
+      }
+      this.handleSubmit();
+    },
+
     sendQuestion(content) {
       if (!content) return;
 
@@ -122,6 +128,15 @@ const mknowChatBehavior = Behavior({
       const userMsg = createMessage('user', content);
       const messages = [...this.data.messages, userMsg];
       const pendingId = `assistant_pending_${Date.now()}`;
+      const generation = (this._streamGeneration || 0) + 1;
+      this._streamGeneration = generation;
+      this._activeStream = {
+        generation,
+        pendingId,
+        question: content,
+        sessionId: this.data.sessionId,
+        conversationId: this.data.conversationId,
+      };
 
       const chatTitle =
         this.data.messages.length === 0
@@ -145,260 +160,332 @@ const mknowChatBehavior = Behavior({
         streaming: true,
         chatTitle,
       });
-      saveMessages(stripRendered(messages));
+      saveMessages(persistableMessages(messages));
       this.refreshHistoryList();
       wx.nextTick(() => this.scrollToBottom());
 
-      this.requestAiReply(content, pendingId, messages);
+      this.requestAiReply(content, pendingId, messages, generation);
     },
 
-    handleQuotaExceeded(pendingId, message) {
-      const messages = (this.data.messages || []).filter((m) => m.id !== pendingId);
-      // 同步去掉刚追加的用户消息，避免次数不足仍留下提问气泡
-      const last = messages[messages.length - 1];
-      const trimmed =
-        last && last.role === 'user' ? messages.slice(0, -1) : messages;
+    isActiveStream(generation, pendingId) {
+      const active = this._activeStream;
+      return !!active && active.generation === generation && active.pendingId === pendingId;
+    },
+
+    settleActiveStream(generation) {
+      if (!this._activeStream || this._activeStream.generation !== generation) return;
+      this._activeStream = null;
+      this.streamTask = null;
+      clearTimeout(this._renderTimer);
+      this._renderTimer = null;
+    },
+
+    handleRecoverableError(pendingId, question, message, errorType, generation) {
+      if (!this.isActiveStream(generation, pendingId)) return;
+      const withoutPending = (this.data.messages || []).filter((m) => m.id !== pendingId);
+      const last = withoutPending[withoutPending.length - 1];
+      const messages =
+        last && last.role === 'user' && last.content === question
+          ? withoutPending.slice(0, -1)
+          : withoutPending;
+      this.settleActiveStream(generation);
       this.setData({
-        messages: trimmed,
+        messages,
+        input: question,
         sending: false,
         streaming: false,
       });
-      saveMessages(stripRendered(trimmed));
+      saveMessages(persistableMessages(messages));
       this.refreshHistoryList();
-      if (typeof this.loadAiQuota === 'function') {
-        this.loadAiQuota();
+
+      if (errorType === 'QUOTA_EXCEEDED') {
+        if (typeof this.loadAiQuota === 'function') this.loadAiQuota();
+        if (typeof this.showQuotaExhaustedGuide === 'function') {
+          this.showQuotaExhaustedGuide();
+        } else {
+          this.onShowToast('#t-toast', message || 'AI 次数已用完');
+        }
+        return;
       }
-      if (typeof this.showQuotaExhaustedGuide === 'function') {
-        this.showQuotaExhaustedGuide();
-      } else {
-        this.onShowToast('#t-toast', message || 'AI 次数已用完');
-      }
+
+      const fallback =
+        errorType === 'SESSION_BUSY'
+          ? '当前会话正在生成，请稍后'
+          : errorType === 'RATE_LIMIT'
+          ? '请求太频繁，请稍后再试'
+          : '内容包含敏感信息，请修改后重试';
+      this.onShowToast('#t-toast', message || fallback);
     },
 
-    async requestAiReply(content, pendingId, historyBeforeAssistant) {
+    async requestAiReply(content, pendingId, historyBeforeAssistant, generation) {
       const { sessionId } = this.data;
       const payload = {
         content,
         sessionId,
         modelKey: this.data.selectedModelKey || 'auto',
-        messages: historyBeforeAssistant.map((m) => ({
-          role: m.role,
-          content: m.content,
-        })),
+        messages: historyBeforeAssistant
+          .filter((m) => !m.transient)
+          .map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
       };
 
       try {
-        await this.requestAiReplyStream(payload, pendingId, content);
+        await this.requestAiReplyStream(payload, pendingId, content, generation);
       } catch (streamErr) {
-        console.warn('[mknow] ai stream failed, use json chat', streamErr);
-        try {
-          const res = await aiApi.chat(payload);
-          const reply = extractReplyText(res) || buildFallbackReply(content);
-          const data = res && res.data ? res.data : {};
-          const errorType = extractErrorType(res);
-          if (errorType === 'QUOTA_EXCEEDED') {
-            this.handleQuotaExceeded(pendingId, data.errorMessage || reply);
-            return;
-          }
-          if (errorType === 'RATE_LIMIT' || errorType === 'SESSION_BUSY') {
-            this.handleBusyOrRateLimit(pendingId, data.errorMessage || reply, errorType);
-            return;
-          }
-          if (errorType === 'SENSITIVE_CONTENT') {
-            this.handleSensitiveContent(pendingId, data.errorMessage || reply);
-            return;
-          }
-          if (errorType) {
-            this.onShowToast('#t-toast', data.errorMessage || reply);
-          }
-          this.finishAssistantMessage(pendingId, reply, false, {
-            sessionId: data.sessionId,
-            conversationId: data.conversationId,
-            sources: extractSources(res),
-            errorType,
-            modelKey: data.modelKey,
-            modelName: data.modelName,
-          });
-        } catch (err) {
-          console.warn('[mknow] ai chat failed, use fallback', err);
-          this.finishAssistantMessage(pendingId, buildFallbackReply(content), true);
-        }
+        if (!this.isActiveStream(generation, pendingId)) return;
+        console.warn('[mknow] ai stream failed', streamErr);
+        const message =
+          (streamErr && (streamErr.errorMessage || streamErr.message || streamErr.errMsg)) ||
+          'AI 服务暂时不可用';
+        this.finishStreamFailure(
+          pendingId,
+          content,
+          message,
+          (streamErr && (streamErr.errorType || streamErr.code)) || 'AI_UNAVAILABLE',
+          generation,
+        );
       }
     },
 
-    requestAiReplyStream(payload, pendingId, question) {
+    requestAiReplyStream(payload, pendingId, question, generation) {
       return new Promise((resolve, reject) => {
         let reply = '';
         let meta = {};
         let settled = false;
-        let received = false;
         this.streamTask = aiApi.chatStream(payload, {
           onMeta: (data) => {
-            received = true;
+            if (!this.isActiveStream(generation, pendingId)) return;
             meta = data || {};
-            this.updateStreamingAssistant(pendingId, reply, meta);
+            this.updateStreamingAssistant(pendingId, reply, meta, generation);
           },
           onToken: (delta) => {
-            received = true;
+            if (!this.isActiveStream(generation, pendingId)) return;
             reply += delta || '';
-            this.updateStreamingAssistant(pendingId, reply, meta);
+            this.updateStreamingAssistant(pendingId, reply, meta, generation);
           },
           onDone: (data) => {
             if (settled) return;
             settled = true;
+            if (!this.isActiveStream(generation, pendingId)) {
+              resolve(data);
+              return;
+            }
             const finalData = { ...meta, ...(data || {}) };
-            this.finishAssistantMessage(
-              pendingId,
-              reply || finalData.reply || buildFallbackReply(question),
-              false,
-              {
-                sessionId: finalData.sessionId,
-                conversationId: finalData.conversationId,
-                sources: finalData.sources || [],
-                modelKey: finalData.modelKey,
-                modelName: finalData.modelName,
-              },
-            );
+            const answer = reply || finalData.reply || '';
+            if (answer.trim()) {
+              this.finishAssistantMessage(
+                pendingId,
+                answer,
+                {
+                  sessionId: finalData.sessionId,
+                  conversationId: finalData.conversationId,
+                  sources: finalData.sources || [],
+                  modelKey: finalData.modelKey,
+                  modelName: finalData.modelName,
+                },
+                generation,
+              );
+            } else {
+              this.finishStreamFailure(
+                pendingId,
+                question,
+                '本轮未返回有效内容，请重试',
+                'EMPTY_RESPONSE',
+                generation,
+              );
+            }
             resolve(finalData);
           },
           onError: (err) => {
             if (settled) return;
             settled = true;
+            if (!this.isActiveStream(generation, pendingId)) {
+              resolve(err);
+              return;
+            }
             const errorType = (err && (err.errorType || err.code)) || '';
             const errorMessage =
               (err && (err.errorMessage || err.message || err.errMsg)) || 'AI 服务暂时不可用';
 
-            if (errorType === 'QUOTA_EXCEEDED') {
-              this.handleQuotaExceeded(pendingId, errorMessage);
+            if (
+              errorType === 'QUOTA_EXCEEDED' ||
+              errorType === 'RATE_LIMIT' ||
+              errorType === 'SESSION_BUSY' ||
+              errorType === 'SENSITIVE_CONTENT'
+            ) {
+              this.handleRecoverableError(pendingId, question, errorMessage, errorType, generation);
               resolve(err);
               return;
             }
-            if (errorType === 'RATE_LIMIT' || errorType === 'SESSION_BUSY') {
-              this.handleBusyOrRateLimit(pendingId, errorMessage, errorType);
-              resolve(err);
-              return;
-            }
-            if (errorType === 'SENSITIVE_CONTENT') {
-              this.handleSensitiveContent(pendingId, errorMessage);
-              resolve(err);
-              return;
-            }
+
+            this.finishStreamFailure(
+              pendingId,
+              question,
+              errorMessage,
+              errorType || 'AI_UNAVAILABLE',
+              generation,
+              reply,
+              meta,
+            );
             if (errorType === 'UNAUTHORIZED') {
-              this.setData({ sending: false, streaming: false });
               this.onShowToast('#t-toast', errorMessage);
               if (app && typeof app.navigateToLogin === 'function') {
                 app.navigateToLogin({ url: '/pages/mknow/index' });
               }
-              resolve(err);
-              return;
             }
-            if (received && errorMessage) {
-              this.finishAssistantMessage(pendingId, errorMessage, true, {
-                sessionId: err.sessionId || meta.sessionId,
-                conversationId: err.conversationId || meta.conversationId,
-                errorType: errorType || 'AI_UNAVAILABLE',
-                modelName: err.modelName || meta.modelName,
-              });
-              resolve(err);
-              return;
-            }
-            reject(err);
+            resolve(err);
+          },
+          onAbort: () => {
+            if (settled) return;
+            settled = true;
+            resolve({ cancelled: true });
           },
         });
         if (!this.streamTask || !this.streamTask.onChunkReceived) {
-          reject(new Error('当前环境不支持流式输出'));
+          const unsupportedError = new Error('当前微信版本不支持流式输出，请升级后重试');
+          unsupportedError.errorType = 'STREAM_UNSUPPORTED';
+          unsupportedError.errorMessage = unsupportedError.message;
+          reject(unsupportedError);
         }
       });
     },
 
-    handleBusyOrRateLimit(pendingId, message, errorType) {
-      const messages = (this.data.messages || []).filter((m) => m.id !== pendingId);
-      const last = messages[messages.length - 1];
-      const trimmed = last && last.role === 'user' ? messages.slice(0, -1) : messages;
-      this.setData({
-        messages: trimmed,
-        sending: false,
-        streaming: false,
+    finishStreamFailure(
+      pendingId,
+      question,
+      message,
+      errorType,
+      generation,
+      partialContent = '',
+      meta = {},
+    ) {
+      if (!this.isActiveStream(generation, pendingId)) return;
+      const messages = (this.data.messages || []).map((item) => {
+        if (item.id !== pendingId) return item;
+        return {
+          ...item,
+          content: partialContent || message,
+          pending: false,
+          streaming: false,
+          transient: true,
+          interrupted: !!partialContent,
+          failed: true,
+          errorMessage: message,
+          errorType,
+          retryQuestion: errorType === 'UNAUTHORIZED' ? '' : question,
+          modelName: meta.modelName || item.modelName || this.data.selectedModelName,
+        };
       });
-      saveMessages(stripRendered(trimmed));
+      this.settleActiveStream(generation);
+      this.setData({ messages, sending: false, streaming: false });
+      saveMessages(persistableMessages(messages));
       this.refreshHistoryList();
-      this.onShowToast(
-        '#t-toast',
-        message || (errorType === 'SESSION_BUSY' ? '当前会话正在生成，请稍后' : '请求太频繁，请稍后再试'),
-      );
+      wx.nextTick(() => this.scrollToBottom());
     },
 
-    handleSensitiveContent(pendingId, message) {
-      const messages = (this.data.messages || []).filter((m) => m.id !== pendingId);
-      const last = messages[messages.length - 1];
-      const trimmed = last && last.role === 'user' ? messages.slice(0, -1) : messages;
-      this.setData({
-        messages: trimmed,
-        sending: false,
-        streaming: false,
-      });
-      saveMessages(stripRendered(trimmed));
-      this.refreshHistoryList();
-      this.onShowToast('#t-toast', message || '内容包含敏感信息，请修改后重试');
-    },
+    abortActiveStream(options = {}) {
+      const { reason = 'cancelled', silent = false } = options;
+      const active = this._activeStream;
+      const task = this.streamTask;
+      this._streamGeneration = (this._streamGeneration || 0) + 1;
+      this._activeStream = null;
+      this.streamTask = null;
+      clearTimeout(this._renderTimer);
+      this._renderTimer = null;
 
-    abortActiveStream() {
-      if (this.streamTask && typeof this.streamTask.abort === 'function') {
+      let messages = this.data.messages || [];
+      if (active) {
+        messages = messages.map((item) => {
+          if (item.id !== active.pendingId) return item;
+          const partial = (item.content || '').trim();
+          return {
+            ...item,
+            content: partial || '生成已停止',
+            pending: false,
+            streaming: false,
+            transient: true,
+            interrupted: true,
+            failed: false,
+            errorType: 'CANCELLED',
+            errorMessage: '生成已停止',
+            retryQuestion: active.question,
+          };
+        });
+      }
+
+      this.setData({ messages, sending: false, streaming: false });
+      saveMessages(persistableMessages(messages));
+      this.refreshHistoryList();
+      if (task && typeof task.abort === 'function') {
         try {
-          this.streamTask.abort();
+          task.abort();
         } catch (e) {
           console.warn('[mknow] abort stream failed', e);
         }
       }
-      this.streamTask = null;
-      if (this.data.sending || this.data.streaming) {
-        this.setData({ sending: false, streaming: false });
+      if (!silent && active && reason === 'user') {
+        this.onShowToast('#t-toast', '已停止生成');
       }
     },
 
-    updateStreamingAssistant(pendingId, content, meta = {}) {
+    updateStreamingAssistant(pendingId, content, meta = {}, generation) {
+      if (!this.isActiveStream(generation, pendingId)) return;
       const now = Date.now();
-      if (this._lastRenderAt && now - this._lastRenderAt < 180) {
+      if (this._lastRenderAt && now - this._lastRenderAt < STREAM_RENDER_INTERVAL) {
         clearTimeout(this._renderTimer);
         this._renderTimer = setTimeout(() => {
           this._lastRenderAt = Date.now();
-          this.updateStreamingAssistant(pendingId, content, meta);
-        }, 180);
+          this.updateStreamingAssistant(pendingId, content, meta, generation);
+        }, STREAM_RENDER_INTERVAL);
         return;
       }
       this._lastRenderAt = now;
-      renderMarkdownAsync(content).then((renderedContent) => {
-        const messages = this.data.messages.map((m) => {
-          if (m.id !== pendingId) return m;
-          return {
-            ...m,
-            content,
-            pending: false,
-            streaming: true,
-            sources: meta.sources || m.sources || [],
-            modelName: meta.modelName || m.modelName || this.data.selectedModelName,
-            renderedContent: renderedContent || m.renderedContent,
-          };
-        });
-        this.setData({ messages });
-        wx.nextTick(() => this.scrollToBottom());
+      const messages = this.data.messages.map((m) => {
+        if (m.id !== pendingId) return m;
+        return {
+          ...m,
+          content,
+          pending: !content,
+          streaming: true,
+          sources: meta.sources || m.sources || [],
+          modelName: meta.modelName || m.modelName || this.data.selectedModelName,
+          renderedContent: null,
+        };
       });
+      this.setData({ messages });
+      wx.nextTick(() => this.scrollToBottom());
     },
 
-    async finishAssistantMessage(pendingId, content, isFallback, extra = {}) {
-      const renderedContent = await renderMarkdownAsync(content);
-      const messages = this.data.messages
-        .filter((m) => m.id !== pendingId)
-        .concat(
-          createMessage('assistant', content, {
-            fallback: isFallback || extra.errorType === 'AI_UNAVAILABLE',
-            sources: extra.sources || [],
-            errorType: extra.errorType || '',
-            modelName: extra.modelName || this.data.selectedModelName,
-            renderedContent,
-          }),
-        );
+    async finishAssistantMessage(pendingId, content, extra = {}, generation) {
+      if (!this.isActiveStream(generation, pendingId)) return;
+      if (!(this.data.messages || []).some((message) => message.id === pendingId)) return;
+      let renderedContent = null;
+      try {
+        renderedContent = await renderMarkdownAsync(content);
+      } catch (err) {
+        console.warn('[mknow] render markdown failed, use plain text', err);
+      }
+      if (!this.isActiveStream(generation, pendingId)) return;
+      const messages = this.data.messages.map((message) => {
+        if (message.id !== pendingId) return message;
+        return {
+          ...message,
+          content,
+          pending: false,
+          streaming: false,
+          transient: false,
+          failed: false,
+          interrupted: false,
+          sources: extra.sources || [],
+          errorType: extra.errorType || '',
+          modelName: extra.modelName || this.data.selectedModelName,
+          renderedContent,
+        };
+      });
 
+      this.settleActiveStream(generation);
       if (extra.sessionId || extra.conversationId) {
         const saved = saveRemoteConversation(
           {
@@ -407,7 +494,7 @@ const mknowChatBehavior = Behavior({
             title: this.data.chatTitle,
             updatedAt: Date.now(),
           },
-          stripRendered(messages),
+          persistableMessages(messages),
         );
         this.setData({
           messages,
@@ -420,16 +507,29 @@ const mknowChatBehavior = Behavior({
       } else {
         this.setData({ messages, sending: false, streaming: false });
       }
-      saveMessages(stripRendered(messages));
+      saveMessages(persistableMessages(messages));
       this.refreshHistoryList();
-      // 成功扣次后刷新；AI 失败已退次，也刷新以同步展示
-      if (
-        typeof this.loadAiQuota === 'function' &&
-        (!isFallback || extra.errorType === 'AI_UNAVAILABLE')
-      ) {
+      if (typeof this.loadAiQuota === 'function') {
         this.loadAiQuota();
       }
       wx.nextTick(() => this.scrollToBottom());
+    },
+
+    onRetryMessage(e) {
+      if (this.data.sending) return;
+      const { id, question } = e.currentTarget.dataset;
+      if (!id || !question) return;
+      const failedIndex = (this.data.messages || []).findIndex((message) => message.id === id);
+      if (failedIndex < 0) return;
+      const messages = [...this.data.messages];
+      messages.splice(failedIndex, 1);
+      const previous = messages[failedIndex - 1];
+      if (previous && previous.role === 'user' && previous.content === question) {
+        messages.splice(failedIndex - 1, 1);
+      }
+      this.setData({ messages });
+      saveMessages(persistableMessages(messages));
+      this.sendQuestion(question);
     },
 
     scrollToBottom() {
@@ -440,13 +540,17 @@ const mknowChatBehavior = Behavior({
       if (!this.data.messages.length) return;
       wx.showModal({
         title: '清空对话',
-        content: '确定清空当前会话记录吗？',
-        success: (res) => {
+        content: '将清空当前会话及其上下文，确定继续吗？',
+        success: async (res) => {
           if (!res.confirm) return;
-          clearMessages();
-          this.setData({ messages: [], input: '', anchor: '', chatTitle: '新对话' });
-          this.refreshHistoryList();
-          this.onShowToast('#t-toast', '已清空');
+          if (typeof this.resetCurrentConversation !== 'function') return;
+          try {
+            await this.resetCurrentConversation();
+            this.onShowToast('#t-toast', '已清空并开启新对话');
+          } catch (err) {
+            console.warn('[mknow] clear conversation failed', err);
+            this.onShowToast('#t-toast', '清空失败，请稍后重试');
+          }
         },
       });
     },

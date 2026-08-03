@@ -140,9 +140,7 @@ function decorateConversation(conv) {
     title: conv.title || deriveTitle(messages),
     updatedAtText: formatTime(conv.updatedAt),
     messageCount: Math.max(localCount, remoteCount),
-    preview: previewMsg
-      ? String(previewMsg.content).slice(0, 40)
-      : remotePreview || '暂无消息',
+    preview: previewMsg ? String(previewMsg.content).slice(0, 40) : remotePreview || '暂无消息',
   };
 }
 
@@ -276,6 +274,7 @@ export function deleteConversation(conversationId) {
       messages: [],
       sessionId: conv.sessionId,
       conversationId: id,
+      title: conv.title,
     };
   }
 
@@ -289,6 +288,7 @@ export function deleteConversation(conversationId) {
     messages: active ? active.messages || [] : [],
     sessionId: active ? active.sessionId : createSessionId(),
     conversationId: store.activeId,
+    title: active ? active.title : '新对话',
   };
 }
 
@@ -302,8 +302,8 @@ export function saveRemoteConversation(remoteConv = {}, messages) {
   const nextMessages = Array.isArray(messages)
     ? messages.slice(-MAX_MESSAGES_PER_CONV)
     : existing && Array.isArray(existing.messages)
-      ? existing.messages
-      : [];
+    ? existing.messages
+    : [];
   const conv = {
     ...(existing || {}),
     id,
@@ -339,7 +339,8 @@ export function mergeRemoteConversations(remoteConversations = []) {
     const sessionId = remoteConv.sessionId || remoteConv.conversationId || id;
     const idx = store.conversations.findIndex((c) => c.id === id || c.sessionId === sessionId);
     const existing = idx >= 0 ? store.conversations[idx] : {};
-    const remoteMessageCount = Number(remoteConv.messageCount) || Number(existing.remoteMessageCount) || 0;
+    const remoteMessageCount =
+      Number(remoteConv.messageCount) || Number(existing.remoteMessageCount) || 0;
     const conv = {
       ...existing,
       id,
@@ -365,7 +366,7 @@ export function mergeRemoteConversations(remoteConversations = []) {
 
 export function messagesToMarkdown(messages, options = {}) {
   const { title: customTitle } = options;
-  const list = (messages || []).filter((m) => m.content && !m.pending);
+  const list = (messages || []).filter((m) => m.content && !m.pending && !m.transient);
   if (!list.length) return { title: '', content: '' };
 
   const firstUser = list.find((m) => m.role === 'user');
@@ -376,12 +377,7 @@ export function messagesToMarkdown(messages, options = {}) {
         (String(firstUser.content).trim().length > 30 ? '…' : '')
       : 'AI 对话整理');
 
-  const lines = [
-    `# ${title}`,
-    '',
-    `> 由 m知道 AI 对话整理 · ${formatTime(Date.now())}`,
-    '',
-  ];
+  const lines = [`# ${title}`, '', `> 由 m知道 AI 对话整理 · ${formatTime(Date.now())}`, ''];
 
   list.forEach((m) => {
     if (m.role === 'user') {
